@@ -1,5 +1,5 @@
-import os
 from datetime import date
+import os
 import pandas as pd
 import streamlit as st
 
@@ -10,30 +10,28 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-ARQUIVO_FUSOS = "lancamentos_fusos_v2.xlsx"
+ARQUIVO_FUSOS = "lancamentos_fusos_v3.xlsx"
 
 colunas_obrigatorias = [
-    "Data_Lancamento",
-    "Mes",
     "Ano",
+    "Mes",
     "Maquina_TAG",
     "Quantidade_Quebras",
     "Observacoes",
 ]
 
-# Garante o arquivo e a estrutura de colunas corretos
+# Inicializa o arquivo com a estrutura correta se não existir
 if not os.path.exists(ARQUIVO_FUSOS):
     pd.DataFrame(columns=colunas_obrigatorias).to_excel(
         ARQUIVO_FUSOS, index=False
     )
 
 df_fusos = pd.read_excel(ARQUIVO_FUSOS)
-
 if not all(col in df_fusos.columns for col in colunas_obrigatorias):
     df_fusos = pd.DataFrame(columns=colunas_obrigatorias)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Controle de navegação (inicia na tela que você estava usando)
+# Controle de navegação da página
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Lançamento Fusos"
 
@@ -49,7 +47,7 @@ with st.sidebar:
     st.title("⚙️ Painel Manutenção")
     st.markdown("---")
 
-    # SEÇÃO 1: PAINÉIS (APENAS O DE FUSOS COMO PEDIU)
+    # PAINÉIS
     st.subheader("📊 Painéis")
     tipo_painel_fusos = (
         "primary"
@@ -66,9 +64,8 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # SEÇÃO 2: LANÇAMENTOS (TODOS OS 4 ITENS MANTIDOS)
+    # LANÇAMENTOS
     st.subheader("📝 Lançamentos")
-
     tipo_fusos = (
         "primary"
         if st.session_state.pagina_atual == "Lançamento Fusos"
@@ -129,7 +126,6 @@ with st.sidebar:
 # ==========================================
 tela = st.session_state.pagina_atual
 
-lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
 lista_meses_puros = [
     "Janeiro",
     "Fevereiro",
@@ -144,16 +140,139 @@ lista_meses_puros = [
     "Novembro",
     "Dezembro",
 ]
-lista_meses = ["Todos"] + lista_meses_puros
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE FUSOS
+# 1. LANÇAMENTOS: FUSOS (LISTA DE MÁQUINAS 1 A 10 POR MÊS)
 # ------------------------------------------
-if tela == "Painel Fusos":
+if tela == "Lançamento Fusos":
+    st.header("🔩 Lançamentos: Grade de Quebras de Fusos")
+    st.write(
+        "Escolha o ano, selecione a aba do mês correspondente no topo e aponte a quantidade de quebras para as máquinas de 1 a 10."
+    )
+
+    # 1. Seleção do Ano no topo
+    col_ano, _ = st.columns([2, 4])
+    with col_ano:
+        ano_selecionado = st.selectbox(
+            "📅 Selecione o Ano:", [2024, 2025, 2026, 2027, 2028], index=2
+        )
+
+    st.markdown("---")
+
+    # 2. Abas horizontais dos 12 meses na parte superior
+    abas_meses = st.tabs(lista_meses_puros)
+
+    # Lista fixa das máquinas de 1 a 10
+    lista_maquinas = [f"Máquina {i}" for i in range(1, 11)]
+
+    for idx, nome_mes in enumerate(lista_meses_puros):
+        with abas_meses[idx]:
+            st.subheader(f"Apontamento: {nome_mes} / {ano_selecionado}")
+
+            # Lê os dados atuais
+            df_atual = pd.read_excel(ARQUIVO_FUSOS)
+
+            # Filtra os dados já salvos desse ano e mês
+            df_mes_ano = df_atual[
+                (df_atual["Ano"] == ano_selecionado)
+                & (df_atual["Mes"] == nome_mes)
+            ]
+
+            # Monta a tabela base com as 10 máquinas
+            dados_grade = []
+            for maq in lista_maquinas:
+                # Se já tiver registro salvo, recupera o valor; senão coloca 0
+                registro_existente = df_mes_ano[df_mes_ano["Maquina_TAG"] == maq]
+                if not registro_existente.empty:
+                    qtd = int(registro_existente.iloc[0]["Quantidade_Quebras"])
+                    obs = str(registro_existente.iloc[0]["Observacoes"])
+                    if obs == "nan":
+                        obs = ""
+                else:
+                    qtd = 0
+                    obs = ""
+
+                dados_grade.append(
+                    {
+                        "Máquina": maq,
+                        "Quantidade de Quebras": qtd,
+                        "Observações": obs,
+                    }
+                )
+
+            df_grade = pd.DataFrame(dados_grade)
+
+            st.write(
+                "👉 Dê dois cliques no número para editar a quantidade de quebras de cada máquina:"
+            )
+
+            # Editor interativo na tela
+            tabela_editada = st.data_editor(
+                df_grade,
+                disabled=["Máquina"],  # Trava o nome das máquinas para ninguém apagar
+                hide_index=True,
+                use_container_width=True,
+                key=f"editor_{ano_selecionado}_{nome_mes}",
+            )
+
+            col_btn, col_info = st.columns([2, 4])
+            with col_btn:
+                salvar_mes = st.button(
+                    f"💾 Salvar {nome_mes}/{ano_selecionado}",
+                    key=f"btn_{ano_selecionado}_{nome_mes}",
+                    type="primary",
+                )
+
+            if salvar_mes:
+                # 1. Remove qualquer registro antigo desse mês/ano para não duplicar
+                df_limpo = df_atual[
+                    ~(
+                        (df_atual["Ano"] == ano_selecionado)
+                        & (df_atual["Mes"] == nome_mes)
+                    )
+                ]
+
+                # 2. Prepara os novos dados da tabela editada
+                novos_registros = []
+                for _, linha in tabela_editada.iterrows():
+                    novos_registros.append(
+                        {
+                            "Ano": int(ano_selecionado),
+                            "Mes": nome_mes,
+                            "Maquina_TAG": linha["Máquina"],
+                            "Quantidade_Quebras": int(
+                                linha["Quantidade de Quebras"]
+                            ),
+                            "Observacoes": str(linha["Observações"]),
+                        }
+                    )
+
+                df_final = pd.concat(
+                    [df_limpo, pd.DataFrame(novos_registros)], ignore_index=True
+                )
+                df_final.to_excel(ARQUIVO_FUSOS, index=False)
+                st.success(
+                    f"✅ Fechamento de {nome_mes}/{ano_selecionado} salvo com sucesso!"
+                )
+                st.rerun()
+
+            # Métricas rápidas logo abaixo da tabela
+            total_quebras_mes = tabela_editada["Quantidade de Quebras"].sum()
+            st.caption(
+                f"Total de quebras acumuladas em {nome_mes}: **{total_quebras_mes} fusos**"
+            )
+
+# ------------------------------------------
+# 2. PAINEL GERENCIAL DE FUSOS
+# ------------------------------------------
+elif tela == "Painel Fusos":
     st.header("📊 Painel Gerencial: Quebras de Fusos")
-    st.write("Análise visual e indicadores de falhas em fusos da fábrica.")
+    st.write("Análise visual consolidada das quebras apontadas nas máquinas.")
 
     col_ano, col_mes = st.columns([1, 2])
+    lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
+    lista_meses = ["Todos"] + lista_meses_puros
+
     with col_ano:
         ano_painel = st.selectbox(
             "📅 Filtrar por Ano:", lista_anos, index=3, key="p_ano"
@@ -173,9 +292,12 @@ if tela == "Painel Fusos":
     if mes_painel != "Todos":
         df_filtrado_p = df_filtrado_p[df_filtrado_p["Mes"] == mes_painel]
 
-    if not df_filtrado_p.empty:
+    # Filtra apenas quem tem quebras maior que zero para o ranking
+    df_quebras_reais = df_filtrado_p[df_filtrado_p["Quantidade_Quebras"] > 0]
+
+    if not df_quebras_reais.empty:
         total_quebras = df_filtrado_p["Quantidade_Quebras"].sum()
-        total_maquinas = df_filtrado_p["Maquina_TAG"].nunique()
+        total_maquinas_falharam = df_quebras_reais["Maquina_TAG"].nunique()
 
         agrupado_maq = (
             df_filtrado_p.groupby("Maquina_TAG")["Quantidade_Quebras"]
@@ -191,14 +313,14 @@ if tela == "Painel Fusos":
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
-        m2.metric("Máquinas com Falhas", f"{total_maquinas} ativas")
+        m2.metric("Máquinas com Quebras", f"{total_maquinas_falharam} de 10")
         m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
 
         st.markdown("---")
 
         graf_col, tab_col = st.columns([2, 1])
         with graf_col:
-            st.subheader("Ranking de Quebras por Máquina")
+            st.subheader("Ranking de Falhas")
             st.bar_chart(
                 data=agrupado_maq.set_index("Maquina_TAG")[
                     "Quantidade_Quebras"
@@ -206,188 +328,24 @@ if tela == "Painel Fusos":
             )
 
         with tab_col:
-            st.subheader("Consolidado por Ativo")
+            st.subheader("Resumo por Máquina")
             st.dataframe(
                 agrupado_maq.rename(
                     columns={
                         "Maquina_TAG": "Máquina",
-                        "Quantidade_Quebras": "Total Quebras",
+                        "Quantidade_Quebras": "Total",
                     }
                 ),
                 use_container_width=True,
                 hide_index=True,
             )
     else:
-        st.info("Nenhum dado registrado para o período selecionado.")
+        st.info("Nenhuma quebra registrada para o período selecionado.")
 
-# ------------------------------------------
-# 2. LANÇAMENTO DE FUSOS (TUDO RESTAURADO E INTEGRADO)
-# ------------------------------------------
-elif tela == "Lançamento Fusos":
-    st.header("🔩 Lançamentos: Controle de Quebras de Fusos")
-    st.write(
-        "Filtre por período ou visualize o consolidado geral de quebras de fusos."
-    )
-
-    c_ano, c_mes = st.columns([1, 2])
-    with c_ano:
-        ano_selecionado = st.selectbox(
-            "📅 Selecione o Ano:", lista_anos, index=3, key="l_ano"
-        )
-    with c_mes:
-        mes_selecionado = st.selectbox(
-            "🗓️ Selecione o Mês:", lista_meses, index=0, key="l_mes"
-        )
-
-    st.markdown("---")
-
-    df_fusos = pd.read_excel(ARQUIVO_FUSOS)
-
-    periodo_texto = f"{mes_selecionado} / {ano_selecionado}"
-    if mes_selecionado == "Todos" and ano_selecionado == "Todos":
-        periodo_texto = "Histórico Completo (Todos os Períodos)"
-    elif mes_selecionado == "Todos":
-        periodo_texto = f"Todos os Meses de {ano_selecionado}"
-    elif ano_selecionado == "Todos":
-        periodo_texto = f"Mês de {mes_selecionado} (Todos os Anos)"
-
-    tab_dados, tab_novo = st.tabs(
-        [
-            f"📋 Consulta & Indicadores ({periodo_texto})",
-            "➕ Registrar Nova Quebra",
-        ]
-    )
-
-    with tab_dados:
-        st.subheader(f"Ocorrências: {periodo_texto}")
-
-        df_filtrado = df_fusos.copy()
-        if ano_selecionado != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["Ano"] == int(ano_selecionado)
-            ]
-        if mes_selecionado != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Mes"] == mes_selecionado]
-
-        if not df_filtrado.empty:
-            tot_q = df_filtrado["Quantidade_Quebras"].sum()
-            maq_c = (
-                df_filtrado.groupby("Maquina_TAG")["Quantidade_Quebras"]
-                .sum()
-                .idxmax()
-            )
-            qtd_c = df_filtrado.groupby("Maquina_TAG")[
-                "Quantidade_Quebras"
-            ].sum().max()
-
-            k1, k2 = st.columns(2)
-            k1.metric("Total de Quebras no Período", f"{tot_q} fusos")
-            k2.metric(
-                "Máquina Crítica (Mais Quebras)",
-                f"{maq_c} ({qtd_c} quebras)",
-            )
-
-            st.write("### Registros Detalhados:")
-            st.dataframe(
-                df_filtrado[
-                    [
-                        "Data_Lancamento",
-                        "Mes",
-                        "Ano",
-                        "Maquina_TAG",
-                        "Quantidade_Quebras",
-                        "Observacoes",
-                    ]
-                ],
-                use_container_width=True,
-            )
-        else:
-            st.info(f"Nenhum registro encontrado para {periodo_texto}.")
-
-    with tab_novo:
-        st.subheader("Apontamento de Nova Quebra de Fuso")
-
-        with st.form("form_quebras_fusos", clear_on_submit=True):
-            col_data, col_ano_form, col_mes_form = st.columns(3)
-
-            with col_data:
-                data_lancto = st.date_input("Data do Ocorrido", value=date.today())
-
-            with col_ano_form:
-                ano_padrao = (
-                    int(ano_selecionado) if ano_selecionado != "Todos" else 2026
-                )
-                ano_salvar = st.selectbox(
-                    "Ano de Referência",
-                    [2024, 2025, 2026, 2027, 2028],
-                    index=[2024, 2025, 2026, 2027, 2028].index(ano_padrao),
-                )
-
-            with col_mes_form:
-                mes_padrao = (
-                    mes_selecionado
-                    if mes_selecionado != "Todos"
-                    else "Setembro"
-                )
-                mes_salvar = st.selectbox(
-                    "Mês de Referência",
-                    lista_meses_puros,
-                    index=lista_meses_puros.index(mes_padrao),
-                )
-
-            col_maq, col_qtd = st.columns([2, 1])
-
-            with col_maq:
-                maquina_tag = st.text_input(
-                    "Máquina / TAG",
-                    placeholder="Ex: TORNO-CNC-01, CENTRO-02",
-                )
-
-            with col_qtd:
-                qtd_quebras = st.number_input(
-                    "Qtd de Quebras", min_value=1, max_value=50, step=1
-                )
-
-            obs = st.text_input(
-                "Observações / Causa (Opcional)",
-                placeholder="Ex: Colisão mecânica / rolamento travado",
-            )
-
-            btn_gravar = st.form_submit_button("Salvar Lançamento")
-
-            if btn_gravar:
-                if maquina_tag.strip() != "":
-                    novo_dado = {
-                        "Data_Lancamento": data_lancto.strftime("%d/%m/%Y"),
-                        "Mes": mes_salvar,
-                        "Ano": int(ano_salvar),
-                        "Maquina_TAG": maquina_tag.strip().upper(),
-                        "Quantidade_Quebras": int(qtd_quebras),
-                        "Observacoes": obs.strip(),
-                    }
-
-                    df_fusos = pd.concat(
-                        [df_fusos, pd.DataFrame([novo_dado])], ignore_index=True
-                    )
-                    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-                    st.success(
-                        f"✅ Gravado: {qtd_quebras} quebra(s) para {maquina_tag.strip().upper()} ({mes_salvar}/{ano_salvar})!"
-                    )
-                    st.rerun()
-                else:
-                    st.error("Por favor, preencha o campo Máquina / TAG.")
-
-# ------------------------------------------
-# OUTRAS TELAS DE LANÇAMENTOS MANTIDAS
-# ------------------------------------------
+# DEMAIS TELAS MANTIDAS
 elif tela == "Correias":
     st.header("🔄 Lançamentos: Correias")
-    st.info("Área reservada para o controle de correias.")
-
 elif tela == "Preventiva":
     st.header("🛠️ Lançamentos: Preventiva")
-    st.info("Área reservada para os checklists e rotinas de preventiva.")
-
 elif tela == "Máquinas":
     st.header("🏭 Lançamentos: Máquinas")
-    st.info("Área reservada para o cadastro mestre de ativos e equipamentos.")
