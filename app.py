@@ -171,25 +171,16 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias (migração automática dos dados salvos)
+# Base de Correias
 if not os.path.exists(ARQUIVO_CORREIAS):
-    if os.path.exists("lancamentos_correias_v2.xlsx"):
-        try:
-            df_old_cor = pd.read_excel("lancamentos_correias_v2.xlsx")
-            cols_disponiveis = [c for c in colunas_correias if c in df_old_cor.columns]
-            df_migrado = df_old_cor[cols_disponiveis].drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last")
-            df_migrado.to_excel(ARQUIVO_CORREIAS, index=False)
-        except Exception:
-            pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
-    else:
-        pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+    pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
 
 df_correias = pd.read_excel(ARQUIVO_CORREIAS)
 if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -445,13 +436,12 @@ if tela == "Painel Correias":
         st.markdown("---")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (APENAS FILTRO POR SETOR)
+# 2. LANÇAMENTOS: CORREIAS (SALVAMENTO DEFENSIVO)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
     st.caption("Cadastro contínuo de tipos de correias e datas de instalação por máquina")
 
-    # Apenas o filtro de setor
     with st.container(border=True):
         col_setor, _ = st.columns([2, 3])
         with col_setor:
@@ -531,12 +521,20 @@ elif tela == "Correias":
         novos_registros_cor = []
         for _, linha in tabela_editada_cor.iterrows():
             d_inst = linha["Data de Instalação"]
-            dt_str = d_inst.strftime("%Y-%m-%d") if pd.notna(d_inst) and d_inst is not None else ""
+            
+            # Tratamento robusto para converter qualquer formato de data com segurança
+            dt_str = ""
+            if pd.notna(d_inst) and d_inst is not None and str(d_inst).strip() != "":
+                try:
+                    dt_str = pd.to_datetime(d_inst).strftime("%Y-%m-%d")
+                except Exception:
+                    dt_str = ""
+
             novos_registros_cor.append(
                 {
                     "Setor": setor_selecionado,
                     "Maquina_TAG": linha["Máquina"],
-                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]) if pd.notna(linha["Tipo / Modelo da Correia"]) else "",
+                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]).strip() if pd.notna(linha["Tipo / Modelo da Correia"]) and str(linha["Tipo / Modelo da Correia"]).strip() != "None" else "",
                     "Data_Instalacao": dt_str,
                 }
             )
