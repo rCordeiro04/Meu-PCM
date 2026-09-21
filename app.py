@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
@@ -53,7 +53,7 @@ st.markdown(
 
 # Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
-ARQUIVO_CORREIAS = "lancamentos_correias.xlsx"
+ARQUIVO_CORREIAS = "lancamentos_correias_v2.xlsx"
 
 colunas_fusos = [
     "Ano",
@@ -69,13 +69,13 @@ colunas_correias = [
     "Mes",
     "Setor",
     "Maquina_TAG",
-    "Quantidade_Correias",
-    "Observacoes",
+    "Tipo_Correia",
+    "Data_Instalacao",
 ]
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
-# Base de Fusos
+# Base de Fusos (congelada)
 if not os.path.exists(ARQUIVO_FUSOS):
     pd.DataFrame(columns=colunas_fusos).to_excel(ARQUIVO_FUSOS, index=False)
 
@@ -93,7 +93,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -129,7 +129,7 @@ def navegar(nome_pagina):
 
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR COM KEYS EXCLUSIVAS)
+# BARRA LATERAL (SIDEBAR)
 # ==========================================
 with st.sidebar:
     st.title("⚙️ Portal PCM")
@@ -224,11 +224,11 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: CORREIAS (ISOLADO)
+# 1. LANÇAMENTOS: CORREIAS (TIPO E DATA DE INSTALAÇÃO)
 # ------------------------------------------
 if tela == "Correias":
-    st.title("🔄 Lançamento: Fechamento Mensal de Correias")
-    st.caption("Registo e acompanhamento de trocas de correias por setor e ativo")
+    st.title("🔄 Lançamento: Gestão de Correias")
+    st.caption("Acompanhamento de tipos de correias e datas de instalação por equipamento")
 
     with st.container(border=True):
         col_ano, col_setor, _ = st.columns([1.5, 2, 3])
@@ -248,7 +248,7 @@ if tela == "Correias":
 
     for idx, nome_mes in enumerate(lista_meses_puros):
         with abas_meses[idx]:
-            st.subheader(f"Apontamento de Correias — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
+            st.subheader(f"Apontamento — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
 
             df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
 
@@ -264,19 +264,26 @@ if tela == "Correias":
                     df_filtrado_cor["Maquina_TAG"] == maq
                 ]
                 if not registro_existente.empty:
-                    qtd = int(registro_existente.iloc[0]["Quantidade_Correias"])
-                    obs = str(registro_existente.iloc[0]["Observacoes"])
-                    if obs == "nan":
-                        obs = ""
+                    tipo_c = str(registro_existente.iloc[0]["Tipo_Correia"])
+                    if tipo_c == "nan":
+                        tipo_c = ""
+                    dt_val = registro_existente.iloc[0]["Data_Instalacao"]
+                    try:
+                        if pd.notna(dt_val) and str(dt_val).strip() != "":
+                            dt_inst = pd.to_datetime(dt_val).date()
+                        else:
+                            dt_inst = None
+                    except Exception:
+                        dt_inst = None
                 else:
-                    qtd = 0
-                    obs = ""
+                    tipo_c = ""
+                    dt_inst = None
 
                 dados_grade_cor.append(
                     {
                         "Máquina": maq,
-                        "Quantidade de Correias": qtd,
-                        "Observações": obs,
+                        "Tipo de Correia": tipo_c,
+                        "Data de Instalação": dt_inst,
                     }
                 )
 
@@ -287,15 +294,13 @@ if tela == "Correias":
                     "Máquina",
                     disabled=True,
                 ),
-                "Quantidade de Correias": st.column_config.NumberColumn(
-                    "Qtd. Correias Substituídas",
-                    min_value=0,
-                    step=1,
-                    format="%d",
+                "Tipo de Correia": st.column_config.TextColumn(
+                    "Tipo / Modelo da Correia",
+                    placeholder="Ex: SPZ 987, 8PK 1420...",
                 ),
-                "Observações": st.column_config.TextColumn(
-                    "Observações Técnicas / Causa",
-                    max_chars=200,
+                "Data de Instalação": st.column_config.DateColumn(
+                    "Data de Instalação",
+                    format="DD/MM/YYYY",
                 ),
             }
 
@@ -326,14 +331,16 @@ if tela == "Correias":
 
                 novos_registros_cor = []
                 for _, linha in tabela_editada_cor.iterrows():
+                    d_inst = linha["Data de Instalação"]
+                    dt_str = d_inst.strftime("%Y-%m-%d") if pd.notna(d_inst) and d_inst is not None else ""
                     novos_registros_cor.append(
                         {
                             "Ano": int(ano_selecionado),
                             "Mes": nome_mes,
                             "Setor": setor_selecionado,
                             "Maquina_TAG": linha["Máquina"],
-                            "Quantidade_Correias": int(linha["Quantidade de Correias"]),
-                            "Observacoes": str(linha["Observações"]),
+                            "Tipo_Correia": str(linha["Tipo de Correia"]) if pd.notna(linha["Tipo de Correia"]) else "",
+                            "Data_Instalacao": dt_str,
                         }
                     )
 
@@ -345,11 +352,6 @@ if tela == "Correias":
                     f"✅ Apontamento de Correias do {setor_selecionado} ({nome_mes}/{ano_selecionado}) salvo com sucesso!"
                 )
                 st.rerun()
-
-            total_mes_cor = tabela_editada_cor["Quantidade de Correias"].sum()
-            st.caption(
-                f"Total de correias substituídas no {setor_selecionado} em {nome_mes}: **{total_mes_cor} unid.**"
-            )
 
 # ------------------------------------------
 # 2. PAINEL GERENCIAL DE FUSOS (INTACTO)
