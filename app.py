@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import streamlit as st
 
-# Configuração da página
 st.set_page_config(
     page_title="Painel Manutenção",
     page_icon="⚙️",
@@ -11,23 +10,22 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Arquivo Excel onde os fusos ficam salvos
+# Arquivo Excel onde os dados de fusos ficam gravados
 ARQUIVO_FUSOS = "lancamentos_fusos.xlsx"
 
-# Se o arquivo não existir, cria a planilha com as colunas base
+# Se a planilha ainda não existir, cria a estrutura inicial
 if not os.path.exists(ARQUIVO_FUSOS):
     colunas = [
-        "Data",
-        "Mês",
-        "Máquina/TAG",
-        "Posição/Eixo",
-        "Tipo Ação",
-        "Técnico",
-        "Observações",
+        "Data_Lancamento",
+        "Mes",
+        "Ano",
+        "Maquina_TAG",
+        "Quantidade_Quebras",
+        "Observacoes",
     ]
     pd.DataFrame(columns=colunas).to_excel(ARQUIVO_FUSOS, index=False)
 
-# 1. Guarda na memória qual tela está aberta
+# Controle de navegação da página
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Fusos"
 
@@ -43,10 +41,8 @@ with st.sidebar:
     st.title("⚙️ Painel Manutenção")
     st.markdown("---")
 
-    # SEÇÃO 1: PAINÉIS
     st.subheader("📊 Painéis")
-
-    tipo_btn1 = (
+    tipo_kpi = (
         "primary"
         if st.session_state.pagina_atual == "Visão Geral (KPIs)"
         else "secondary"
@@ -54,12 +50,12 @@ with st.sidebar:
     st.button(
         "📈 Visão Geral (KPIs)",
         use_container_width=True,
-        type=tipo_btn1,
+        type=tipo_kpi,
         on_click=navegar,
         args=("Visão Geral (KPIs)",),
     )
 
-    tipo_btn2 = (
+    tipo_backlog = (
         "primary"
         if st.session_state.pagina_atual == "Controle de Backlog"
         else "secondary"
@@ -67,12 +63,12 @@ with st.sidebar:
     st.button(
         "⏳ Controle de Backlog",
         use_container_width=True,
-        type=tipo_btn2,
+        type=tipo_backlog,
         on_click=navegar,
         args=("Controle de Backlog",),
     )
 
-    tipo_btn3 = (
+    tipo_hist = (
         "primary"
         if st.session_state.pagina_atual == "Histórico por TAG"
         else "secondary"
@@ -80,16 +76,14 @@ with st.sidebar:
     st.button(
         "🔍 Histórico por TAG",
         use_container_width=True,
-        type=tipo_btn3,
+        type=tipo_hist,
         on_click=navegar,
         args=("Histórico por TAG",),
     )
 
     st.markdown("---")
 
-    # SEÇÃO 2: LANÇAMENTOS
     st.subheader("📝 Lançamentos")
-
     tipo_fusos = (
         "primary" if st.session_state.pagina_atual == "Fusos" else "secondary"
     )
@@ -114,7 +108,7 @@ with st.sidebar:
         args=("Correias",),
     )
 
-    tipo_preventiva = (
+    tipo_prev = (
         "primary"
         if st.session_state.pagina_atual == "Preventiva"
         else "secondary"
@@ -122,12 +116,12 @@ with st.sidebar:
     st.button(
         "🛠️ Preventiva",
         use_container_width=True,
-        type=tipo_preventiva,
+        type=tipo_prev,
         on_click=navegar,
         args=("Preventiva",),
     )
 
-    tipo_maquinas = (
+    tipo_maq = (
         "primary"
         if st.session_state.pagina_atual == "Máquinas"
         else "secondary"
@@ -135,7 +129,7 @@ with st.sidebar:
     st.button(
         "🏭 Máquinas",
         use_container_width=True,
-        type=tipo_maquinas,
+        type=tipo_maq,
         on_click=navegar,
         args=("Máquinas",),
     )
@@ -144,18 +138,21 @@ with st.sidebar:
     st.caption("Perfil: Analista de PCM")
 
 # ==========================================
-# ÁREA DA DIREITA (CONTEÚDO DINÂMICO)
+# ÁREA PRINCIPAL (TELA DA DIREITA)
 # ==========================================
 tela = st.session_state.pagina_atual
 
 if tela == "Fusos":
-    st.header("🔩 Controle e Lançamento de Fusos")
+    st.header("🔩 Controle de Quebras de Fusos")
     st.write(
-        "Selecione o mês para visualizar o histórico ou registrar uma nova intervenção."
+        "Selecione o período (Mês/Ano) para lançar novas quebras ou consultar o histórico."
     )
 
-    # Lista dos meses
-    meses_ano = [
+    # 1. SELEÇÃO DE MÊS E ANO
+    c_ano, c_mes = st.columns([1, 2])
+
+    lista_anos = [2024, 2025, 2026, 2027, 2028]
+    lista_meses = [
         "Janeiro",
         "Fevereiro",
         "Março",
@@ -170,116 +167,122 @@ if tela == "Fusos":
         "Dezembro",
     ]
 
-    # Seletor de mês em destaque no topo
-    mes_selecionado = st.selectbox(
-        "📅 Filtrar dados por Mês:",
-        meses_ano,
-        index=8,  # Começa selecionado em Setembro
-    )
+    with c_ano:
+        ano_selecionado = st.selectbox("📅 Selecione o Ano:", lista_anos, index=2)  # 2026
+
+    with c_mes:
+        mes_selecionado = st.selectbox(
+            "🗓️ Selecione o Mês:", lista_meses, index=8  # Setembro
+        )
 
     st.markdown("---")
 
-    # Lê os dados atuais da planilha
+    # Lê a base gravada
     df_fusos = pd.read_excel(ARQUIVO_FUSOS)
 
-    # Criação de duas abas visuais na tela: uma para Lançar e outra para Ver Histórico
-    tab_lancamento, tab_historico = st.tabs(
+    # 2. ABAS: LANÇAMENTO E CONSULTA
+    tab_novo, tab_dados = st.tabs(
         [
-            f"➕ Novo Registro ({mes_selecionado})",
-            f"📋 Histórico ({mes_selecionado})",
+            f"➕ Registrar Quebras ({mes_selecionado}/{ano_selecionado})",
+            f"📋 Consulta & Indicadores ({mes_selecionado}/{ano_selecionado})",
         ]
     )
 
-    with tab_lancamento:
-        st.subheader(f"Registrar Troca / Ação em {mes_selecionado}")
+    with tab_novo:
+        st.subheader(f"Apontamento de Quebras - {mes_selecionado}/{ano_selecionado}")
 
-        with st.form(key="form_fuso", clear_on_submit=True):
-            col1, col2 = st.columns(2)
+        with st.form("form_quebras_fusos", clear_on_submit=True):
+            col_maq, col_qtd = st.columns([2, 1])
 
-            with col1:
-                data_evento = st.date_input("Data da Ação", value=date.today())
-                tag = st.text_input(
-                    "Máquina / TAG", placeholder="Ex: TORNO-CNC-01"
-                )
-                posicao = st.text_input(
-                    "Posição / Eixo do Fuso", placeholder="Ex: Eixo X, Eixo Z"
+            with col_maq:
+                maquina_tag = st.text_input(
+                    "Máquina / TAG",
+                    placeholder="Ex: TORNO-CNC-01, CENTRO-USINAGEM-03",
                 )
 
-            with col2:
-                tipo_acao = st.selectbox(
-                    "Tipo de Ação",
-                    [
-                        "Troca Completa",
-                        "Substituição de Castanha",
-                        "Ajuste / Alinhamento",
-                        "Lubrificação / Limpeza",
-                        "Inspeção de Folga",
-                    ],
-                )
-                tecnico = st.text_input("Técnico / Responsável")
-                obs = st.text_area(
-                    "Observações / Motivo da Troca",
-                    placeholder="Ex: Fuso com folga excessiva acima de 0.05mm",
+            with col_qtd:
+                qtd_quebras = st.number_input(
+                    "Qtd de Quebras de Fuso", min_value=1, max_value=50, step=1
                 )
 
-            btn_salvar = st.form_submit_button("Salvar Registro")
+            obs = st.text_input(
+                "Observações / Causa (Opcional)",
+                placeholder="Ex: Quebra por colisão / fadiga / folga excessiva",
+            )
 
-            if btn_salvar:
-                if tag.strip() != "":
-                    novo_registro = {
-                        "Data": data_evento.strftime("%d/%m/%Y"),
-                        "Mês": mes_selecionado,
-                        "Máquina/TAG": tag.strip().upper(),
-                        "Posição/Eixo": posicao.strip(),
-                        "Tipo Ação": tipo_acao,
-                        "Técnico": tecnico.strip(),
-                        "Observações": obs.strip(),
+            btn_gravar = st.form_submit_button("Salvar Lançamento")
+
+            if btn_gravar:
+                if maquina_tag.strip() != "":
+                    novo_dado = {
+                        "Data_Lancamento": date.today().strftime("%d/%m/%Y"),
+                        "Mes": mes_selecionado,
+                        "Ano": ano_selecionado,
+                        "Maquina_TAG": maquina_tag.strip().upper(),
+                        "Quantidade_Quebras": int(qtd_quebras),
+                        "Observacoes": obs.strip(),
                     }
 
                     df_fusos = pd.concat(
-                        [df_fusos, pd.DataFrame([novo_registro])],
-                        ignore_index=True,
+                        [df_fusos, pd.DataFrame([novo_dado])], ignore_index=True
                     )
                     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
                     st.success(
-                        f"✅ Registro salvo com sucesso no mês de {mes_selecionado}!"
+                        f"✅ Lançamento gravado: {qtd_quebras} quebra(s) registrada(s) na máquina {maquina_tag.strip().upper()} em {mes_selecionado}/{ano_selecionado}!"
                     )
                     st.rerun()
                 else:
-                    st.error("Por favor, preencha pelo menos o campo TAG.")
+                    st.error("Por favor, preencha o campo Máquina / TAG.")
 
-    with tab_historico:
-        st.subheader(f"Registros de Fusos em {mes_selecionado}")
+    with tab_dados:
+        st.subheader(f"Ocorrências em {mes_selecionado}/{ano_selecionado}")
 
-        # Filtra o DataFrame apenas para o mês selecionado
-        df_mes = df_fusos[df_fusos["Mês"] == mes_selecionado]
+        # Filtra pelo mês e ano selecionados
+        df_periodo = df_fusos[
+            (df_fusos["Mes"] == mes_selecionado)
+            & (df_fusos["Ano"] == ano_selecionado)
+        ]
 
-        if not df_mes.empty:
-            st.dataframe(df_mes, use_container_width=True)
-            st.metric("Total de Ações no Mês", len(df_mes))
-        else:
-            st.info(
-                f"Nenhum registro encontrado para o mês de {mes_selecionado}."
+        if not df_periodo.empty:
+            total_quebras = df_periodo["Quantidade_Quebras"].sum()
+            maquina_campea = (
+                df_periodo.groupby("Maquina_TAG")["Quantidade_Quebras"]
+                .sum()
+                .idxmax()
             )
 
-# --- DEMAIS TELAS (MANTIDAS) ---
+            # Cartões rápidos de resumo
+            kpi1, kpi2 = st.columns(2)
+            kpi1.metric("Total de Quebras no Período", f"{total_quebras} fusos")
+            kpi2.metric("Máquina com Mais Quebras", maquina_campea)
+
+            st.write("### Registros Detalhados:")
+            st.dataframe(
+                df_periodo[
+                    [
+                        "Data_Lancamento",
+                        "Maquina_TAG",
+                        "Quantidade_Quebras",
+                        "Observacoes",
+                    ]
+                ],
+                use_container_width=True,
+            )
+        else:
+            st.info(
+                f"Nenhuma quebra de fuso registrada para {mes_selecionado}/{ano_selecionado}."
+            )
+
+# Telas mantidas para os outros botões
 elif tela == "Correias":
-    st.header("🔄 Lançamentos: Controle de Correias")
-    st.write("Registro de tensionamento, trocas e inspeção de correias.")
-
+    st.header("🔄 Lançamentos: Correias")
 elif tela == "Preventiva":
-    st.header("🛠️ Lançamentos: Planos de Manutenção Preventiva")
-    st.write("Checklists e fechamentos de rotinas preventivas periódicas.")
-
+    st.header("🛠️ Lançamentos: Preventiva")
 elif tela == "Máquinas":
-    st.header("🏭 Lançamentos: Cadastro e Dados de Máquinas")
-    st.write("Cadastro de TAGs, capacidades, setores e criticidades.")
-
+    st.header("🏭 Lançamentos: Máquinas")
 elif tela == "Visão Geral (KPIs)":
     st.header("📊 Painel Geral de Indicadores")
-
 elif tela == "Controle de Backlog":
     st.header("⏳ Controle de Backlog de Ordens")
-
 elif tela == "Histórico por TAG":
     st.header("🔍 Histórico e Falhas por TAG")
