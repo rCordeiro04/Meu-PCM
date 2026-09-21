@@ -148,7 +148,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -296,7 +296,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (LAYOUT ULTRA-COMPACTO: TUDO EM 1 PÁGINA)
+# 1. PAINEL GERENCIAL DE CORREIAS (COM OPÇÃO "TODOS" EM 1 PÁGINA)
 # ------------------------------------------
 if tela == "Painel Correias":
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
@@ -323,7 +323,6 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # DUAS COLUNAS PRINCIPAIS: LADO ESQUERDO (HISTÓRICO MENSAL) | LADO DIREITO (MAPA DE ATIVOS)
     col_mes_esq, col_mapa_dir = st.columns([1.2, 2])
 
     # --- LADO ESQUERDO: CORREIAS DO MÊS ---
@@ -371,29 +370,27 @@ if tela == "Painel Correias":
             else:
                 st.info(f"Sem trocas em {mes_consulta}/{ano_consulta}.")
 
-    # --- LADO DIREITO: MAPA DOS SETORES E ATIVOS ---
+    # --- LADO DIREITO: MAPA DOS SETORES COM OPÇÃO "TODOS" ---
     with col_mapa_dir:
         with st.container(border=True):
+            lista_opcoes_setor = ["Todos"] + list(DICIONARIO_SETORES.keys())
             c_setor_sel, c_info_topo = st.columns([1.2, 1.8])
             with c_setor_sel:
                 setor_ativo_cor = st.selectbox(
-                    "Setor:", list(DICIONARIO_SETORES.keys()), index=0, key="painel_cor_setor_comp", label_visibility="collapsed"
+                    "Setor:", lista_opcoes_setor, index=0, key="painel_cor_setor_comp", label_visibility="collapsed"
                 )
             with c_info_topo:
-                st.caption(f"Clique na máquina para ver detalhes de instalação.")
+                st.caption("Clique na máquina para ver detalhes de instalação.")
 
             # SE HOUVER MÁQUINA CLICADA: MOSTRA DETALHES COMPACTOS NO TOPO DO MAPA
-            if (
-                st.session_state.maq_clicada_cor is not None
-                and st.session_state.maq_clicada_cor.get("setor") == setor_ativo_cor
-            ):
+            if st.session_state.maq_clicada_cor is not None:
                 maq_sel = st.session_state.maq_clicada_cor
                 c_box, c_close = st.columns([5, 1])
                 with c_box:
                     st.markdown(
                         f"""
                         <div class="card-balao-compacto {maq_sel['classe_card']}">
-                            <span>⚙️ <b>{maq_sel['tag']}</b> | 🏷️ {maq_sel['tipo']} | 📅 {maq_sel['data']}</span>
+                            <span>⚙️ <b>{maq_sel['tag']}</b> ({maq_sel['setor']}) | 🏷️ {maq_sel['tipo']} | 📅 {maq_sel['data']}</span>
                             <span>⏱️ <b>{maq_sel['tempo']}</b></span>
                         </div>
                         """,
@@ -404,79 +401,88 @@ if tela == "Painel Correias":
                         st.session_state.maq_clicada_cor = None
                         st.rerun()
 
-            maqs_setor = DICIONARIO_SETORES[setor_ativo_cor]
-            df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor_ativo_cor]
+            # Função auxiliar para desenhar a grade compacta de um setor
+            def desenhar_grade_setor(nome_setor):
+                maqs_setor = DICIONARIO_SETORES[nome_setor]
+                df_setor_cor = df_cor_base[df_cor_base["Setor"] == nome_setor]
 
-            # Dicionário de dados
-            dados_maqs_setor = {}
-            for maq_tag in maqs_setor:
-                reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
-                
-                tipo_txt = "Não informada"
-                data_txt = "Sem registro"
-                tempo_txt = "Sem histórico"
-                classe_card = "status-cinza"
-                icone_cor = "⚪"
+                dados_maqs_setor = {}
+                for maq_tag in maqs_setor:
+                    reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
+                    
+                    tipo_txt = "Não informada"
+                    data_txt = "Sem registro"
+                    tempo_txt = "Sem histórico"
+                    classe_card = "status-cinza"
+                    icone_cor = "⚪"
 
-                if not reg_maq.empty:
-                    ultimo = reg_maq.iloc[-1]
-                    tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                    if tipo_val and tipo_val != "nan":
-                        tipo_txt = tipo_val
+                    if not reg_maq.empty:
+                        ultimo = reg_maq.iloc[-1]
+                        tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                        if tipo_val and tipo_val != "nan":
+                            tipo_txt = tipo_val
 
-                    dt_val = str(ultimo["Data_Instalacao"]).strip()
-                    if dt_val and dt_val != "nan":
-                        try:
-                            dt_inst = pd.to_datetime(dt_val).date()
-                            dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                            data_txt = f"{dt_fmt}"
+                        dt_val = str(ultimo["Data_Instalacao"]).strip()
+                        if dt_val and dt_val != "nan":
+                            try:
+                                dt_inst = pd.to_datetime(dt_val).date()
+                                dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                                data_txt = f"{dt_fmt}"
 
-                            dias = (data_hoje - dt_inst).days
-                            meses = round(dias / 30.4, 1)
+                                dias = (data_hoje - dt_inst).days
+                                meses = round(dias / 30.4, 1)
 
-                            if dias <= 365:
-                                classe_card = "status-verde"
-                                icone_cor = "🟢"
-                                tempo_txt = f"{meses}m ({dias}d)"
-                            elif 365 < dias <= 547:
-                                classe_card = "status-amarelo"
-                                icone_cor = "🟡"
-                                tempo_txt = f"{meses}m ({dias}d)"
-                            else:
-                                classe_card = "status-vermelho"
-                                icone_cor = "🔴"
-                                tempo_txt = f"{meses}m ({dias}d)"
-                        except Exception:
-                            data_txt = f"{dt_val}"
+                                if dias <= 365:
+                                    classe_card = "status-verde"
+                                    icone_cor = "🟢"
+                                    tempo_txt = f"{meses}m ({dias}d)"
+                                elif 365 < dias <= 547:
+                                    classe_card = "status-amarelo"
+                                    icone_cor = "🟡"
+                                    tempo_txt = f"{meses}m ({dias}d)"
+                                else:
+                                    classe_card = "status-vermelho"
+                                    icone_cor = "🔴"
+                                    tempo_txt = f"{meses}m ({dias}d)"
+                            except Exception:
+                                data_txt = f"{dt_val}"
 
-                dados_maqs_setor[maq_tag] = {
-                    "icone": icone_cor,
-                    "tipo": tipo_txt,
-                    "data": data_txt,
-                    "tempo": tempo_txt,
-                    "classe_card": classe_card,
-                }
+                    dados_maqs_setor[maq_tag] = {
+                        "icone": icone_cor,
+                        "tipo": tipo_txt,
+                        "data": data_txt,
+                        "tempo": tempo_txt,
+                        "classe_card": classe_card,
+                        "setor": nome_setor,
+                    }
 
-            # GRADE ULTRA-COMPACTA (8 MÁQUINAS POR LINHA)
-            COLS_POR_LINHA = 8
-            linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
+                COLS_POR_LINHA = 8
+                linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
 
-            for linha in linhas_maquinas:
-                cols = st.columns(COLS_POR_LINHA)
-                for idx_c, maq_tag in enumerate(linha):
-                    info_m = dados_maqs_setor[maq_tag]
-                    with cols[idx_c]:
-                        if st.button(
-                            f"{info_m['icone']} {maq_tag}",
-                            key=f"btn_m_onepage_{setor_ativo_cor}_{maq_tag}",
-                            use_container_width=True,
-                        ):
-                            st.session_state.maq_clicada_cor = {
-                                "setor": setor_ativo_cor,
-                                "tag": maq_tag,
-                                **info_m,
-                            }
-                            st.rerun()
+                for linha in linhas_maquinas:
+                    cols = st.columns(COLS_POR_LINHA)
+                    for idx_c, maq_tag in enumerate(linha):
+                        info_m = dados_maqs_setor[maq_tag]
+                        with cols[idx_c]:
+                            if st.button(
+                                f"{info_m['icone']} {maq_tag}",
+                                key=f"btn_m_onepage_{nome_setor}_{maq_tag}",
+                                use_container_width=True,
+                            ):
+                                st.session_state.maq_clicada_cor = {
+                                    "tag": maq_tag,
+                                    **info_m,
+                                }
+                                st.rerun()
+
+            # Renderização de acordo com o filtro ("Todos" cria abas compactas para manter 1 tela)
+            if setor_ativo_cor == "Todos":
+                abas_setores = st.tabs(list(DICIONARIO_SETORES.keys()))
+                for idx_s, nome_s in enumerate(DICIONARIO_SETORES.keys()):
+                    with abas_setores[idx_s]:
+                        desenhar_grade_setor(nome_s)
+            else:
+                desenhar_grade_setor(setor_ativo_cor)
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (INTACTO)
