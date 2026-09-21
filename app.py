@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 import os
 import pandas as pd
 import streamlit as st
@@ -35,7 +35,7 @@ if not all(col in df_fusos.columns for col in colunas_obrigatorias):
 
 # Controle de navegação
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Fusos"
+    st.session_state.pagina_atual = "Painel Fusos"
 
 
 def navegar(nome_pagina):
@@ -49,58 +49,37 @@ with st.sidebar:
     st.title("⚙️ Painel Manutenção")
     st.markdown("---")
 
+    # SEÇÃO 1: PAINÉIS (APENAS FUSOS)
     st.subheader("📊 Painéis")
-    tipo_kpi = (
+    tipo_painel_fusos = (
         "primary"
-        if st.session_state.pagina_atual == "Visão Geral (KPIs)"
+        if st.session_state.pagina_atual == "Painel Fusos"
         else "secondary"
     )
     st.button(
-        "📈 Visão Geral (KPIs)",
+        "🔩 Fusos",
         use_container_width=True,
-        type=tipo_kpi,
+        type=tipo_painel_fusos,
         on_click=navegar,
-        args=("Visão Geral (KPIs)",),
-    )
-
-    tipo_backlog = (
-        "primary"
-        if st.session_state.pagina_atual == "Controle de Backlog"
-        else "secondary"
-    )
-    st.button(
-        "⏳ Controle de Backlog",
-        use_container_width=True,
-        type=tipo_backlog,
-        on_click=navegar,
-        args=("Controle de Backlog",),
-    )
-
-    tipo_hist = (
-        "primary"
-        if st.session_state.pagina_atual == "Histórico por TAG"
-        else "secondary"
-    )
-    st.button(
-        "🔍 Histórico por TAG",
-        use_container_width=True,
-        type=tipo_hist,
-        on_click=navegar,
-        args=("Histórico por TAG",),
+        args=("Painel Fusos",),
     )
 
     st.markdown("---")
 
+    # SEÇÃO 2: LANÇAMENTOS
     st.subheader("📝 Lançamentos")
+
     tipo_fusos = (
-        "primary" if st.session_state.pagina_atual == "Fusos" else "secondary"
+        "primary"
+        if st.session_state.pagina_atual == "Lançamento Fusos"
+        else "secondary"
     )
     st.button(
         "🔩 Fusos",
         use_container_width=True,
         type=tipo_fusos,
         on_click=navegar,
-        args=("Fusos",),
+        args=("Lançamento Fusos",),
     )
 
     tipo_correias = (
@@ -150,15 +129,15 @@ with st.sidebar:
 # ==========================================
 tela = st.session_state.pagina_atual
 
-if tela == "Fusos":
-    st.header("🔩 Controle de Quebras de Fusos")
-    st.write(
-        "Filtre por período ou visualize o consolidado geral de quebras de fusos."
-    )
+# ------------------------------------------
+# 1. PAINEL GERENCIAL DE FUSOS
+# ------------------------------------------
+if tela == "Painel Fusos":
+    st.header("📊 Painel Gerencial: Quebras de Fusos")
+    st.write("Análise visual e indicadores de falhas em fusos da fábrica.")
 
-    # 1. SELEÇÃO COM OPÇÃO 'TODOS'
-    c_ano, c_mes = st.columns([1, 2])
-
+    # Filtros de Período
+    col_ano, col_mes = st.columns([1, 2])
     lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
     lista_meses_puros = [
         "Janeiro",
@@ -176,169 +155,157 @@ if tela == "Fusos":
     ]
     lista_meses = ["Todos"] + lista_meses_puros
 
-    with c_ano:
-        ano_selecionado = st.selectbox(
-            "📅 Selecione o Ano:", lista_anos, index=3
-        )  # Padrão: 2026
-
-    with c_mes:
-        mes_selecionado = st.selectbox(
-            "🗓️ Selecione o Mês:", lista_meses, index=0
-        )  # Padrão: Todos
+    with col_ano:
+        ano_painel = st.selectbox(
+            "📅 Filtrar por Ano:", lista_anos, index=3, key="p_ano"
+        )
+    with col_mes:
+        mes_painel = st.selectbox(
+            "🗓️ Filtrar por Mês:", lista_meses, index=0, key="p_mes"
+        )
 
     st.markdown("---")
 
-    # Lê a base gravada
-    df_fusos = pd.read_excel(ARQUIVO_FUSOS)
+    df_dados = pd.read_excel(ARQUIVO_FUSOS)
+    df_filtrado = df_dados.copy()
 
-    # Rótulo de exibição amigável
-    periodo_texto = f"{mes_selecionado} / {ano_selecionado}"
-    if mes_selecionado == "Todos" and ano_selecionado == "Todos":
-        periodo_texto = "Histórico Completo (Todos os Períodos)"
-    elif mes_selecionado == "Todos":
-        periodo_texto = f"Todos os Meses de {ano_selecionado}"
-    elif ano_selecionado == "Todos":
-        periodo_texto = f"Mês de {mes_selecionado} (Todos os Anos)"
+    if ano_painel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
+    if mes_painel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Mes"] == mes_painel]
 
-    tab_dados, tab_novo = st.tabs(
-        [
-            f"📋 Consulta & Indicadores ({periodo_texto})",
-            "➕ Registrar Nova Quebra",
-        ]
+    if not df_filtrado.empty:
+        total_quebras = df_filtrado["Quantidade_Quebras"].sum()
+        total_maquinas_afetadas = df_filtrado["Maquina_TAG"].nunique()
+
+        agrupado_maq = (
+            df_filtrado.groupby("Maquina_TAG")["Quantidade_Quebras"]
+            .sum()
+            .reset_index()
+        )
+        agrupado_maq = agrupado_maq.sort_values(
+            by="Quantidade_Quebras", ascending=False
+        )
+
+        maquina_top = agrupado_maq.iloc[0]["Maquina_TAG"]
+        qtd_top = agrupado_maq.iloc[0]["Quantidade_Quebras"]
+
+        # Cartões de Métricas
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
+        m2.metric("Máquinas com Falhas", f"{total_maquinas_afetadas} ativas")
+        m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
+
+        st.markdown("---")
+
+        # Gráfico e Tabela lado a lado
+        graf_col, tab_col = st.columns([2, 1])
+
+        with graf_col:
+            st.subheader("Ranking de Quebras por Máquina")
+            # Gráfico nativo do Streamlit
+            st.bar_chart(
+                data=agrupado_maq.set_index("Maquina_TAG")[
+                    "Quantidade_Quebras"
+                ]
+            )
+
+        with tab_col:
+            st.subheader("Consolidado por Ativo")
+            st.dataframe(
+                agrupado_maq.rename(
+                    columns={
+                        "Maquina_TAG": "Máquina",
+                        "Quantidade_Quebras": "Total Quebras",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    else:
+        st.info("Nenhum dado registrado para o período selecionado.")
+
+# ------------------------------------------
+# 2. ENTRADA / LANÇAMENTO DE FUSOS
+# ------------------------------------------
+elif tela == "Lançamento Fusos":
+    st.header("🔩 Lançamento: Apontamento de Quebras de Fusos")
+    st.write(
+        "Insira as novas quebras identificadas nas máquinas para alimentar os painéis."
     )
 
-    with tab_dados:
-        st.subheader(f"Ocorrências: {periodo_texto}")
+    lista_meses_puros = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+    ]
 
-        # Aplica os filtros dinâmicos
-        df_filtrado = df_fusos.copy()
+    with st.form("form_novo_fuso", clear_on_submit=True):
+        col_data, col_ano_l, col_mes_l = st.columns(3)
 
-        if ano_selecionado != "Todos":
-            df_filtrado = df_filtrado[
-                df_filtrado["Ano"] == int(ano_selecionado)
-            ]
-
-        if mes_selecionado != "Todos":
-            df_filtrado = df_filtrado[df_filtrado["Mes"] == mes_selecionado]
-
-        if not df_filtrado.empty:
-            total_quebras = df_filtrado["Quantidade_Quebras"].sum()
-            maquina_campea = (
-                df_filtrado.groupby("Maquina_TAG")["Quantidade_Quebras"]
-                .sum()
-                .idxmax()
+        with col_data:
+            dt_reg = st.date_input("Data do Ocorrido", value=date.today())
+        with col_ano_l:
+            ano_reg = st.selectbox(
+                "Ano de Referência", [2024, 2025, 2026, 2027, 2028], index=2
             )
-            qtd_campea = df_filtrado.groupby("Maquina_TAG")[
-                "Quantidade_Quebras"
-            ].sum().max()
-
-            k1, k2 = st.columns(2)
-            k1.metric("Total de Quebras no Período", f"{total_quebras} fusos")
-            k2.metric(
-                "Máquina Crítica (Mais Quebras)",
-                f"{maquina_campea} ({qtd_campea} quebras)",
+        with col_mes_l:
+            mes_reg = st.selectbox(
+                "Mês de Referência", lista_meses_puros, index=8
             )
 
-            st.write("### Registros Detalhados:")
-            st.dataframe(
-                df_filtrado[
-                    [
-                        "Data_Lancamento",
-                        "Mes",
-                        "Ano",
-                        "Maquina_TAG",
-                        "Quantidade_Quebras",
-                        "Observacoes",
-                    ]
-                ],
-                use_container_width=True,
+        c_tag, c_qtd = st.columns([2, 1])
+        with c_tag:
+            tag_input = st.text_input(
+                "Máquina / TAG", placeholder="Ex: TORNO-01, CENTRO-USINAGEM-02"
             )
-        else:
-            st.info(f"Nenhum registro encontrado para {periodo_texto}.")
-
-    with tab_novo:
-        st.subheader("Apontamento de Nova Quebra de Fuso")
-
-        with st.form("form_quebras_fusos", clear_on_submit=True):
-            col_data, col_ano_form, col_mes_form = st.columns(3)
-
-            with col_data:
-                data_lancto = st.date_input("Data do Ocorrido", value=date.today())
-
-            with col_ano_form:
-                ano_padrao = (
-                    int(ano_selecionado) if ano_selecionado != "Todos" else 2026
-                )
-                ano_salvar = st.selectbox(
-                    "Ano de Referência",
-                    [2024, 2025, 2026, 2027, 2028],
-                    index=[2024, 2025, 2026, 2027, 2028].index(ano_padrao),
-                )
-
-            with col_mes_form:
-                mes_padrao = (
-                    mes_selecionado
-                    if mes_selecionado != "Todos"
-                    else "Setembro"
-                )
-                mes_salvar = st.selectbox(
-                    "Mês de Referência",
-                    lista_meses_puros,
-                    index=lista_meses_puros.index(mes_padrao),
-                )
-
-            col_maq, col_qtd = st.columns([2, 1])
-
-            with col_maq:
-                maquina_tag = st.text_input(
-                    "Máquina / TAG",
-                    placeholder="Ex: TORNO-CNC-01, CENTRO-02",
-                )
-
-            with col_qtd:
-                qtd_quebras = st.number_input(
-                    "Qtd de Quebras", min_value=1, max_value=50, step=1
-                )
-
-            obs = st.text_input(
-                "Observações / Causa (Opcional)",
-                placeholder="Ex: Colisão mecânica / rolamento travado",
+        with c_qtd:
+            qtd_input = st.number_input(
+                "Qtd de Quebras", min_value=1, max_value=50, step=1
             )
 
-            btn_gravar = st.form_submit_button("Salvar Lançamento")
+        obs_input = st.text_input(
+            "Observações / Causa (Opcional)",
+            placeholder="Ex: Fadiga prematura, colisão",
+        )
 
-            if btn_gravar:
-                if maquina_tag.strip() != "":
-                    novo_dado = {
-                        "Data_Lancamento": data_lancto.strftime("%d/%m/%Y"),
-                        "Mes": mes_salvar,
-                        "Ano": int(ano_salvar),
-                        "Maquina_TAG": maquina_tag.strip().upper(),
-                        "Quantidade_Quebras": int(qtd_quebras),
-                        "Observacoes": obs.strip(),
-                    }
+        salvar = st.form_submit_button("Salvar Registro")
 
-                    df_fusos = pd.concat(
-                        [df_fusos, pd.DataFrame([novo_dado])], ignore_index=True
-                    )
-                    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-                    st.success(
-                        f"✅ Gravado: {qtd_quebras} quebra(s) para {maquina_tag.strip().upper()} ({mes_salvar}/{ano_salvar})!"
-                    )
-                    st.rerun()
-                else:
-                    st.error("Por favor, preencha o campo Máquina / TAG.")
+        if salvar:
+            if tag_input.strip() != "":
+                novo = {
+                    "Data_Lancamento": dt_reg.strftime("%d/%m/%Y"),
+                    "Mes": mes_reg,
+                    "Ano": int(ano_reg),
+                    "Maquina_TAG": tag_input.strip().upper(),
+                    "Quantidade_Quebras": int(qtd_input),
+                    "Observacoes": obs_input.strip(),
+                }
+                df_atual = pd.read_excel(ARQUIVO_FUSOS)
+                df_atual = pd.concat(
+                    [df_atual, pd.DataFrame([novo])], ignore_index=True
+                )
+                df_atual.to_excel(ARQUIVO_FUSOS, index=False)
+                st.success(
+                    f"✅ Registrado com sucesso: {qtd_input} quebra(s) em {tag_input.strip().upper()} ({mes_reg}/{ano_reg})!"
+                )
+            else:
+                st.error("Preencha o campo Máquina / TAG.")
 
-# Outras telas mantidas
+# Outras telas de lançamentos
 elif tela == "Correias":
     st.header("🔄 Lançamentos: Correias")
 elif tela == "Preventiva":
     st.header("🛠️ Lançamentos: Preventiva")
 elif tela == "Máquinas":
     st.header("🏭 Lançamentos: Máquinas")
-elif tela == "Visão Geral (KPIs)":
-    st.header("📊 Painel Geral de Indicadores")
-elif tela == "Controle de Backlog":
-    st.header("⏳ Controle de Backlog de Ordens")
-elif tela == "Histórico por TAG":
-    st.header("🔍 Histórico e Falhas por TAG")
