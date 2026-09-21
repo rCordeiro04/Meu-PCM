@@ -10,7 +10,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilização CSS personalizada para visual executivo
 st.markdown(
     """
     <style>
@@ -63,10 +62,9 @@ colunas_obrigatorias = [
     "Tipo_Fuso",
 ]
 
-# Lista de opções oficiais para o Tipo de Fuso
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
-# Recuperação de dados salvos em versões anteriores
+# Recuperação de dados anteriores
 arquivos_antigos = [
     "lancamentos_fusos_v4.xlsx",
     "lancamentos_fusos_v3.xlsx",
@@ -102,75 +100,24 @@ if not all(col in df_fusos.columns for col in colunas_obrigatorias):
     df_fusos = pd.DataFrame(columns=colunas_obrigatorias)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Mapeamento oficial dos setores e máquinas
+# Setores e máquinas oficiais
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
-    "L-29",
-    "L-30",
-    "L-31",
-    "L-32",
-    "L-33",
-    "L-34",
-    "L-35",
-    "L-36",
-    "L-37",
-    "L-38",
-    "L-39",
-    "L-40",
-    "L-41",
-    "L-42",
-    "L-43",
-    "L-44",
-    "L-45",
-    "L-46",
-    "L-50",
-    "L-51",
-    "L-52",
-    "L-53",
+    "L-29", "L-30", "L-31", "L-32", "L-33", "L-34", "L-35", "L-36", "L-37",
+    "L-38", "L-39", "L-40", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46",
+    "L-50", "L-51", "L-52", "L-53"
 ]
 
 maquinas_setor_latex = [
-    "B-71",
-    "B-72",
-    "B-73",
-    "B-74",
-    "B-75",
-    "B-76",
-    "B-77",
-    "B-78",
-    "B-79",
-    "B-80",
-    "B-83",
-    "B-84",
-    "B-85",
-    "B-86",
-    "B-87",
-    "B-88",
-    "B-89",
-    "B-102",
-    "B-103",
-    "B-104",
+    "B-71", "B-72", "B-73", "B-74", "B-75", "B-76", "B-77", "B-78", "B-79",
+    "B-80", "B-83", "B-84", "B-85", "B-86", "B-87", "B-88", "B-89", "B-102",
+    "B-103", "B-104"
 ]
 
 maquinas_setor_menegatto = [
-    "B-47",
-    "B-48",
-    "B-49",
-    "B-81",
-    "B-82",
-    "B-90",
-    "B-91",
-    "B-92",
-    "B-93",
-    "B-94",
-    "B-95",
-    "B-96",
-    "B-97",
-    "B-98",
-    "B-99",
-    "B-100",
-    "B-101",
+    "B-47", "B-48", "B-49", "B-81", "B-82", "B-90", "B-91", "B-92", "B-93",
+    "B-94", "B-95", "B-96", "B-97", "B-98", "B-99", "B-100", "B-101"
 ]
 
 DICIONARIO_SETORES = {
@@ -274,18 +221,8 @@ with st.sidebar:
 tela = st.session_state.pagina_atual
 
 lista_meses_puros = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ]
 
 # ------------------------------------------
@@ -295,21 +232,23 @@ if tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
     st.caption("Visão estratégica de falhas, confiabilidade de eixos e criticidade de ativos")
 
+    # FILTROS PRINCIPAIS EM 4 COLUNAS
     with st.container(border=True):
-        col_ano, col_setor, col_maq_f = st.columns([1, 1.5, 1.5])
+        st.markdown("### 🔍 Filtros de Análise")
+        c_ano, c_setor, c_maq, c_tipo = st.columns(4)
+
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
         lista_setores_painel = ["Todos"] + list(DICIONARIO_SETORES.keys())
+        lista_tipos_painel = ["Todos"] + OPCOES_TIPO_FUSO
 
-        with col_ano:
+        with c_ano:
             ano_painel = st.selectbox(
-                "📅 Exercício Anual:", lista_anos_painel, index=2, key="p_ano"
+                "📅 Ano:", lista_anos_painel, index=2, key="filtro_ano_v5"
             )
-        with col_setor:
+
+        with c_setor:
             setor_painel = st.selectbox(
-                "🏭 Setor Operacional:",
-                lista_setores_painel,
-                index=0,
-                key="p_setor",
+                "🏭 Setor:", lista_setores_painel, index=0, key="filtro_setor_v5"
             )
 
         if setor_painel != "Todos":
@@ -320,23 +259,28 @@ if tela == "Painel Fusos":
                 todas_maquinas.extend(m_list)
             lista_maquinas_painel = ["Todas"] + sorted(todas_maquinas)
 
-        with col_maq_f:
+        with c_maq:
             maquina_painel = st.selectbox(
-                "⚙️ Ativo Específico:",
-                lista_maquinas_painel,
-                index=0,
-                key="p_maquina",
+                "⚙️ Máquina:", lista_maquinas_painel, index=0, key="filtro_maq_v5"
+            )
+
+        with c_tipo:
+            tipo_fuso_painel = st.selectbox(
+                "🔩 Tipo de Fuso:", lista_tipos_painel, index=0, key="filtro_tipo_v5"
             )
 
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
+    # Filtro obrigatório de ano
     df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
 
     if setor_painel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Setor"] == setor_painel]
     if maquina_painel != "Todas":
         df_filtrado = df_filtrado[df_filtrado["Maquina_TAG"] == maquina_painel]
+    if tipo_fuso_painel != "Todos":
+        df_filtrado = df_filtrado[df_filtrado["Tipo_Fuso"] == tipo_fuso_painel]
 
     df_quebras_reais = df_filtrado[df_filtrado["Quantidade_Quebras"] > 0]
 
@@ -344,7 +288,9 @@ if tela == "Painel Fusos":
     if setor_painel != "Todos":
         escopo_texto.append(setor_painel)
     if maquina_painel != "Todas":
-        escopo_texto.append(f"Máquina {maquina_painel}")
+        escopo_texto.append(f"Máq. {maquina_painel}")
+    if tipo_fuso_painel != "Todos":
+        escopo_texto.append(f"Fuso {tipo_fuso_painel}")
     texto_cabecalho = " • ".join(escopo_texto) if escopo_texto else "Fábrica Completa"
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -410,7 +356,7 @@ if tela == "Painel Fusos":
                 <div class="metric-card warning">
                     <div class="metric-label">Maior Ofensor (Gargalo)</div>
                     <div class="metric-value">{maquina_top}</div>
-                    <div class="metric-sub">{qtd_top} quebra(s) registradas</div>
+                    <div class="metric-sub">{qtd_top} quebra(s) apontadas</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -462,7 +408,7 @@ if tela == "Painel Fusos":
             with c_graf:
                 with st.container(border=True):
                     st.subheader("📊 Ranking de Máquinas com Mais Falhas")
-                    st.caption("Ativos ordenados pelo volume total de fusos trocados")
+                    st.caption("Ativos ordenados pelo volume de fusos trocados")
                     st.bar_chart(
                         data=agrupado_maq.set_index("Maquina_TAG")["Quantidade_Quebras"],
                         use_container_width=True,
@@ -505,7 +451,7 @@ if tela == "Painel Fusos":
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: FUSOS (COM SELEÇÃO DO TIPO DE FUSO)
+# 2. LANÇAMENTOS: FUSOS
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
@@ -563,7 +509,6 @@ elif tela == "Lançamento Fusos":
 
             df_grade = pd.DataFrame(dados_grade)
 
-            # Configura a coluna Tipo de Fuso como lista suspensa restrita
             configuracao_colunas = {
                 "Máquina": st.column_config.TextColumn(
                     "Máquina",
