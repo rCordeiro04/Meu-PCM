@@ -93,7 +93,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -224,7 +224,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: CORREIAS (TIPO E DATA DE INSTALAÇÃO)
+# 1. LANÇAMENTOS: CORREIAS
 # ------------------------------------------
 if tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -289,6 +289,7 @@ if tela == "Correias":
 
             df_grade_cor = pd.DataFrame(dados_grade_cor)
 
+            # Configuração sem argumentos inválidos
             configuracao_colunas_cor = {
                 "Máquina": st.column_config.TextColumn(
                     "Máquina",
@@ -296,7 +297,6 @@ if tela == "Correias":
                 ),
                 "Tipo de Correia": st.column_config.TextColumn(
                     "Tipo / Modelo da Correia",
-                    placeholder="Ex: SPZ 987, 8PK 1420...",
                 ),
                 "Data de Instalação": st.column_config.DateColumn(
                     "Data de Instalação",
