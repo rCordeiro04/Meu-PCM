@@ -46,21 +46,38 @@ st.markdown(
             color: #757575;
             margin-top: 4px;
         }
-        /* Balões de Ativos para Correias */
+
+        /* Balões de Ativos para Correias com Status Semafórico */
         .card-balao {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background-color: #ffffff;
             border-radius: 12px;
             padding: 14px 16px;
             margin-bottom: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border-left: 6px solid #94a3b8;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .card-balao:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            border-color: #94a3b8;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
+        .card-balao.status-cinza {
+            border-left-color: #94a3b8;
+            background-color: #f8fafc;
+        }
+        .card-balao.status-verde {
+            border-left-color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        .card-balao.status-amarelo {
+            border-left-color: #ca8a04;
+            background-color: #fefce8;
+        }
+        .card-balao.status-vermelho {
+            border-left-color: #dc2626;
+            background-color: #fef2f2;
+        }
+
         .balao-tag {
             font-size: 1.15rem;
             font-weight: 700;
@@ -68,26 +85,55 @@ st.markdown(
             margin-bottom: 4px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
         }
+        .balao-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .badge-verde { background: #dcfce7; color: #166534; }
+        .badge-amarelo { background: #fef9c3; color: #854d0e; }
+        .badge-vermelho { background: #fee2e2; color: #991b1b; }
+        .badge-cinza { background: #e2e8f0; color: #475569; }
+
         .balao-tipo {
             font-size: 0.9rem;
-            color: #2563eb;
+            color: #1e293b;
             font-weight: 600;
-            background: #eff6ff;
-            padding: 2px 8px;
-            border-radius: 6px;
-            display: inline-block;
-            margin-bottom: 6px;
+            margin-top: 6px;
+            margin-bottom: 4px;
         }
         .balao-data {
             font-size: 0.8rem;
             color: #64748b;
         }
-        .balao-vazio {
+        .balao-tempo {
             font-size: 0.8rem;
-            color: #94a3b8;
-            font-style: italic;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .tempo-verde { color: #16a34a; }
+        .tempo-amarelo { color: #ca8a04; }
+        .tempo-vermelho { color: #dc2626; }
+
+        /* Legenda Executiva */
+        .legenda-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 18px;
+        }
+        .ponto-legenda {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
         }
     </style>
     """,
@@ -136,7 +182,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -281,11 +327,11 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (FILTRO POR SETOR + BALÕES)
+# 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    st.title("🔄 Dashboard Gerencial — Correias por Setor")
-    st.caption("Visão em balões das máquinas, tipos de correias instaladas e datas de montagem")
+    st.title("🔄 Dashboard Gerencial — Ciclo de Vida de Correias")
+    st.caption("Mapeamento operacional da vida útil e monitoramento de desgaste das correias")
 
     with st.container(border=True):
         col_filtro, _ = st.columns([2, 3])
@@ -295,11 +341,23 @@ if tela == "Painel Correias":
                 "🏭 Selecione o Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
             )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Legenda alinhada com as faixas de tempo
+    st.markdown(
+        """
+        <div style="background:#ffffff; border-radius:8px; padding:10px 16px; margin: 12px 0 20px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+            <span style="font-weight:700; color:#334155; margin-right:16px;">Classificação por Idade:</span>
+            <span class="legenda-item"><span class="ponto-legenda" style="background:#16a34a;"></span> <b>Correia Nova</b> (Até 1 ano)</span>
+            <span class="legenda-item"><span class="ponto-legenda" style="background:#ca8a04;"></span> <b>Meia-Vida</b> (1 a 1,5 anos)</span>
+            <span class="legenda-item"><span class="ponto-legenda" style="background:#dc2626;"></span> <b>Fim de Vida Útil</b> (> 1,5 anos)</span>
+            <span class="legenda-item"><span class="ponto-legenda" style="background:#94a3b8;"></span> Sem Apontamento</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
+    data_hoje = date.today()
 
-    # Identifica a lista de setores a serem renderizados
     setores_a_exibir = (
         list(DICIONARIO_SETORES.keys())
         if setor_ativo_cor == "Todos"
@@ -309,25 +367,23 @@ if tela == "Painel Correias":
     for setor in setores_a_exibir:
         st.subheader(f"📍 {setor}")
         maqs_setor = DICIONARIO_SETORES[setor]
-
-        # Filtra os registros salvos desse setor
         df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
 
-        # Organiza os balões em grade de 4 colunas
         colunas_grid = st.columns(4)
 
         for idx, maq_tag in enumerate(maqs_setor):
             col_atual = colunas_grid[idx % 4]
-
-            # Busca o último apontamento válido dessa máquina
             reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
-            
+
             tipo_txt = "Não informada"
             data_txt = "Sem registro de data"
-            tem_dados = False
+            tempo_txt = "Sem histórico de montagem"
+            classe_card = "status-cinza"
+            classe_badge = "badge-cinza"
+            classe_tempo = ""
+            status_label = "Pendente"
 
             if not reg_maq.empty:
-                # Pega o registro com preenchimento mais recente
                 reg_com_dado = reg_maq[
                     (reg_maq["Tipo_Correia"].notna() & (reg_maq["Tipo_Correia"].astype(str).str.strip() != "")) |
                     (reg_maq["Data_Instalacao"].notna() & (reg_maq["Data_Instalacao"].astype(str).str.strip() != ""))
@@ -337,39 +393,53 @@ if tela == "Painel Correias":
                     tipo_val = str(ultimo["Tipo_Correia"]).strip()
                     if tipo_val and tipo_val != "nan":
                         tipo_txt = tipo_val
-                        tem_dados = True
 
                     dt_val = str(ultimo["Data_Instalacao"]).strip()
                     if dt_val and dt_val != "nan":
                         try:
-                            dt_fmt = pd.to_datetime(dt_val).strftime("%d/%m/%Y")
-                            data_txt = f"Instalação: {dt_fmt}"
-                            tem_dados = True
+                            dt_inst = pd.to_datetime(dt_val).date()
+                            dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                            data_txt = f"Montagem: {dt_fmt}"
+
+                            dias = (data_hoje - dt_inst).days
+                            meses = round(dias / 30.4, 1)
+
+                            if dias <= 365:
+                                classe_card = "status-verde"
+                                classe_badge = "badge-verde"
+                                classe_tempo = "tempo-verde"
+                                status_label = "Correia Nova"
+                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                            elif 365 < dias <= 547:
+                                classe_card = "status-amarelo"
+                                classe_badge = "badge-amarelo"
+                                classe_tempo = "tempo-amarelo"
+                                status_label = "Meia-Vida"
+                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                            else:
+                                classe_card = "status-vermelho"
+                                classe_badge = "badge-vermelho"
+                                classe_tempo = "tempo-vermelho"
+                                status_label = "Fim de Vida Útil"
+                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
                         except Exception:
-                            data_txt = f"Instalação: {dt_val}"
+                            data_txt = f"Montagem: {dt_val}"
 
             with col_atual:
-                if tem_dados:
-                    st.markdown(
-                        f"""
-                        <div class="card-balao">
-                            <div class="balao-tag">⚙️ {maq_tag}</div>
-                            <div class="balao-tipo">🏷️ {tipo_txt}</div>
-                            <div class="balao-data">📅 {data_txt}</div>
+                st.markdown(
+                    f"""
+                    <div class="card-balao {classe_card}">
+                        <div class="balao-tag">
+                            <span>⚙️ {maq_tag}</span>
+                            <span class="balao-badge {classe_badge}">{status_label}</span>
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.markdown(
-                        f"""
-                        <div class="card-balao">
-                            <div class="balao-tag">⚙️ {maq_tag}</div>
-                            <div class="balao-vazio">Pendente de apontamento</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                        <div class="balao-tipo">🏷️ {tipo_txt}</div>
+                        <div class="balao-data">📅 {data_txt}</div>
+                        <div class="balao-tempo {classe_tempo}">⏱️ {tempo_txt}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
         st.markdown("---")
 
