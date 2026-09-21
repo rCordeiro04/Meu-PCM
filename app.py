@@ -229,8 +229,8 @@ if tela == "Painel Fusos":
         "Acompanhe a curva de evolução temporal e a distribuição de quebras por setor e equipamento."
     )
 
-    # Filtros de Ano e Setor
-    col_ano, col_setor = st.columns([1, 2])
+    # Filtros de Ano, Setor e Máquina
+    col_ano, col_setor, col_maq_f = st.columns([1, 1.5, 1.5])
     lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
     lista_setores_painel = ["Todos"] + list(DICIONARIO_SETORES.keys())
 
@@ -246,24 +246,49 @@ if tela == "Painel Fusos":
             key="p_setor",
         )
 
+    # Monta a lista de máquinas dinamicamente com base no setor selecionado
+    if setor_painel != "Todos":
+        lista_maquinas_painel = ["Todas"] + DICIONARIO_SETORES[setor_painel]
+    else:
+        todas_maquinas = []
+        for m_list in DICIONARIO_SETORES.values():
+            todas_maquinas.extend(m_list)
+        lista_maquinas_painel = ["Todas"] + sorted(todas_maquinas)
+
+    with col_maq_f:
+        maquina_painel = st.selectbox(
+            "⚙️ Filtrar por Máquina:",
+            lista_maquinas_painel,
+            index=0,
+            key="p_maquina",
+        )
+
     st.markdown("---")
 
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
+    # Aplica os 3 filtros
     if ano_painel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
     if setor_painel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Setor"] == setor_painel]
+    if maquina_painel != "Todas":
+        df_filtrado = df_filtrado[df_filtrado["Maquina_TAG"] == maquina_painel]
 
     df_quebras_reais = df_filtrado[df_filtrado["Quantidade_Quebras"] > 0]
 
-    # --- SEÇÃO 1: GRÁFICO DE LINHA (EVOLUÇÃO MENSAL) ---
-    st.subheader(
-        f"📈 Tendência Mensal de Quebras ({'Total Fábrica' if setor_painel == 'Todos' else setor_painel})"
-    )
+    # Subtítulo explicativo dinâmico
+    escopo_texto = []
+    if setor_painel != "Todos":
+        escopo_texto.append(setor_painel)
+    if maquina_painel != "Todas":
+        escopo_texto.append(f"Máquina {maquina_painel}")
+    texto_cabecalho = " - ".join(escopo_texto) if escopo_texto else "Total Fábrica"
 
-    # Garante que todos os 12 meses apareçam ordenados
+    # --- SEÇÃO 1: GRÁFICO DE LINHA (EVOLUÇÃO MENSAL) ---
+    st.subheader(f"📈 Tendência Mensal de Quebras ({texto_cabecalho})")
+
     df_meses_base = pd.DataFrame({"Mes": lista_meses_puros})
     agrupado_mes = (
         df_filtrado.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
@@ -271,7 +296,6 @@ if tela == "Painel Fusos":
     df_evolucao = pd.merge(df_meses_base, agrupado_mes, on="Mes", how="left").fillna(0)
     df_evolucao["Quantidade_Quebras"] = df_evolucao["Quantidade_Quebras"].astype(int)
 
-    # Gráfico de Linhas interativo
     st.line_chart(
         data=df_evolucao.set_index("Mes")["Quantidade_Quebras"],
         use_container_width=True,
@@ -296,35 +320,48 @@ if tela == "Painel Fusos":
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
-        m2.metric(
-            "Máquinas com Ocorrência", f"{total_maquinas_falharam} ativas"
-        )
-        m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
+        
+        if maquina_painel == "Todas":
+            m2.metric(
+                "Máquinas com Ocorrência", f"{total_maquinas_falharam} ativas"
+            )
+            m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
+        else:
+            m2.metric("Máquina Analisada", maquina_painel)
+            m3.metric("Total no Período", f"{total_quebras} quebras")
 
         st.markdown("---")
 
-        # --- SEÇÃO 3: RANKING POR MÁQUINA ---
-        graf_col, tab_col = st.columns([2, 1])
-        with graf_col:
-            st.subheader("Ranking por Equipamento")
-            st.bar_chart(
-                data=agrupado_maq.set_index("Maquina_TAG")["Quantidade_Quebras"]
-            )
+        # --- SEÇÃO 3: RANKING / TABELA ---
+        if maquina_painel == "Todas":
+            graf_col, tab_col = st.columns([2, 1])
+            with graf_col:
+                st.subheader("Ranking por Equipamento")
+                st.bar_chart(
+                    data=agrupado_maq.set_index("Maquina_TAG")["Quantidade_Quebras"]
+                )
 
-        with tab_col:
-            st.subheader("Consolidado")
-            st.dataframe(
-                agrupado_maq.rename(
-                    columns={
-                        "Maquina_TAG": "Máquina",
-                        "Quantidade_Quebras": "Total Falhas",
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-            )
+            with tab_col:
+                st.subheader("Consolidado")
+                st.dataframe(
+                    agrupado_maq.rename(
+                        columns={
+                            "Maquina_TAG": "Máquina",
+                            "Quantidade_Quebras": "Total Falhas",
+                        }
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        else:
+            st.subheader(f"Histórico Detalhado da Máquina {maquina_painel}")
+            df_detalhe_maq = df_quebras_reais[
+                ["Ano", "Mes", "Setor", "Quantidade_Quebras", "Observacoes"]
+            ]
+            st.dataframe(df_detalhe_maq, use_container_width=True, hide_index=True)
+
     else:
-        st.info("Nenhuma quebra registada para os filtros selecionados.")
+        st.info("Nenhuma quebra registrada para os filtros selecionados.")
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: FUSOS
