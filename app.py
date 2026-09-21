@@ -329,14 +329,90 @@ lista_meses_puros = [
 # ------------------------------------------
 if tela == "Painel Correias":
     st.title("🔄 Dashboard Gerencial — Ciclo de Vida de Correias")
-    st.caption("Mapeamento operacional da vida útil e monitoramento de desgaste das correias")
+    st.caption("Mapeamento operacional da vida útil e monitoramento de trocas de correias")
 
+    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
+    data_hoje = date.today()
+
+    # Prepara coluna datetime segura para filtragens temporais
+    if not df_cor_base.empty and "Data_Instalacao" in df_cor_base.columns:
+        df_cor_base["dt_parsed"] = pd.to_datetime(df_cor_base["Data_Instalacao"], errors="coerce")
+    else:
+        df_cor_base["dt_parsed"] = pd.NaT
+
+    # ==========================================
+    # SEÇÃO: CORREIAS TROCADAS NO MÊS SELECIONADO
+    # ==========================================
+    with st.container(border=True):
+        st.subheader("📅 Correias Substituídas no Mês")
+        st.caption("Consulte os ativos que receberam novas correias no período de referência")
+
+        c_mes_sel, c_ano_sel, _ = st.columns([1.5, 1.2, 2.5])
+        
+        # Mês atual como padrão
+        idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
+        
+        with c_mes_sel:
+            mes_consulta = st.selectbox(
+                "Mês de Referência:",
+                lista_meses_puros,
+                index=idx_mes_atual,
+                key="p_cor_mes_consulta",
+            )
+        
+        with c_ano_sel:
+            anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
+            ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
+            ano_consulta = st.selectbox(
+                "Ano:",
+                anos_disponiveis,
+                index=ano_padrao_idx,
+                key="p_cor_ano_consulta",
+            )
+
+        num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
+
+        # Filtra os apontamentos cuja Data de Instalação coincide com o Mês/Ano escolhido
+        df_trocas_mes = df_cor_base[
+            (df_cor_base["dt_parsed"].notna())
+            & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
+            & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
+        ].copy()
+
+        if not df_trocas_mes.empty:
+            df_trocas_mes["Data Formatada"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m/%Y")
+            total_trocas_mes = len(df_trocas_mes)
+            maquinas_trocadas = df_trocas_mes["Maquina_TAG"].nunique()
+
+            m_cor1, m_cor2, _ = st.columns([1.5, 1.5, 3])
+            m_cor1.metric(f"Total Substituídas em {mes_consulta}/{ano_consulta}", f"{total_trocas_mes} correias")
+            m_cor2.metric("Máquinas Atendidas", f"{maquinas_trocadas} ativos")
+
+            st.dataframe(
+                df_trocas_mes[["Setor", "Maquina_TAG", "Tipo_Correia", "Data Formatada"]].rename(
+                    columns={
+                        "Maquina_TAG": "Equipamento (TAG)",
+                        "Tipo_Correia": "Modelo da Correia",
+                        "Data Formatada": "Data da Troca",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info(f"Nenhuma troca de correia registrada para o mês de **{mes_consulta} de {ano_consulta}**.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ==========================================
+    # SEÇÃO: STATUS DE DESGASTE POR SETOR (BALÕES)
+    # ==========================================
     with st.container(border=True):
         col_filtro, _ = st.columns([2, 3])
         with col_filtro:
             lista_setores_p_cor = ["Todos"] + list(DICIONARIO_SETORES.keys())
             setor_ativo_cor = st.selectbox(
-                "🏭 Selecione o Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
+                "🏭 Filtrar Balões por Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
             )
 
     st.markdown(
@@ -351,9 +427,6 @@ if tela == "Painel Correias":
         """,
         unsafe_allow_html=True,
     )
-
-    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
-    data_hoje = date.today()
 
     setores_a_exibir = (
         list(DICIONARIO_SETORES.keys())
@@ -436,7 +509,7 @@ if tela == "Painel Correias":
         st.markdown("---")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (SALVAMENTO DEFENSIVO)
+# 2. LANÇAMENTOS: CORREIAS (APENAS SETOR)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -522,7 +595,6 @@ elif tela == "Correias":
         for _, linha in tabela_editada_cor.iterrows():
             d_inst = linha["Data de Instalação"]
             
-            # Tratamento robusto para converter qualquer formato de data com segurança
             dt_str = ""
             if pd.notna(d_inst) and d_inst is not None and str(d_inst).strip() != "":
                 try:
