@@ -51,7 +51,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Ficheiros de dados
+# Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias.xlsx"
 
@@ -75,7 +75,7 @@ colunas_correias = [
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
-# Inicialização da base de Fusos
+# Base de Fusos
 if not os.path.exists(ARQUIVO_FUSOS):
     pd.DataFrame(columns=colunas_fusos).to_excel(ARQUIVO_FUSOS, index=False)
 
@@ -84,7 +84,7 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Inicialização da base de Correias
+# Base de Correias
 if not os.path.exists(ARQUIVO_CORREIAS):
     pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
 
@@ -93,7 +93,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial dos setores e máquinas
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -129,7 +129,7 @@ def navegar(nome_pagina):
 
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR)
+# BARRA LATERAL (SIDEBAR COM KEYS EXCLUSIVAS)
 # ==========================================
 with st.sidebar:
     st.title("⚙️ Portal PCM")
@@ -144,6 +144,7 @@ with st.sidebar:
     )
     st.button(
         "🔩 Fusos",
+        key="btn_nav_painel_fusos",
         use_container_width=True,
         type=tipo_painel_fusos,
         on_click=navegar,
@@ -160,6 +161,7 @@ with st.sidebar:
     )
     st.button(
         "🔩 Fusos",
+        key="btn_nav_lancto_fusos",
         use_container_width=True,
         type=tipo_fusos,
         on_click=navegar,
@@ -173,6 +175,7 @@ with st.sidebar:
     )
     st.button(
         "🔄 Correias",
+        key="btn_nav_lancto_correias",
         use_container_width=True,
         type=tipo_correias,
         on_click=navegar,
@@ -186,6 +189,7 @@ with st.sidebar:
     )
     st.button(
         "🛠️ Preventiva",
+        key="btn_nav_lancto_preventiva",
         use_container_width=True,
         type=tipo_prev,
         on_click=navegar,
@@ -199,6 +203,7 @@ with st.sidebar:
     )
     st.button(
         "🏭 Máquinas",
+        key="btn_nav_lancto_maquinas",
         use_container_width=True,
         type=tipo_maq,
         on_click=navegar,
@@ -219,21 +224,21 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: CORREIAS (FILTRO POR SETOR E LISTA DE MÁQUINAS)
+# 1. LANÇAMENTOS: CORREIAS (ISOLADO)
 # ------------------------------------------
 if tela == "Correias":
     st.title("🔄 Lançamento: Fechamento Mensal de Correias")
-    st.caption("Acompanhamento e registo de trocas de correias por setor e ativo operacional")
+    st.caption("Registo e acompanhamento de trocas de correias por setor e ativo")
 
     with st.container(border=True):
         col_ano, col_setor, _ = st.columns([1.5, 2, 3])
         with col_ano:
             ano_selecionado = st.selectbox(
-                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2, key="cor_ano"
+                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2, key="sel_ano_correias"
             )
         with col_setor:
             setor_selecionado = st.selectbox(
-                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="cor_setor"
+                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_correias"
             )
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -306,7 +311,7 @@ if tela == "Correias":
             with col_btn:
                 salvar_mes_cor = st.button(
                     f"💾 Salvar Correias: {setor_selecionado} ({nome_mes}/{ano_selecionado})",
-                    key=f"btn_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                    key=f"btn_salvar_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
                     type="primary",
                 )
 
@@ -337,7 +342,7 @@ if tela == "Correias":
                 )
                 df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
                 st.success(
-                    f"✅ Apontamento de Correias do {setor_selecionado} ({nome_mes}/{ano_selecionado}) guardado com sucesso!"
+                    f"✅ Apontamento de Correias do {setor_selecionado} ({nome_mes}/{ano_selecionado}) salvo com sucesso!"
                 )
                 st.rerun()
 
@@ -347,7 +352,7 @@ if tela == "Correias":
             )
 
 # ------------------------------------------
-# 2. PAINEL GERENCIAL DE FUSOS
+# 2. PAINEL GERENCIAL DE FUSOS (INTACTO)
 # ------------------------------------------
 elif tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
@@ -570,7 +575,7 @@ elif tela == "Painel Fusos":
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 3. LANÇAMENTOS: FUSOS
+# 3. LANÇAMENTOS: FUSOS (INTACTO)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
@@ -580,11 +585,11 @@ elif tela == "Lançamento Fusos":
         col_ano, col_setor, _ = st.columns([1.5, 2, 3])
         with col_ano:
             ano_selecionado = st.selectbox(
-                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2
+                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2, key="sel_ano_fusos"
             )
         with col_setor:
             setor_selecionado = st.selectbox(
-                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys())
+                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_fusos"
             )
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -651,14 +656,14 @@ elif tela == "Lançamento Fusos":
                 column_config=configuracao_colunas,
                 hide_index=True,
                 use_container_width=True,
-                key=f"editor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                key=f"editor_fusos_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
             )
 
             col_btn, _ = st.columns([2, 4])
             with col_btn:
                 salvar_mes = st.button(
                     f"💾 Salvar {setor_selecionado} ({nome_mes}/{ano_selecionado})",
-                    key=f"btn_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                    key=f"btn_salvar_fusos_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
                     type="primary",
                 )
 
