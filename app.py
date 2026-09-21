@@ -13,6 +13,15 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        /* Trava de redimensionamento e scroll das tabelas do Streamlit */
+        div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
+            overscroll-behavior: contain;
+        }
+        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
+            resize: none !important;
+        }
+        
+        /* Card KPI Executivo */
         .metric-card {
             background-color: #ffffff;
             border-radius: 10px;
@@ -180,7 +189,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -334,22 +343,18 @@ if tela == "Painel Correias":
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
     data_hoje = date.today()
 
-    # Prepara coluna datetime segura para filtragens temporais
     if not df_cor_base.empty and "Data_Instalacao" in df_cor_base.columns:
         df_cor_base["dt_parsed"] = pd.to_datetime(df_cor_base["Data_Instalacao"], errors="coerce")
     else:
         df_cor_base["dt_parsed"] = pd.NaT
 
-    # ==========================================
     # SEÇÃO: CORREIAS TROCADAS NO MÊS SELECIONADO
-    # ==========================================
     with st.container(border=True):
         st.subheader("📅 Correias Substituídas no Mês")
         st.caption("Consulte os ativos que receberam novas correias no período de referência")
 
         c_mes_sel, c_ano_sel, _ = st.columns([1.5, 1.2, 2.5])
         
-        # Mês atual como padrão
         idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
         
         with c_mes_sel:
@@ -372,7 +377,6 @@ if tela == "Painel Correias":
 
         num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
 
-        # Filtra os apontamentos cuja Data de Instalação coincide com o Mês/Ano escolhido
         df_trocas_mes = df_cor_base[
             (df_cor_base["dt_parsed"].notna())
             & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
@@ -388,6 +392,7 @@ if tela == "Painel Correias":
             m_cor1.metric(f"Total Substituídas em {mes_consulta}/{ano_consulta}", f"{total_trocas_mes} correias")
             m_cor2.metric("Máquinas Atendidas", f"{maquinas_trocadas} ativos")
 
+            # Altura travada com segurança
             st.dataframe(
                 df_trocas_mes[["Setor", "Maquina_TAG", "Tipo_Correia", "Data Formatada"]].rename(
                     columns={
@@ -398,15 +403,14 @@ if tela == "Painel Correias":
                 ),
                 use_container_width=True,
                 hide_index=True,
+                height=260,
             )
         else:
             st.info(f"Nenhuma troca de correia registrada para o mês de **{mes_consulta} de {ano_consulta}**.")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ==========================================
     # SEÇÃO: STATUS DE DESGASTE POR SETOR (BALÕES)
-    # ==========================================
     with st.container(border=True):
         col_filtro, _ = st.columns([2, 3])
         with col_filtro:
@@ -509,7 +513,7 @@ if tela == "Painel Correias":
         st.markdown("---")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (APENAS SETOR)
+# 2. LANÇAMENTOS: CORREIAS (ALTURA TRAVADA)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -572,11 +576,13 @@ elif tela == "Correias":
         ),
     }
 
+    # Altura fixa travada (height=440) impedindo redimensionamento acidental
     tabela_editada_cor = st.data_editor(
         df_grade_cor,
         column_config=configuracao_colunas_cor,
         hide_index=True,
         use_container_width=True,
+        height=440,
         key=f"editor_cor_direto_{setor_selecionado}",
     )
 
@@ -619,7 +625,7 @@ elif tela == "Correias":
         st.rerun()
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS (INTACTO)
+# 3. PAINEL GERENCIAL DE FUSOS (INTACTO COM ALTURA TRAVADA)
 # ------------------------------------------
 elif tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
@@ -819,6 +825,7 @@ elif tela == "Painel Fusos":
                         df_tabela,
                         use_container_width=True,
                         hide_index=True,
+                        height=360,
                     )
         else:
             with st.container(border=True):
@@ -837,12 +844,13 @@ elif tela == "Painel Fusos":
                     df_detalhe_maq,
                     use_container_width=True,
                     hide_index=True,
+                    height=360,
                 )
     else:
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 4. LANÇAMENTOS: FUSOS (INTACTO)
+# 4. LANÇAMENTOS: FUSOS (INTACTO COM ALTURA TRAVADA)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
@@ -918,11 +926,13 @@ elif tela == "Lançamento Fusos":
                 ),
             }
 
+            # Altura travada (height=440)
             tabela_editada = st.data_editor(
                 df_grade,
                 column_config=configuracao_colunas,
                 hide_index=True,
                 use_container_width=True,
+                height=440,
                 key=f"editor_fusos_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
             )
 
