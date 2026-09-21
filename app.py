@@ -51,9 +51,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Ficheiros de dados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
+ARQUIVO_CORREIAS = "lancamentos_correias.xlsx"
 
-colunas_obrigatorias = [
+colunas_fusos = [
     "Ano",
     "Mes",
     "Setor",
@@ -62,45 +64,36 @@ colunas_obrigatorias = [
     "Tipo_Fuso",
 ]
 
-OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
-
-# Recuperação de dados anteriores
-arquivos_antigos = [
-    "lancamentos_fusos_v4.xlsx",
-    "lancamentos_fusos_v3.xlsx",
-    "lancamentos_fusos_v2.xlsx",
-    "lancamentos_fusos.xlsx",
+colunas_correias = [
+    "Ano",
+    "Mes",
+    "Setor",
+    "Maquina_TAG",
+    "Quantidade_Correias",
+    "Observacoes",
 ]
 
+OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
+
+# Inicialização da base de Fusos
 if not os.path.exists(ARQUIVO_FUSOS):
-    recuperado = False
-    for arq in arquivos_antigos:
-        if os.path.exists(arq):
-            try:
-                df_antigo = pd.read_excel(arq)
-                if not df_antigo.empty:
-                    if "Setor" not in df_antigo.columns:
-                        df_antigo["Setor"] = "Setor A"
-                    if "Tipo_Fuso" not in df_antigo.columns:
-                        df_antigo["Tipo_Fuso"] = "FAG"
-                    if "Observacoes" in df_antigo.columns:
-                        df_antigo = df_antigo.drop(columns=["Observacoes"])
-                    df_antigo.to_excel(ARQUIVO_FUSOS, index=False)
-                    recuperado = True
-                    break
-            except Exception:
-                pass
-    if not recuperado:
-        pd.DataFrame(columns=colunas_obrigatorias).to_excel(
-            ARQUIVO_FUSOS, index=False
-        )
+    pd.DataFrame(columns=colunas_fusos).to_excel(ARQUIVO_FUSOS, index=False)
 
 df_fusos = pd.read_excel(ARQUIVO_FUSOS)
-if not all(col in df_fusos.columns for col in colunas_obrigatorias):
-    df_fusos = pd.DataFrame(columns=colunas_obrigatorias)
+if not all(col in df_fusos.columns for col in colunas_fusos):
+    df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Setores e máquinas oficiais
+# Inicialização da base de Correias
+if not os.path.exists(ARQUIVO_CORREIAS):
+    pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+
+df_correias = pd.read_excel(ARQUIVO_CORREIAS)
+if not all(col in df_correias.columns for col in colunas_correias):
+    df_correias = pd.DataFrame(columns=colunas_correias)
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
+# Mapeamento oficial dos setores e máquinas
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -128,7 +121,7 @@ DICIONARIO_SETORES = {
 }
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Painel Fusos"
+    st.session_state.pagina_atual = "Correias"
 
 
 def navegar(nome_pagina):
@@ -226,13 +219,140 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE FUSOS
+# 1. LANÇAMENTOS: CORREIAS (FILTRO POR SETOR E LISTA DE MÁQUINAS)
 # ------------------------------------------
-if tela == "Painel Fusos":
+if tela == "Correias":
+    st.title("🔄 Lançamento: Fechamento Mensal de Correias")
+    st.caption("Acompanhamento e registo de trocas de correias por setor e ativo operacional")
+
+    with st.container(border=True):
+        col_ano, col_setor, _ = st.columns([1.5, 2, 3])
+        with col_ano:
+            ano_selecionado = st.selectbox(
+                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2, key="cor_ano"
+            )
+        with col_setor:
+            setor_selecionado = st.selectbox(
+                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="cor_setor"
+            )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    abas_meses = st.tabs(lista_meses_puros)
+    maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
+
+    for idx, nome_mes in enumerate(lista_meses_puros):
+        with abas_meses[idx]:
+            st.subheader(f"Apontamento de Correias — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
+
+            df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
+
+            df_filtrado_cor = df_atual_cor[
+                (df_atual_cor["Ano"] == ano_selecionado)
+                & (df_atual_cor["Mes"] == nome_mes)
+                & (df_atual_cor["Setor"] == setor_selecionado)
+            ]
+
+            dados_grade_cor = []
+            for maq in maquinas_do_setor:
+                registro_existente = df_filtrado_cor[
+                    df_filtrado_cor["Maquina_TAG"] == maq
+                ]
+                if not registro_existente.empty:
+                    qtd = int(registro_existente.iloc[0]["Quantidade_Correias"])
+                    obs = str(registro_existente.iloc[0]["Observacoes"])
+                    if obs == "nan":
+                        obs = ""
+                else:
+                    qtd = 0
+                    obs = ""
+
+                dados_grade_cor.append(
+                    {
+                        "Máquina": maq,
+                        "Quantidade de Correias": qtd,
+                        "Observações": obs,
+                    }
+                )
+
+            df_grade_cor = pd.DataFrame(dados_grade_cor)
+
+            configuracao_colunas_cor = {
+                "Máquina": st.column_config.TextColumn(
+                    "Máquina",
+                    disabled=True,
+                ),
+                "Quantidade de Correias": st.column_config.NumberColumn(
+                    "Qtd. Correias Substituídas",
+                    min_value=0,
+                    step=1,
+                    format="%d",
+                ),
+                "Observações": st.column_config.TextColumn(
+                    "Observações Técnicas / Causa",
+                    max_chars=200,
+                ),
+            }
+
+            tabela_editada_cor = st.data_editor(
+                df_grade_cor,
+                column_config=configuracao_colunas_cor,
+                hide_index=True,
+                use_container_width=True,
+                key=f"editor_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+            )
+
+            col_btn, _ = st.columns([2, 4])
+            with col_btn:
+                salvar_mes_cor = st.button(
+                    f"💾 Salvar Correias: {setor_selecionado} ({nome_mes}/{ano_selecionado})",
+                    key=f"btn_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                    type="primary",
+                )
+
+            if salvar_mes_cor:
+                df_limpo_cor = df_atual_cor[
+                    ~(
+                        (df_atual_cor["Ano"] == ano_selecionado)
+                        & (df_atual_cor["Mes"] == nome_mes)
+                        & (df_atual_cor["Setor"] == setor_selecionado)
+                    )
+                ]
+
+                novos_registros_cor = []
+                for _, linha in tabela_editada_cor.iterrows():
+                    novos_registros_cor.append(
+                        {
+                            "Ano": int(ano_selecionado),
+                            "Mes": nome_mes,
+                            "Setor": setor_selecionado,
+                            "Maquina_TAG": linha["Máquina"],
+                            "Quantidade_Correias": int(linha["Quantidade de Correias"]),
+                            "Observacoes": str(linha["Observações"]),
+                        }
+                    )
+
+                df_final_cor = pd.concat(
+                    [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
+                )
+                df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
+                st.success(
+                    f"✅ Apontamento de Correias do {setor_selecionado} ({nome_mes}/{ano_selecionado}) guardado com sucesso!"
+                )
+                st.rerun()
+
+            total_mes_cor = tabela_editada_cor["Quantidade de Correias"].sum()
+            st.caption(
+                f"Total de correias substituídas no {setor_selecionado} em {nome_mes}: **{total_mes_cor} unid.**"
+            )
+
+# ------------------------------------------
+# 2. PAINEL GERENCIAL DE FUSOS
+# ------------------------------------------
+elif tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
     st.caption("Visão estratégica de falhas, confiabilidade de eixos e criticidade de ativos")
 
-    # FILTROS PRINCIPAIS EM 4 COLUNAS
     with st.container(border=True):
         st.markdown("### 🔍 Filtros de Análise")
         c_ano, c_setor, c_maq, c_tipo = st.columns(4)
@@ -272,7 +392,6 @@ if tela == "Painel Fusos":
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
-    # Filtro obrigatório de ano
     df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
 
     if setor_painel != "Todos":
@@ -451,7 +570,7 @@ if tela == "Painel Fusos":
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: FUSOS
+# 3. LANÇAMENTOS: FUSOS
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
@@ -582,8 +701,6 @@ elif tela == "Lançamento Fusos":
             )
 
 # DEMAIS TELAS MANTIDAS
-elif tela == "Correias":
-    st.header("🔄 Lançamentos: Correias")
 elif tela == "Preventiva":
     st.header("🛠️ Lançamentos: Preventiva")
 elif tela == "Máquinas":
