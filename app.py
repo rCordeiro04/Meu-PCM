@@ -1,8 +1,8 @@
 import streamlit as st
 
-# Configuração inicial da página
+# Configuração da página
 st.set_page_config(
-    page_title="Sistema PCM",
+    page_title="Painel Manutenção",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -12,31 +12,31 @@ st.set_page_config(
 # BARRA LATERAL (SIDEBAR)
 # ==========================================
 with st.sidebar:
-    st.title("⚙️ Portal PCM")
-    st.caption("Planeamento e Controlo de Manutenção")
+    # Título solicitado
+    st.title("⚙️ Painel Manutenção")
     st.markdown("---")
     
-    # 1. Escolha do Módulo Principal
+    # 1. Seletor de área principal
     modulo = st.selectbox(
-        "Selecione o Módulo:",
-        ["📊 Painéis & Indicadores", "📝 Registos & Lançamentos"]
+        "Selecione a Área:",
+        ["📊 Painéis & Indicadores", "📝 Registros & Lançamentos"]
     )
     
     st.markdown("---")
     
-    # 2. Subpáginas dependendo do módulo selecionado
+    # 2. Subpáginas dinâmicas conforme a escolha
     if modulo == "📊 Painéis & Indicadores":
         pagina = st.radio(
-            "Visualizações Disponíveis:",
+            "Painéis Disponíveis:",
             [
                 "Visão Geral (KPIs)",
-                "Controlo de Backlog",
+                "Controle de Backlog",
                 "Histórico & Falhas por TAG"
             ]
         )
     else:
         pagina = st.radio(
-            "Tipos de Lançamento:",
+            "Lançamentos Disponíveis:",
             [
                 "Abertura de OS",
                 "Apontamento / Baixa de OS",
@@ -45,41 +45,41 @@ with st.sidebar:
         )
         
     st.markdown("---")
-    st.caption("Utilizador: Analista PCM")
+    st.caption("Perfil: Analista de PCM")
 
 # ==========================================
-# ÁREA PRINCIPAL (DIREITA)
+# ÁREA PRINCIPAL (LADO DIREITO)
 # ==========================================
 
 # --- MÓDULO 1: PAINÉIS ---
 if modulo == "📊 Painéis & Indicadores":
     if pagina == "Visão Geral (KPIs)":
-        st.header("📊 Painel Geral de Manutenção")
-        st.write("Aqui ficarão os indicadores consolidados (MTBF, MTTR, Disponibilidade).")
+        st.header("📊 Painel Geral de Indicadores")
+        st.write("Visão consolidada da operação e desempenho dos ativos.")
         
         c1, c2, c3 = st.columns(3)
         c1.metric("MTBF Global", "140 h", "+8%")
         c2.metric("MTTR Médio", "2.1 h", "-15%")
         c3.metric("Disponibilidade", "96.4%", "+1.2%")
         
-    elif pagina == "Controlo de Backlog":
-        st.header("⏳ Acompanhamento de Backlog")
-        st.write("Distribuição das ordens pendentes por prioridade e tempo de espera.")
+    elif pagina == "Controle de Backlog":
+        st.header("⏳ Controle de Backlog")
+        st.write("Acompanhamento da carga horária de ordens pendentes.")
         
     elif pagina == "Histórico & Falhas por TAG":
-        st.header("🔍 Análise por Equipamento")
-        st.write("Consulte o histórico detalhado de intervenções de uma máquina específica.")
+        st.header("🔍 Histórico por Equipamento")
+        st.write("Consulta detalhada das intervenções por ativo.")
 
-# --- MÓDULO 2: REGISTOS / LANÇAMENTOS ---
+# --- MÓDULO 2: REGISTROS & LANÇAMENTOS ---
 else:
     if pagina == "Abertura de OS":
-        st.header("📝 Formulário de Abertura de Ordem de Serviço")
-        st.write("Registo inicial de novas ordens para o chão de fábrica.")
+        st.header("📝 Abertura de Ordem de Serviço")
+        st.write("Preencha as informações para emitir uma nova solicitação.")
         
     elif pagina == "Apontamento / Baixa de OS":
-        st.header("🔧 Encerramento de Manutenção")
-        st.write("Registo de horas trabalhadas, tempo de paragem e troca de componentes.")
+        st.header("🔧 Baixa e Apontamento de OS")
+        st.write("Fechamento de ordens com horas gastas e causa raiz.")
         
     elif pagina == "Cadastro de Equipamentos":
-        st.header("⚙️ Cadastro de TAGs e Máquinas")
-        st.write("Adicione novos equipamentos, setores e criticidades à base de dados.")
+        st.header("⚙️ Cadastro de Equipamentos (TAGs)")
+        st.write("Cadastro de novos ativos, criticidades e setores.")
