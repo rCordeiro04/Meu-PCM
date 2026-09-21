@@ -46,6 +46,49 @@ st.markdown(
             color: #757575;
             margin-top: 4px;
         }
+        /* Balões de Ativos para Correias */
+        .card-balao {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .card-balao:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            border-color: #94a3b8;
+        }
+        .balao-tag {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .balao-tipo {
+            font-size: 0.9rem;
+            color: #2563eb;
+            font-weight: 600;
+            background: #eff6ff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+        .balao-data {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .balao-vazio {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-style: italic;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -121,7 +164,7 @@ DICIONARIO_SETORES = {
 }
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Correias"
+    st.session_state.pagina_atual = "Painel Correias"
 
 
 def navegar(nome_pagina):
@@ -149,6 +192,20 @@ with st.sidebar:
         type=tipo_painel_fusos,
         on_click=navegar,
         args=("Painel Fusos",),
+    )
+
+    tipo_painel_correias = (
+        "primary"
+        if st.session_state.pagina_atual == "Painel Correias"
+        else "secondary"
+    )
+    st.button(
+        "🔄 Correias",
+        key="btn_nav_painel_correias",
+        use_container_width=True,
+        type=tipo_painel_correias,
+        on_click=navegar,
+        args=("Painel Correias",),
     )
 
     st.markdown("---")
@@ -224,9 +281,102 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: CORREIAS
+# 1. PAINEL GERENCIAL DE CORREIAS (FILTRO POR SETOR + BALÕES)
 # ------------------------------------------
-if tela == "Correias":
+if tela == "Painel Correias":
+    st.title("🔄 Dashboard Gerencial — Correias por Setor")
+    st.caption("Visão em balões das máquinas, tipos de correias instaladas e datas de montagem")
+
+    with st.container(border=True):
+        col_filtro, _ = st.columns([2, 3])
+        with col_filtro:
+            lista_setores_p_cor = ["Todos"] + list(DICIONARIO_SETORES.keys())
+            setor_ativo_cor = st.selectbox(
+                "🏭 Selecione o Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
+            )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
+
+    # Identifica a lista de setores a serem renderizados
+    setores_a_exibir = (
+        list(DICIONARIO_SETORES.keys())
+        if setor_ativo_cor == "Todos"
+        else [setor_ativo_cor]
+    )
+
+    for setor in setores_a_exibir:
+        st.subheader(f"📍 {setor}")
+        maqs_setor = DICIONARIO_SETORES[setor]
+
+        # Filtra os registros salvos desse setor
+        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
+
+        # Organiza os balões em grade de 4 colunas
+        colunas_grid = st.columns(4)
+
+        for idx, maq_tag in enumerate(maqs_setor):
+            col_atual = colunas_grid[idx % 4]
+
+            # Busca o último apontamento válido dessa máquina
+            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
+            
+            tipo_txt = "Não informada"
+            data_txt = "Sem registro de data"
+            tem_dados = False
+
+            if not reg_maq.empty:
+                # Pega o registro com preenchimento mais recente
+                reg_com_dado = reg_maq[
+                    (reg_maq["Tipo_Correia"].notna() & (reg_maq["Tipo_Correia"].astype(str).str.strip() != "")) |
+                    (reg_maq["Data_Instalacao"].notna() & (reg_maq["Data_Instalacao"].astype(str).str.strip() != ""))
+                ]
+                if not reg_com_dado.empty:
+                    ultimo = reg_com_dado.iloc[-1]
+                    tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                    if tipo_val and tipo_val != "nan":
+                        tipo_txt = tipo_val
+                        tem_dados = True
+
+                    dt_val = str(ultimo["Data_Instalacao"]).strip()
+                    if dt_val and dt_val != "nan":
+                        try:
+                            dt_fmt = pd.to_datetime(dt_val).strftime("%d/%m/%Y")
+                            data_txt = f"Instalação: {dt_fmt}"
+                            tem_dados = True
+                        except Exception:
+                            data_txt = f"Instalação: {dt_val}"
+
+            with col_atual:
+                if tem_dados:
+                    st.markdown(
+                        f"""
+                        <div class="card-balao">
+                            <div class="balao-tag">⚙️ {maq_tag}</div>
+                            <div class="balao-tipo">🏷️ {tipo_txt}</div>
+                            <div class="balao-data">📅 {data_txt}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <div class="card-balao">
+                            <div class="balao-tag">⚙️ {maq_tag}</div>
+                            <div class="balao-vazio">Pendente de apontamento</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+        st.markdown("---")
+
+# ------------------------------------------
+# 2. LANÇAMENTOS: CORREIAS (INTACTO)
+# ------------------------------------------
+elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
     st.caption("Acompanhamento de tipos de correias e datas de instalação por equipamento")
 
@@ -289,7 +439,6 @@ if tela == "Correias":
 
             df_grade_cor = pd.DataFrame(dados_grade_cor)
 
-            # Configuração sem argumentos inválidos
             configuracao_colunas_cor = {
                 "Máquina": st.column_config.TextColumn(
                     "Máquina",
@@ -354,7 +503,7 @@ if tela == "Correias":
                 st.rerun()
 
 # ------------------------------------------
-# 2. PAINEL GERENCIAL DE FUSOS (INTACTO)
+# 3. PAINEL GERENCIAL DE FUSOS (INTACTO)
 # ------------------------------------------
 elif tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
@@ -577,7 +726,7 @@ elif tela == "Painel Fusos":
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 3. LANÇAMENTOS: FUSOS (INTACTO)
+# 4. LANÇAMENTOS: FUSOS (INTACTO)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
