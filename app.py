@@ -61,19 +61,19 @@ st.markdown(
             margin-top: 4px;
         }
 
-        /* Balões de Ativos para Correias com Status Semafórico */
+        /* Balão Expandido da Máquina Selecionada */
         .card-balao {
             background-color: #ffffff;
             border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            border-left: 6px solid #94a3b8;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            padding: 20px 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            border-left: 8px solid #94a3b8;
+            animation: fadeIn 0.2s ease-in-out;
         }
-        .card-balao:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .card-balao.status-cinza {
             border-left-color: #94a3b8;
@@ -93,21 +93,21 @@ st.markdown(
         }
 
         .balao-tag {
-            font-size: 1.15rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: #0f172a;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
         .balao-badge {
-            font-size: 0.72rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 4px 12px;
+            border-radius: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.5px;
         }
         .badge-verde { background: #dcfce7; color: #166534; }
         .badge-amarelo { background: #fef9c3; color: #854d0e; }
@@ -115,20 +115,20 @@ st.markdown(
         .badge-cinza { background: #e2e8f0; color: #475569; }
 
         .balao-tipo {
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             color: #1e293b;
             font-weight: 600;
-            margin-top: 6px;
-            margin-bottom: 4px;
+            margin-top: 8px;
+            margin-bottom: 6px;
         }
         .balao-data {
-            font-size: 0.8rem;
-            color: #64748b;
+            font-size: 0.95rem;
+            color: #475569;
         }
         .balao-tempo {
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-top: 4px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-top: 8px;
         }
         .tempo-verde { color: #16a34a; }
         .tempo-amarelo { color: #ca8a04; }
@@ -154,7 +154,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Arquivos de dados blindados e separados
+# Ficheiros de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v3.xlsx"
 
@@ -194,7 +194,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -222,7 +222,10 @@ DICIONARIO_SETORES = {
 }
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Painel Fusos"
+    st.session_state.pagina_atual = "Painel Correias"
+
+if "maq_clicada_cor" not in st.session_state:
+    st.session_state.maq_clicada_cor = None
 
 
 def navegar(nome_pagina):
@@ -339,9 +342,345 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE FUSOS (GRÁFICOS 100% ESTÁTICOS / TRAVADOS)
+# 1. PAINEL GERENCIAL DE CORREIAS (MÁQUINAS COLORIDAS COM CLIQUE PARA ABRIR O BALÃO)
 # ------------------------------------------
-if tela == "Painel Fusos":
+if tela == "Painel Correias":
+    st.title("🔄 Dashboard Gerencial — Ciclo de Vida de Correias")
+    st.caption("Mapa visual dos equipamentos por setor com abertura detalhada por clique")
+
+    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
+    data_hoje = date.today()
+
+    if not df_cor_base.empty and "Data_Instalacao" in df_cor_base.columns:
+        df_cor_base["dt_parsed"] = pd.to_datetime(df_cor_base["Data_Instalacao"], errors="coerce")
+    else:
+        df_cor_base["dt_parsed"] = pd.NaT
+
+    # SEÇÃO: CORREIAS TROCADAS NO MÊS SELECIONADO
+    with st.container(border=True):
+        st.subheader("📅 Correias Substituídas no Mês")
+        st.caption("Consulte os ativos que receberam novas correias no período de referência")
+
+        c_mes_sel, c_ano_sel, _ = st.columns([1.5, 1.2, 2.5])
+        idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
+        
+        with c_mes_sel:
+            mes_consulta = st.selectbox(
+                "Mês de Referência:",
+                lista_meses_puros,
+                index=idx_mes_atual,
+                key="p_cor_mes_consulta",
+            )
+        
+        with c_ano_sel:
+            anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
+            ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
+            ano_consulta = st.selectbox(
+                "Ano:",
+                anos_disponiveis,
+                index=ano_padrao_idx,
+                key="p_cor_ano_consulta",
+            )
+
+        num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
+
+        df_trocas_mes = df_cor_base[
+            (df_cor_base["dt_parsed"].notna())
+            & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
+            & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
+        ].copy()
+
+        if not df_trocas_mes.empty:
+            df_trocas_mes["Data Formatada"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m/%Y")
+            total_trocas_mes = len(df_trocas_mes)
+            maquinas_trocadas = df_trocas_mes["Maquina_TAG"].nunique()
+
+            m_cor1, m_cor2, _ = st.columns([1.5, 1.5, 3])
+            m_cor1.metric(f"Total Substituídas em {mes_consulta}/{ano_consulta}", f"{total_trocas_mes} correias")
+            m_cor2.metric("Máquinas Atendidas", f"{maquinas_trocadas} ativos")
+
+            st.dataframe(
+                df_trocas_mes[["Setor", "Maquina_TAG", "Tipo_Correia", "Data Formatada"]].rename(
+                    columns={
+                        "Maquina_TAG": "Equipamento (TAG)",
+                        "Tipo_Correia": "Modelo da Correia",
+                        "Data Formatada": "Data da Troca",
+                    }
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=240,
+            )
+        else:
+            st.info(f"Nenhuma troca de correia registada para o mês de **{mes_consulta} de {ano_consulta}**.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # SEÇÃO: MAPA VISUAL DE MÁQUINAS POR SETOR
+    with st.container(border=True):
+        col_filtro, _ = st.columns([2, 3])
+        with col_filtro:
+            lista_setores_p_cor = ["Todos"] + list(DICIONARIO_SETORES.keys())
+            setor_ativo_cor = st.selectbox(
+                "🏭 Filtrar Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
+            )
+
+    st.markdown(
+        """
+        <div style="background:#ffffff; border-radius:8px; padding:10px 16px; margin: 12px 0 16px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+            <span style="font-weight:700; color:#334155; margin-right:16px;">Legenda de Criticidade:</span>
+            <span class="legenda-item">🟢 <b>Correia Nova</b> (Até 1 ano)</span>
+            <span class="legenda-item">🟡 <b>Meia-Vida</b> (1 a 1,5 anos)</span>
+            <span class="legenda-item">🔴 <b>Fim de Vida Útil</b> (> 1,5 anos)</span>
+            <span class="legenda-item">⚪ <b>Sem Apontamento</b></span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    setores_a_exibir = (
+        list(DICIONARIO_SETORES.keys())
+        if setor_ativo_cor == "Todos"
+        else [setor_ativo_cor]
+    )
+
+    for setor in setores_a_exibir:
+        st.subheader(f"📍 {setor}")
+        maqs_setor = DICIONARIO_SETORES[setor]
+        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
+
+        # Dicionário em memória com o estado de cada máquina do setor
+        dados_maqs_setor = {}
+        for maq_tag in maqs_setor:
+            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
+            
+            tipo_txt = "Não informada"
+            data_txt = "Sem registo de data"
+            tempo_txt = "Sem histórico de montagem"
+            classe_card = "status-cinza"
+            classe_badge = "badge-cinza"
+            classe_tempo = ""
+            status_label = "Sem Apontamento"
+            icone_cor = "⚪"
+
+            if not reg_maq.empty:
+                ultimo = reg_maq.iloc[-1]
+                tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                if tipo_val and tipo_val != "nan":
+                    tipo_txt = tipo_val
+
+                dt_val = str(ultimo["Data_Instalacao"]).strip()
+                if dt_val and dt_val != "nan":
+                    try:
+                        dt_inst = pd.to_datetime(dt_val).date()
+                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                        data_txt = f"Montagem: {dt_fmt}"
+
+                        dias = (data_hoje - dt_inst).days
+                        meses = round(dias / 30.4, 1)
+
+                        if dias <= 365:
+                            classe_card = "status-verde"
+                            classe_badge = "badge-verde"
+                            classe_tempo = "tempo-verde"
+                            status_label = "Correia Nova"
+                            icone_cor = "🟢"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                        elif 365 < dias <= 547:
+                            classe_card = "status-amarelo"
+                            classe_badge = "badge-amarelo"
+                            classe_tempo = "tempo-amarelo"
+                            status_label = "Meia-Vida"
+                            icone_cor = "🟡"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                        else:
+                            classe_card = "status-vermelho"
+                            classe_badge = "badge-vermelho"
+                            classe_tempo = "tempo-vermelho"
+                            status_label = "Fim de Vida Útil"
+                            icone_cor = "🔴"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                    except Exception:
+                        data_txt = f"Montagem: {dt_val}"
+
+            dados_maqs_setor[maq_tag] = {
+                "icone": icone_cor,
+                "tipo": tipo_txt,
+                "data": data_txt,
+                "tempo": tempo_txt,
+                "classe_card": classe_card,
+                "classe_badge": classe_badge,
+                "classe_tempo": classe_tempo,
+                "status_label": status_label,
+            }
+
+        # Grelha de botões compactos (6 por linha para leitura direta)
+        NUM_COLS = 6
+        linhas_maquinas = [maqs_setor[i:i + NUM_COLS] for i in range(0, len(maqs_setor), NUM_COLS)]
+
+        for linha in linhas_maquinas:
+            cols = st.columns(NUM_COLS)
+            for idx_c, maq_tag in enumerate(linha):
+                info_m = dados_maqs_setor[maq_tag]
+                with cols[idx_c]:
+                    # O botão carrega o emoji colorido e o nome da máquina
+                    if st.button(
+                        f"{info_m['icone']} {maq_tag}",
+                        key=f"btn_card_cor_{setor}_{maq_tag}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.maq_clicada_cor = {
+                            "setor": setor,
+                            "tag": maq_tag,
+                            **info_m,
+                        }
+
+        # SE HOUVER MÁQUINA CLICADA DESTE SETOR: EXIBE O BALÃO DETALHADO LOGO ABAIXO
+        if (
+            st.session_state.maq_clicada_cor is not None
+            and st.session_state.maq_clicada_cor.get("setor") == setor
+        ):
+            maq_sel = st.session_state.maq_clicada_cor
+            
+            c_balao, c_fecha = st.columns([5, 1])
+            with c_balao:
+                st.markdown(
+                    f"""
+                    <div class="card-balao {maq_sel['classe_card']}">
+                        <div class="balao-tag">
+                            <span>⚙️ Ativo: {maq_sel['tag']} ({setor})</span>
+                            <span class="balao-badge {maq_sel['classe_badge']}">{maq_sel['status_label']}</span>
+                        </div>
+                        <div class="balao-tipo">🏷️ Modelo da Correia: {maq_sel['tipo']}</div>
+                        <div class="balao-data">📅 {maq_sel['data']}</div>
+                        <div class="balao-tempo {maq_sel['classe_tempo']}">⏱️ Vida Acumulada: {maq_sel['tempo']}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c_fecha:
+                st.write("")
+                if st.button("✖ Fechar Balão", key=f"btn_fechar_{setor}"):
+                    st.session_state.maq_clicada_cor = None
+                    st.rerun()
+
+        st.markdown("---")
+
+# ------------------------------------------
+# 2. LANÇAMENTOS: CORREIAS (INTACTO)
+# ------------------------------------------
+elif tela == "Correias":
+    st.title("🔄 Lançamento: Gestão de Correias")
+    st.caption("Cadastro contínuo de tipos de correias e datas de instalação por máquina")
+
+    with st.container(border=True):
+        col_setor, _ = st.columns([2, 3])
+        with col_setor:
+            setor_selecionado = st.selectbox(
+                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_correias_direto"
+            )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader(f"Apontamento de Correias — {setor_selecionado}")
+
+    df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
+    df_filtrado_cor = df_atual_cor[df_atual_cor["Setor"] == setor_selecionado]
+    maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
+
+    dados_grade_cor = []
+    for maq in maquinas_do_setor:
+        reg_existente = df_filtrado_cor[df_filtrado_cor["Maquina_TAG"] == maq]
+        if not reg_existente.empty:
+            tipo_c = str(reg_existente.iloc[-1]["Tipo_Correia"])
+            if tipo_c == "nan":
+                tipo_c = ""
+            dt_val = reg_existente.iloc[-1]["Data_Instalacao"]
+            try:
+                if pd.notna(dt_val) and str(dt_val).strip() != "":
+                    dt_inst = pd.to_datetime(dt_val).date()
+                else:
+                    dt_inst = None
+            except Exception:
+                dt_inst = None
+        else:
+            tipo_c = ""
+            dt_inst = None
+
+        dados_grade_cor.append(
+            {
+                "Máquina": maq,
+                "Tipo / Modelo da Correia": tipo_c,
+                "Data de Instalação": dt_inst,
+            }
+        )
+
+    df_grade_cor = pd.DataFrame(dados_grade_cor)
+
+    configuracao_colunas_cor = {
+        "Máquina": st.column_config.TextColumn(
+            "Máquina",
+            disabled=True,
+        ),
+        "Tipo / Modelo da Correia": st.column_config.TextColumn(
+            "Tipo / Modelo da Correia",
+        ),
+        "Data de Instalação": st.column_config.DateColumn(
+            "Data de Instalação",
+            format="DD/MM/YYYY",
+        ),
+    }
+
+    tabela_editada_cor = st.data_editor(
+        df_grade_cor,
+        column_config=configuracao_colunas_cor,
+        hide_index=True,
+        use_container_width=True,
+        height=440,
+        key=f"editor_cor_direto_{setor_selecionado}",
+    )
+
+    col_btn, _ = st.columns([2, 4])
+    with col_btn:
+        salvar_cor = st.button(
+            f"💾 Salvar Correias: {setor_selecionado}",
+            key=f"btn_salvar_cor_direto_{setor_selecionado}",
+            type="primary",
+        )
+
+    if salvar_cor:
+        df_limpo_cor = df_atual_cor[df_atual_cor["Setor"] != setor_selecionado]
+
+        novos_registros_cor = []
+        for _, linha in tabela_editada_cor.iterrows():
+            d_inst = linha["Data de Instalação"]
+            
+            dt_str = ""
+            if pd.notna(d_inst) and d_inst is not None and str(d_inst).strip() != "":
+                try:
+                    dt_str = pd.to_datetime(d_inst).strftime("%Y-%m-%d")
+                except Exception:
+                    dt_str = ""
+
+            novos_registros_cor.append(
+                {
+                    "Setor": setor_selecionado,
+                    "Maquina_TAG": linha["Máquina"],
+                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]).strip() if pd.notna(linha["Tipo / Modelo da Correia"]) and str(linha["Tipo / Modelo da Correia"]).strip() != "None" else "",
+                    "Data_Instalacao": dt_str,
+                }
+            )
+
+        df_final_cor = pd.concat(
+            [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
+        )
+        df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
+        st.success(f"✅ Dados de correias do {setor_selecionado} salvos com sucesso!")
+        st.rerun()
+
+# ------------------------------------------
+# 3. PAINEL GERENCIAL DE FUSOS (INTACTO)
+# ------------------------------------------
+elif tela == "Painel Fusos":
     st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
     st.caption("Visão estratégica de falhas, confiabilidade de eixos e criticidade de ativos")
 
@@ -487,7 +826,6 @@ if tela == "Painel Fusos":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # GRÁFICO DE LINHA: 100% TRAVADO CONTRA ZOOM / ARRASTO
     with st.container(border=True):
         st.subheader(f"📈 Curva de Tendência Mensal — {ano_painel}")
         st.caption(f"Evolução cronológica de quebras apontadas para: **{texto_cabecalho}**")
@@ -499,7 +837,6 @@ if tela == "Painel Fusos":
         df_evolucao = pd.merge(df_meses_base, agrupado_mes, on="Mes", how="left").fillna(0)
         df_evolucao["Quantidade_Quebras"] = df_evolucao["Quantidade_Quebras"].astype(int)
 
-        # Gráfico estático com Altair sem zoom nem pan
         chart_linha = (
             alt.Chart(df_evolucao)
             .mark_line(point=alt.OverlayMarkDef(color="#1E88E5", size=60), color="#1E88E5", strokeWidth=3)
@@ -514,7 +851,6 @@ if tela == "Painel Fusos":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # RANKING: 100% TRAVADO CONTRA ZOOM / ARRASTO
     if not df_quebras_reais.empty:
         if maquina_painel == "Todas":
             c_graf, c_tab = st.columns([1.6, 1.2])
@@ -572,297 +908,10 @@ if tela == "Painel Fusos":
                     height=320,
                 )
     else:
-        st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
+        st.info(f"Nenhum registo de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 2. PAINEL GERENCIAL DE CORREIAS
-# ------------------------------------------
-elif tela == "Painel Correias":
-    st.title("🔄 Dashboard Gerencial — Ciclo de Vida de Correias")
-    st.caption("Mapeamento operacional da vida útil e monitoramento de trocas de correias")
-
-    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
-    data_hoje = date.today()
-
-    if not df_cor_base.empty and "Data_Instalacao" in df_cor_base.columns:
-        df_cor_base["dt_parsed"] = pd.to_datetime(df_cor_base["Data_Instalacao"], errors="coerce")
-    else:
-        df_cor_base["dt_parsed"] = pd.NaT
-
-    with st.container(border=True):
-        st.subheader("📅 Correias Substituídas no Mês")
-        st.caption("Consulte os ativos que receberam novas correias no período de referência")
-
-        c_mes_sel, c_ano_sel, _ = st.columns([1.5, 1.2, 2.5])
-        
-        idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
-        
-        with c_mes_sel:
-            mes_consulta = st.selectbox(
-                "Mês de Referência:",
-                lista_meses_puros,
-                index=idx_mes_atual,
-                key="p_cor_mes_consulta",
-            )
-        
-        with c_ano_sel:
-            anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
-            ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
-            ano_consulta = st.selectbox(
-                "Ano:",
-                anos_disponiveis,
-                index=ano_padrao_idx,
-                key="p_cor_ano_consulta",
-            )
-
-        num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
-
-        df_trocas_mes = df_cor_base[
-            (df_cor_base["dt_parsed"].notna())
-            & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
-            & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
-        ].copy()
-
-        if not df_trocas_mes.empty:
-            df_trocas_mes["Data Formatada"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m/%Y")
-            total_trocas_mes = len(df_trocas_mes)
-            maquinas_trocadas = df_trocas_mes["Maquina_TAG"].nunique()
-
-            m_cor1, m_cor2, _ = st.columns([1.5, 1.5, 3])
-            m_cor1.metric(f"Total Substituídas em {mes_consulta}/{ano_consulta}", f"{total_trocas_mes} correias")
-            m_cor2.metric("Máquinas Atendidas", f"{maquinas_trocadas} ativos")
-
-            st.dataframe(
-                df_trocas_mes[["Setor", "Maquina_TAG", "Tipo_Correia", "Data Formatada"]].rename(
-                    columns={
-                        "Maquina_TAG": "Equipamento (TAG)",
-                        "Tipo_Correia": "Modelo da Correia",
-                        "Data Formatada": "Data da Troca",
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-                height=260,
-            )
-        else:
-            st.info(f"Nenhuma troca de correia registrada para o mês de **{mes_consulta} de {ano_consulta}**.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    with st.container(border=True):
-        col_filtro, _ = st.columns([2, 3])
-        with col_filtro:
-            lista_setores_p_cor = ["Todos"] + list(DICIONARIO_SETORES.keys())
-            setor_ativo_cor = st.selectbox(
-                "🏭 Filtrar Balões por Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
-            )
-
-    st.markdown(
-        """
-        <div style="background:#ffffff; border-radius:8px; padding:10px 16px; margin: 12px 0 20px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
-            <span style="font-weight:700; color:#334155; margin-right:16px;">Classificação por Idade:</span>
-            <span class="legenda-item"><span class="ponto-legenda" style="background:#16a34a;"></span> <b>Correia Nova</b> (Até 1 ano)</span>
-            <span class="legenda-item"><span class="ponto-legenda" style="background:#ca8a04;"></span> <b>Meia-Vida</b> (1 a 1,5 anos)</span>
-            <span class="legenda-item"><span class="ponto-legenda" style="background:#dc2626;"></span> <b>Fim de Vida Útil</b> (> 1,5 anos)</span>
-            <span class="legenda-item"><span class="ponto-legenda" style="background:#94a3b8;"></span> Sem Apontamento</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    setores_a_exibir = (
-        list(DICIONARIO_SETORES.keys())
-        if setor_ativo_cor == "Todos"
-        else [setor_ativo_cor]
-    )
-
-    for setor in setores_a_exibir:
-        st.subheader(f"📍 {setor}")
-        maqs_setor = DICIONARIO_SETORES[setor]
-        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
-
-        colunas_grid = st.columns(4)
-
-        for idx, maq_tag in enumerate(maqs_setor):
-            col_atual = colunas_grid[idx % 4]
-            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
-
-            tipo_txt = "Não informada"
-            data_txt = "Sem registro de data"
-            tempo_txt = "Sem histórico de montagem"
-            classe_card = "status-cinza"
-            classe_badge = "badge-cinza"
-            classe_tempo = ""
-            status_label = "Pendente"
-
-            if not reg_maq.empty:
-                ultimo = reg_maq.iloc[-1]
-                tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                if tipo_val and tipo_val != "nan":
-                    tipo_txt = tipo_val
-
-                dt_val = str(ultimo["Data_Instalacao"]).strip()
-                if dt_val and dt_val != "nan":
-                    try:
-                        dt_inst = pd.to_datetime(dt_val).date()
-                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                        data_txt = f"Montagem: {dt_fmt}"
-
-                        dias = (data_hoje - dt_inst).days
-                        meses = round(dias / 30.4, 1)
-
-                        if dias <= 365:
-                            classe_card = "status-verde"
-                            classe_badge = "badge-verde"
-                            classe_tempo = "tempo-verde"
-                            status_label = "Correia Nova"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                        elif 365 < dias <= 547:
-                            classe_card = "status-amarelo"
-                            classe_badge = "badge-amarelo"
-                            classe_tempo = "tempo-amarelo"
-                            status_label = "Meia-Vida"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                        else:
-                            classe_card = "status-vermelho"
-                            classe_badge = "badge-vermelho"
-                            classe_tempo = "tempo-vermelho"
-                            status_label = "Fim de Vida Útil"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                    except Exception:
-                        data_txt = f"Montagem: {dt_val}"
-
-            with col_atual:
-                st.markdown(
-                    f"""
-                    <div class="card-balao {classe_card}">
-                        <div class="balao-tag">
-                            <span>⚙️ {maq_tag}</span>
-                            <span class="balao-badge {classe_badge}">{status_label}</span>
-                        </div>
-                        <div class="balao-tipo">🏷️ {tipo_txt}</div>
-                        <div class="balao-data">📅 {data_txt}</div>
-                        <div class="balao-tempo {classe_tempo}">⏱️ {tempo_txt}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-        st.markdown("---")
-
-# ------------------------------------------
-# 3. LANÇAMENTOS: CORREIAS
-# ------------------------------------------
-elif tela == "Correias":
-    st.title("🔄 Lançamento: Gestão de Correias")
-    st.caption("Cadastro contínuo de tipos de correias e datas de instalação por máquina")
-
-    with st.container(border=True):
-        col_setor, _ = st.columns([2, 3])
-        with col_setor:
-            setor_selecionado = st.selectbox(
-                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_correias_direto"
-            )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader(f"Apontamento de Correias — {setor_selecionado}")
-
-    df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
-    df_filtrado_cor = df_atual_cor[df_atual_cor["Setor"] == setor_selecionado]
-    maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
-
-    dados_grade_cor = []
-    for maq in maquinas_do_setor:
-        reg_existente = df_filtrado_cor[df_filtrado_cor["Maquina_TAG"] == maq]
-        if not reg_existente.empty:
-            tipo_c = str(reg_existente.iloc[-1]["Tipo_Correia"])
-            if tipo_c == "nan":
-                tipo_c = ""
-            dt_val = reg_existente.iloc[-1]["Data_Instalacao"]
-            try:
-                if pd.notna(dt_val) and str(dt_val).strip() != "":
-                    dt_inst = pd.to_datetime(dt_val).date()
-                else:
-                    dt_inst = None
-            except Exception:
-                dt_inst = None
-        else:
-            tipo_c = ""
-            dt_inst = None
-
-        dados_grade_cor.append(
-            {
-                "Máquina": maq,
-                "Tipo / Modelo da Correia": tipo_c,
-                "Data de Instalação": dt_inst,
-            }
-        )
-
-    df_grade_cor = pd.DataFrame(dados_grade_cor)
-
-    configuracao_colunas_cor = {
-        "Máquina": st.column_config.TextColumn(
-            "Máquina",
-            disabled=True,
-        ),
-        "Tipo / Modelo da Correia": st.column_config.TextColumn(
-            "Tipo / Modelo da Correia",
-        ),
-        "Data de Instalação": st.column_config.DateColumn(
-            "Data de Instalação",
-            format="DD/MM/YYYY",
-        ),
-    }
-
-    tabela_editada_cor = st.data_editor(
-        df_grade_cor,
-        column_config=configuracao_colunas_cor,
-        hide_index=True,
-        use_container_width=True,
-        height=440,
-        key=f"editor_cor_direto_{setor_selecionado}",
-    )
-
-    col_btn, _ = st.columns([2, 4])
-    with col_btn:
-        salvar_cor = st.button(
-            f"💾 Salvar Correias: {setor_selecionado}",
-            key=f"btn_salvar_cor_direto_{setor_selecionado}",
-            type="primary",
-        )
-
-    if salvar_cor:
-        df_limpo_cor = df_atual_cor[df_atual_cor["Setor"] != setor_selecionado]
-
-        novos_registros_cor = []
-        for _, linha in tabela_editada_cor.iterrows():
-            d_inst = linha["Data de Instalação"]
-            
-            dt_str = ""
-            if pd.notna(d_inst) and d_inst is not None and str(d_inst).strip() != "":
-                try:
-                    dt_str = pd.to_datetime(d_inst).strftime("%Y-%m-%d")
-                except Exception:
-                    dt_str = ""
-
-            novos_registros_cor.append(
-                {
-                    "Setor": setor_selecionado,
-                    "Maquina_TAG": linha["Máquina"],
-                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]).strip() if pd.notna(linha["Tipo / Modelo da Correia"]) and str(linha["Tipo / Modelo da Correia"]).strip() != "None" else "",
-                    "Data_Instalacao": dt_str,
-                }
-            )
-
-        df_final_cor = pd.concat(
-            [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
-        )
-        df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
-        st.success(f"✅ Dados de correias do {setor_selecionado} salvos com sucesso!")
-        st.rerun()
-
-# ------------------------------------------
-# 4. LANÇAMENTOS: FUSOS
+# 4. LANÇAMENTOS: FUSOS (INTACTO)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
