@@ -14,6 +14,14 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+        /* Compactação geral de página */
+        .block-container {
+            padding-top: 1.5rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+        }
+        
         /* Trava contra scroll e zoom acidental em gráficos e tabelas */
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {
@@ -26,128 +34,74 @@ st.markdown(
             resize: none !important;
         }
         
+        /* Botões de máquinas super compactos */
+        div[data-testid="stButton"] button {
+            padding: 2px 4px !important;
+            font-size: 0.78rem !important;
+            font-weight: 600 !important;
+            min-height: 32px !important;
+            margin-bottom: 2px !important;
+        }
+
         /* Card KPI Executivo */
         .metric-card {
             background-color: #ffffff;
-            border-radius: 10px;
-            padding: 16px 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            border-left: 5px solid #1E88E5;
-            margin-bottom: 12px;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #1E88E5;
+            margin-bottom: 8px;
         }
-        .metric-card.warning {
-            border-left-color: #E53935;
-        }
-        .metric-card.success {
-            border-left-color: #43A047;
-        }
+        .metric-card.warning { border-left-color: #E53935; }
+        .metric-card.success { border-left-color: #43A047; }
         .metric-label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #616161;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            letter-spacing: 0.4px;
         }
         .metric-value {
-            font-size: 1.8rem;
+            font-size: 1.3rem;
             color: #212121;
             font-weight: 700;
-            line-height: 1.2;
+            line-height: 1.1;
         }
         .metric-sub {
-            font-size: 0.8rem;
+            font-size: 0.72rem;
             color: #757575;
-            margin-top: 4px;
         }
 
-        /* Balão Expandido da Máquina Selecionada */
-        .card-balao {
-            background-color: #ffffff;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin: 16px 0;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-            border-left: 8px solid #94a3b8;
-            animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .card-balao.status-cinza {
-            border-left-color: #94a3b8;
-            background-color: #f8fafc;
-        }
-        .card-balao.status-verde {
-            border-left-color: #16a34a;
-            background-color: #f0fdf4;
-        }
-        .card-balao.status-amarelo {
-            border-left-color: #ca8a04;
-            background-color: #fefce8;
-        }
-        .card-balao.status-vermelho {
-            border-left-color: #dc2626;
-            background-color: #fef2f2;
-        }
-
-        .balao-tag {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 6px;
+        /* Balão de Detalhes Ultra Compacto */
+        .card-balao-compacto {
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 6px 0;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-left: 5px solid #94a3b8;
         }
-        .balao-badge {
-            font-size: 0.8rem;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .card-balao-compacto.status-verde {
+            background-color: #f0fdf4;
+            border-left-color: #16a34a;
+            color: #14532d;
         }
-        .badge-verde { background: #dcfce7; color: #166534; }
-        .badge-amarelo { background: #fef9c3; color: #854d0e; }
-        .badge-vermelho { background: #fee2e2; color: #991b1b; }
-        .badge-cinza { background: #e2e8f0; color: #475569; }
-
-        .balao-tipo {
-            font-size: 1.05rem;
-            color: #1e293b;
-            font-weight: 600;
-            margin-top: 8px;
-            margin-bottom: 6px;
+        .card-balao-compacto.status-amarelo {
+            background-color: #fefce8;
+            border-left-color: #ca8a04;
+            color: #713f12;
         }
-        .balao-data {
-            font-size: 0.95rem;
-            color: #475569;
+        .card-balao-compacto.status-vermelho {
+            background-color: #fef2f2;
+            border-left-color: #dc2626;
+            color: #7f1d1d;
         }
-        .balao-tempo {
-            font-size: 0.95rem;
-            font-weight: 700;
-            margin-top: 8px;
-        }
-        .tempo-verde { color: #16a34a; }
-        .tempo-amarelo { color: #ca8a04; }
-        .tempo-vermelho { color: #dc2626; }
-
-        /* Legenda Executiva */
-        .legenda-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-right: 18px;
-        }
-        .ponto-legenda {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
+        .card-balao-compacto.status-cinza {
+            background-color: #f8fafc;
+            border-left-color: #94a3b8;
+            color: #334155;
         }
     </style>
     """,
@@ -342,12 +296,9 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (MÁQUINAS COLORIDAS COM CLIQUE PARA ABRIR O BALÃO)
+# 1. PAINEL GERENCIAL DE CORREIAS (LAYOUT ULTRA-COMPACTO: TUDO EM 1 PÁGINA)
 # ------------------------------------------
 if tela == "Painel Correias":
-    st.title("🔄 Dashboard Gerencial — Ciclo de Vida de Correias")
-    st.caption("Mapa visual dos equipamentos por setor com abertura detalhada por clique")
-
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
     data_hoje = date.today()
 
@@ -356,215 +307,176 @@ if tela == "Painel Correias":
     else:
         df_cor_base["dt_parsed"] = pd.NaT
 
-    # SEÇÃO: CORREIAS TROCADAS NO MÊS SELECIONADO
-    with st.container(border=True):
-        st.subheader("📅 Correias Substituídas no Mês")
-        st.caption("Consulte os ativos que receberam novas correias no período de referência")
+    # Linha de Título Compacta com Legenda Integrada
+    c_title, c_legenda = st.columns([1.5, 2.5])
+    with c_title:
+        st.markdown("<h3 style='margin:0; padding:0;'>🔄 Painel de Correias</h3>", unsafe_allow_html=True)
+    with c_legenda:
+        st.markdown(
+            """
+            <div style='text-align:right; font-size:0.8rem; font-weight:600; padding-top:4px;'>
+                🟢 Nova (&le;1a) &nbsp;|&nbsp; 🟡 Meia-Vida (1-1,5a) &nbsp;|&nbsp; 🔴 Fim de Vida (&gt;1,5a) &nbsp;|&nbsp; ⚪ S/ Data
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        c_mes_sel, c_ano_sel, _ = st.columns([1.5, 1.2, 2.5])
-        idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
-        
-        with c_mes_sel:
-            mes_consulta = st.selectbox(
-                "Mês de Referência:",
-                lista_meses_puros,
-                index=idx_mes_atual,
-                key="p_cor_mes_consulta",
-            )
-        
-        with c_ano_sel:
-            anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
-            ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
-            ano_consulta = st.selectbox(
-                "Ano:",
-                anos_disponiveis,
-                index=ano_padrao_idx,
-                key="p_cor_ano_consulta",
-            )
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-        num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
+    # DUAS COLUNAS PRINCIPAIS: LADO ESQUERDO (HISTÓRICO MENSAL) | LADO DIREITO (MAPA DE ATIVOS)
+    col_mes_esq, col_mapa_dir = st.columns([1.2, 2])
 
-        df_trocas_mes = df_cor_base[
-            (df_cor_base["dt_parsed"].notna())
-            & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
-            & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
-        ].copy()
-
-        if not df_trocas_mes.empty:
-            df_trocas_mes["Data Formatada"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m/%Y")
-            total_trocas_mes = len(df_trocas_mes)
-            maquinas_trocadas = df_trocas_mes["Maquina_TAG"].nunique()
-
-            m_cor1, m_cor2, _ = st.columns([1.5, 1.5, 3])
-            m_cor1.metric(f"Total Substituídas em {mes_consulta}/{ano_consulta}", f"{total_trocas_mes} correias")
-            m_cor2.metric("Máquinas Atendidas", f"{maquinas_trocadas} ativos")
-
-            st.dataframe(
-                df_trocas_mes[["Setor", "Maquina_TAG", "Tipo_Correia", "Data Formatada"]].rename(
-                    columns={
-                        "Maquina_TAG": "Equipamento (TAG)",
-                        "Tipo_Correia": "Modelo da Correia",
-                        "Data Formatada": "Data da Troca",
-                    }
-                ),
-                use_container_width=True,
-                hide_index=True,
-                height=240,
-            )
-        else:
-            st.info(f"Nenhuma troca de correia registada para o mês de **{mes_consulta} de {ano_consulta}**.")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # SEÇÃO: MAPA VISUAL DE MÁQUINAS POR SETOR
-    with st.container(border=True):
-        col_filtro, _ = st.columns([2, 3])
-        with col_filtro:
-            lista_setores_p_cor = ["Todos"] + list(DICIONARIO_SETORES.keys())
-            setor_ativo_cor = st.selectbox(
-                "🏭 Filtrar Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
-            )
-
-    st.markdown(
-        """
-        <div style="background:#ffffff; border-radius:8px; padding:10px 16px; margin: 12px 0 16px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
-            <span style="font-weight:700; color:#334155; margin-right:16px;">Legenda de Criticidade:</span>
-            <span class="legenda-item">🟢 <b>Correia Nova</b> (Até 1 ano)</span>
-            <span class="legenda-item">🟡 <b>Meia-Vida</b> (1 a 1,5 anos)</span>
-            <span class="legenda-item">🔴 <b>Fim de Vida Útil</b> (> 1,5 anos)</span>
-            <span class="legenda-item">⚪ <b>Sem Apontamento</b></span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    setores_a_exibir = (
-        list(DICIONARIO_SETORES.keys())
-        if setor_ativo_cor == "Todos"
-        else [setor_ativo_cor]
-    )
-
-    for setor in setores_a_exibir:
-        st.subheader(f"📍 {setor}")
-        maqs_setor = DICIONARIO_SETORES[setor]
-        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
-
-        # Dicionário em memória com o estado de cada máquina do setor
-        dados_maqs_setor = {}
-        for maq_tag in maqs_setor:
-            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
+    # --- LADO ESQUERDO: CORREIAS DO MÊS ---
+    with col_mes_esq:
+        with st.container(border=True):
+            st.markdown("<b style='font-size:0.9rem;'>📅 Substituições no Mês</b>", unsafe_allow_html=True)
             
-            tipo_txt = "Não informada"
-            data_txt = "Sem registo de data"
-            tempo_txt = "Sem histórico de montagem"
-            classe_card = "status-cinza"
-            classe_badge = "badge-cinza"
-            classe_tempo = ""
-            status_label = "Sem Apontamento"
-            icone_cor = "⚪"
-
-            if not reg_maq.empty:
-                ultimo = reg_maq.iloc[-1]
-                tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                if tipo_val and tipo_val != "nan":
-                    tipo_txt = tipo_val
-
-                dt_val = str(ultimo["Data_Instalacao"]).strip()
-                if dt_val and dt_val != "nan":
-                    try:
-                        dt_inst = pd.to_datetime(dt_val).date()
-                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                        data_txt = f"Montagem: {dt_fmt}"
-
-                        dias = (data_hoje - dt_inst).days
-                        meses = round(dias / 30.4, 1)
-
-                        if dias <= 365:
-                            classe_card = "status-verde"
-                            classe_badge = "badge-verde"
-                            classe_tempo = "tempo-verde"
-                            status_label = "Correia Nova"
-                            icone_cor = "🟢"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                        elif 365 < dias <= 547:
-                            classe_card = "status-amarelo"
-                            classe_badge = "badge-amarelo"
-                            classe_tempo = "tempo-amarelo"
-                            status_label = "Meia-Vida"
-                            icone_cor = "🟡"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                        else:
-                            classe_card = "status-vermelho"
-                            classe_badge = "badge-vermelho"
-                            classe_tempo = "tempo-vermelho"
-                            status_label = "Fim de Vida Útil"
-                            icone_cor = "🔴"
-                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                    except Exception:
-                        data_txt = f"Montagem: {dt_val}"
-
-            dados_maqs_setor[maq_tag] = {
-                "icone": icone_cor,
-                "tipo": tipo_txt,
-                "data": data_txt,
-                "tempo": tempo_txt,
-                "classe_card": classe_card,
-                "classe_badge": classe_badge,
-                "classe_tempo": classe_tempo,
-                "status_label": status_label,
-            }
-
-        # Grelha de botões compactos (6 por linha para leitura direta)
-        NUM_COLS = 6
-        linhas_maquinas = [maqs_setor[i:i + NUM_COLS] for i in range(0, len(maqs_setor), NUM_COLS)]
-
-        for linha in linhas_maquinas:
-            cols = st.columns(NUM_COLS)
-            for idx_c, maq_tag in enumerate(linha):
-                info_m = dados_maqs_setor[maq_tag]
-                with cols[idx_c]:
-                    # O botão carrega o emoji colorido e o nome da máquina
-                    if st.button(
-                        f"{info_m['icone']} {maq_tag}",
-                        key=f"btn_card_cor_{setor}_{maq_tag}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.maq_clicada_cor = {
-                            "setor": setor,
-                            "tag": maq_tag,
-                            **info_m,
-                        }
-
-        # SE HOUVER MÁQUINA CLICADA DESTE SETOR: EXIBE O BALÃO DETALHADO LOGO ABAIXO
-        if (
-            st.session_state.maq_clicada_cor is not None
-            and st.session_state.maq_clicada_cor.get("setor") == setor
-        ):
-            maq_sel = st.session_state.maq_clicada_cor
-            
-            c_balao, c_fecha = st.columns([5, 1])
-            with c_balao:
-                st.markdown(
-                    f"""
-                    <div class="card-balao {maq_sel['classe_card']}">
-                        <div class="balao-tag">
-                            <span>⚙️ Ativo: {maq_sel['tag']} ({setor})</span>
-                            <span class="balao-badge {maq_sel['classe_badge']}">{maq_sel['status_label']}</span>
-                        </div>
-                        <div class="balao-tipo">🏷️ Modelo da Correia: {maq_sel['tipo']}</div>
-                        <div class="balao-data">📅 {maq_sel['data']}</div>
-                        <div class="balao-tempo {maq_sel['classe_tempo']}">⏱️ Vida Acumulada: {maq_sel['tempo']}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+            c_m1, c_m2 = st.columns([1.3, 1])
+            idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
+            with c_m1:
+                mes_consulta = st.selectbox(
+                    "Mês:", lista_meses_puros, index=idx_mes_atual, key="p_cor_mes_comp", label_visibility="collapsed"
                 )
-            with c_fecha:
-                st.write("")
-                if st.button("✖ Fechar Balão", key=f"btn_fechar_{setor}"):
-                    st.session_state.maq_clicada_cor = None
-                    st.rerun()
+            with c_m2:
+                anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
+                ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
+                ano_consulta = st.selectbox(
+                    "Ano:", anos_disponiveis, index=ano_padrao_idx, key="p_cor_ano_comp", label_visibility="collapsed"
+                )
 
-        st.markdown("---")
+            num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
+            df_trocas_mes = df_cor_base[
+                (df_cor_base["dt_parsed"].notna())
+                & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
+                & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
+            ].copy()
+
+            if not df_trocas_mes.empty:
+                df_trocas_mes["Data"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m")
+                total_trocas_mes = len(df_trocas_mes)
+                
+                st.markdown(
+                    f"<div style='font-size:0.8rem; color:#1e293b; margin: 4px 0;'><b>Total:</b> {total_trocas_mes} trocas registradas</div>",
+                    unsafe_allow_html=True
+                )
+                
+                st.dataframe(
+                    df_trocas_mes[["Maquina_TAG", "Tipo_Correia", "Data"]].rename(
+                        columns={"Maquina_TAG": "TAG", "Tipo_Correia": "Modelo"}
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=280,
+                )
+            else:
+                st.info(f"Sem trocas em {mes_consulta}/{ano_consulta}.")
+
+    # --- LADO DIREITO: MAPA DOS SETORES E ATIVOS ---
+    with col_mapa_dir:
+        with st.container(border=True):
+            c_setor_sel, c_info_topo = st.columns([1.2, 1.8])
+            with c_setor_sel:
+                setor_ativo_cor = st.selectbox(
+                    "Setor:", list(DICIONARIO_SETORES.keys()), index=0, key="painel_cor_setor_comp", label_visibility="collapsed"
+                )
+            with c_info_topo:
+                st.caption(f"Clique na máquina para ver detalhes de instalação.")
+
+            # SE HOUVER MÁQUINA CLICADA: MOSTRA DETALHES COMPACTOS NO TOPO DO MAPA
+            if (
+                st.session_state.maq_clicada_cor is not None
+                and st.session_state.maq_clicada_cor.get("setor") == setor_ativo_cor
+            ):
+                maq_sel = st.session_state.maq_clicada_cor
+                c_box, c_close = st.columns([5, 1])
+                with c_box:
+                    st.markdown(
+                        f"""
+                        <div class="card-balao-compacto {maq_sel['classe_card']}">
+                            <span>⚙️ <b>{maq_sel['tag']}</b> | 🏷️ {maq_sel['tipo']} | 📅 {maq_sel['data']}</span>
+                            <span>⏱️ <b>{maq_sel['tempo']}</b></span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with c_close:
+                    if st.button("✖", key="btn_fechar_balao_mini"):
+                        st.session_state.maq_clicada_cor = None
+                        st.rerun()
+
+            maqs_setor = DICIONARIO_SETORES[setor_ativo_cor]
+            df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor_ativo_cor]
+
+            # Dicionário de dados
+            dados_maqs_setor = {}
+            for maq_tag in maqs_setor:
+                reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
+                
+                tipo_txt = "Não informada"
+                data_txt = "Sem registro"
+                tempo_txt = "Sem histórico"
+                classe_card = "status-cinza"
+                icone_cor = "⚪"
+
+                if not reg_maq.empty:
+                    ultimo = reg_maq.iloc[-1]
+                    tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                    if tipo_val and tipo_val != "nan":
+                        tipo_txt = tipo_val
+
+                    dt_val = str(ultimo["Data_Instalacao"]).strip()
+                    if dt_val and dt_val != "nan":
+                        try:
+                            dt_inst = pd.to_datetime(dt_val).date()
+                            dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                            data_txt = f"{dt_fmt}"
+
+                            dias = (data_hoje - dt_inst).days
+                            meses = round(dias / 30.4, 1)
+
+                            if dias <= 365:
+                                classe_card = "status-verde"
+                                icone_cor = "🟢"
+                                tempo_txt = f"{meses}m ({dias}d)"
+                            elif 365 < dias <= 547:
+                                classe_card = "status-amarelo"
+                                icone_cor = "🟡"
+                                tempo_txt = f"{meses}m ({dias}d)"
+                            else:
+                                classe_card = "status-vermelho"
+                                icone_cor = "🔴"
+                                tempo_txt = f"{meses}m ({dias}d)"
+                        except Exception:
+                            data_txt = f"{dt_val}"
+
+                dados_maqs_setor[maq_tag] = {
+                    "icone": icone_cor,
+                    "tipo": tipo_txt,
+                    "data": data_txt,
+                    "tempo": tempo_txt,
+                    "classe_card": classe_card,
+                }
+
+            # GRADE ULTRA-COMPACTA (8 MÁQUINAS POR LINHA)
+            COLS_POR_LINHA = 8
+            linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
+
+            for linha in linhas_maquinas:
+                cols = st.columns(COLS_POR_LINHA)
+                for idx_c, maq_tag in enumerate(linha):
+                    info_m = dados_maqs_setor[maq_tag]
+                    with cols[idx_c]:
+                        if st.button(
+                            f"{info_m['icone']} {maq_tag}",
+                            key=f"btn_m_onepage_{setor_ativo_cor}_{maq_tag}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.maq_clicada_cor = {
+                                "setor": setor_ativo_cor,
+                                "tag": maq_tag,
+                                **info_m,
+                            }
+                            st.rerun()
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (INTACTO)
