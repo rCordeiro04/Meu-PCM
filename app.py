@@ -14,7 +14,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* Card KPI Executivo */
         .metric-card {
             background-color: #ffffff;
             border-radius: 10px;
@@ -53,7 +52,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-ARQUIVO_FUSOS = "lancamentos_fusos_v4.xlsx"
+ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 
 colunas_obrigatorias = [
     "Ano",
@@ -61,14 +60,42 @@ colunas_obrigatorias = [
     "Setor",
     "Maquina_TAG",
     "Quantidade_Quebras",
-    "Observacoes",
+    "Tipo_Fuso",
 ]
 
-# Inicializa o ficheiro se ainda não existir
+# Lista de opções oficiais para o Tipo de Fuso
+OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
+
+# Recuperação de dados salvos em versões anteriores
+arquivos_antigos = [
+    "lancamentos_fusos_v4.xlsx",
+    "lancamentos_fusos_v3.xlsx",
+    "lancamentos_fusos_v2.xlsx",
+    "lancamentos_fusos.xlsx",
+]
+
 if not os.path.exists(ARQUIVO_FUSOS):
-    pd.DataFrame(columns=colunas_obrigatorias).to_excel(
-        ARQUIVO_FUSOS, index=False
-    )
+    recuperado = False
+    for arq in arquivos_antigos:
+        if os.path.exists(arq):
+            try:
+                df_antigo = pd.read_excel(arq)
+                if not df_antigo.empty:
+                    if "Setor" not in df_antigo.columns:
+                        df_antigo["Setor"] = "Setor A"
+                    if "Tipo_Fuso" not in df_antigo.columns:
+                        df_antigo["Tipo_Fuso"] = "FAG"
+                    if "Observacoes" in df_antigo.columns:
+                        df_antigo = df_antigo.drop(columns=["Observacoes"])
+                    df_antigo.to_excel(ARQUIVO_FUSOS, index=False)
+                    recuperado = True
+                    break
+            except Exception:
+                pass
+    if not recuperado:
+        pd.DataFrame(columns=colunas_obrigatorias).to_excel(
+            ARQUIVO_FUSOS, index=False
+        )
 
 df_fusos = pd.read_excel(ARQUIVO_FUSOS)
 if not all(col in df_fusos.columns for col in colunas_obrigatorias):
@@ -153,7 +180,6 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
-# Gestão de navegação da aplicação
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Fusos"
 
@@ -170,7 +196,6 @@ with st.sidebar:
     st.caption("Planejamento e Controle de Manutenção")
     st.markdown("---")
 
-    # PAINÉIS
     st.subheader("📊 Painéis")
     tipo_painel_fusos = (
         "primary"
@@ -187,7 +212,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # LANÇAMENTOS
     st.subheader("📝 Lançamentos")
     tipo_fusos = (
         "primary"
@@ -265,16 +289,12 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE FUSOS (LAYOUT EXECUTIVO)
+# 1. PAINEL GERENCIAL DE FUSOS
 # ------------------------------------------
 if tela == "Painel Fusos":
-    # Cabeçalho Principal
-    c_head1, c_head2 = st.columns([4, 1])
-    with c_head1:
-        st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
-        st.caption("Visão estratégica de falhas, confiabilidade de eixos e criticidade de ativos")
+    st.title("🔩 Dashboard Gerencial — Quebras de Fusos")
+    st.caption("Visão estratégica de falhas, confiabilidade de eixos e criticidade de ativos")
 
-    # Caixa de Parâmetros / Filtros com visual de container limpo
     with st.container(border=True):
         col_ano, col_setor, col_maq_f = st.columns([1, 1.5, 1.5])
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
@@ -311,7 +331,6 @@ if tela == "Painel Fusos":
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
-    # Aplicação estrita dos filtros
     df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
 
     if setor_painel != "Todos":
@@ -321,7 +340,6 @@ if tela == "Painel Fusos":
 
     df_quebras_reais = df_filtrado[df_filtrado["Quantidade_Quebras"] > 0]
 
-    # Subtítulo executivo
     escopo_texto = []
     if setor_painel != "Todos":
         escopo_texto.append(setor_painel)
@@ -331,7 +349,6 @@ if tela == "Painel Fusos":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- MÉTRICAS EXECUTIVAS ESTILIZADAS ---
     total_quebras = int(df_filtrado["Quantidade_Quebras"].sum()) if not df_filtrado.empty else 0
     total_maquinas_falharam = df_quebras_reais["Maquina_TAG"].nunique() if not df_quebras_reais.empty else 0
 
@@ -413,7 +430,6 @@ if tela == "Painel Fusos":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- SEÇÃO 1: GRÁFICO DE LINHA (ORDEM CRONOLÓGICA DE JANEIRO A DEZEMBRO) ---
     with st.container(border=True):
         st.subheader(f"📈 Curva de Tendência Mensal — {ano_painel}")
         st.caption(f"Evolução cronológica de quebras apontadas para: **{texto_cabecalho}**")
@@ -439,7 +455,6 @@ if tela == "Painel Fusos":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- SEÇÃO 2: RANKING E DETALHAMENTO ---
     if not df_quebras_reais.empty:
         if maquina_painel == "Todas":
             c_graf, c_tab = st.columns([1.6, 1.2])
@@ -472,13 +487,13 @@ if tela == "Painel Fusos":
             with st.container(border=True):
                 st.subheader(f"📋 Histórico Operacional de Ocorrências — {maquina_painel}")
                 df_detalhe_maq = df_quebras_reais[
-                    ["Mes", "Setor", "Quantidade_Quebras", "Observacoes"]
+                    ["Mes", "Setor", "Quantidade_Quebras", "Tipo_Fuso"]
                 ].rename(
                     columns={
                         "Mes": "Mês de Referência",
                         "Setor": "Setor",
                         "Quantidade_Quebras": "Quebras Apontadas",
-                        "Observacoes": "Observação Registrada",
+                        "Tipo_Fuso": "Tipo de Fuso",
                     }
                 )
                 st.dataframe(
@@ -490,11 +505,11 @@ if tela == "Painel Fusos":
         st.info(f"Nenhum registro de quebra localizado em {ano_painel} com os filtros atuais.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: FUSOS (GRADE RÁPIDA)
+# 2. LANÇAMENTOS: FUSOS (COM SELEÇÃO DO TIPO DE FUSO)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
-    st.caption("Preenchimento rápido de quebras por máquina e fechamento por setor")
+    st.caption("Preenchimento rápido de quebras por máquina, seleção de tipo de fuso e fechamento por setor")
 
     with st.container(border=True):
         col_ano, col_setor, _ = st.columns([1.5, 2, 3])
@@ -531,26 +546,45 @@ elif tela == "Lançamento Fusos":
                 ]
                 if not registro_existente.empty:
                     qtd = int(registro_existente.iloc[0]["Quantidade_Quebras"])
-                    obs = str(registro_existente.iloc[0]["Observacoes"])
-                    if obs == "nan":
-                        obs = ""
+                    tipo_salvo = str(registro_existente.iloc[0]["Tipo_Fuso"])
+                    if tipo_salvo not in OPCOES_TIPO_FUSO:
+                        tipo_salvo = OPCOES_TIPO_FUSO[0]
                 else:
                     qtd = 0
-                    obs = ""
+                    tipo_salvo = OPCOES_TIPO_FUSO[0]
 
                 dados_grade.append(
                     {
                         "Máquina": maq,
                         "Quantidade de Quebras": qtd,
-                        "Observações": obs,
+                        "Tipo de Fuso": tipo_salvo,
                     }
                 )
 
             df_grade = pd.DataFrame(dados_grade)
 
+            # Configura a coluna Tipo de Fuso como lista suspensa restrita
+            configuracao_colunas = {
+                "Máquina": st.column_config.TextColumn(
+                    "Máquina",
+                    disabled=True,
+                ),
+                "Quantidade de Quebras": st.column_config.NumberColumn(
+                    "Quantidade de Quebras",
+                    min_value=0,
+                    step=1,
+                    format="%d",
+                ),
+                "Tipo de Fuso": st.column_config.SelectboxColumn(
+                    "Tipo de Fuso",
+                    options=OPCOES_TIPO_FUSO,
+                    required=True,
+                ),
+            }
+
             tabela_editada = st.data_editor(
                 df_grade,
-                disabled=["Máquina"],
+                column_config=configuracao_colunas,
                 hide_index=True,
                 use_container_width=True,
                 key=f"editor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
@@ -584,7 +618,7 @@ elif tela == "Lançamento Fusos":
                             "Quantidade_Quebras": int(
                                 linha["Quantidade de Quebras"]
                             ),
-                            "Observacoes": str(linha["Observações"]),
+                            "Tipo_Fuso": str(linha["Tipo de Fuso"]),
                         }
                     )
 
