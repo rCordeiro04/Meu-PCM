@@ -142,7 +142,7 @@ st.markdown(
 
 # Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
-ARQUIVO_CORREIAS = "lancamentos_correias_v2.xlsx"
+ARQUIVO_CORREIAS = "lancamentos_correias_v3.xlsx"
 
 colunas_fusos = [
     "Ano",
@@ -154,8 +154,6 @@ colunas_fusos = [
 ]
 
 colunas_correias = [
-    "Ano",
-    "Mes",
     "Setor",
     "Maquina_TAG",
     "Tipo_Correia",
@@ -173,16 +171,25 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias
+# Base de Correias (migração automática dos dados salvos)
 if not os.path.exists(ARQUIVO_CORREIAS):
-    pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+    if os.path.exists("lancamentos_correias_v2.xlsx"):
+        try:
+            df_old_cor = pd.read_excel("lancamentos_correias_v2.xlsx")
+            cols_disponiveis = [c for c in colunas_correias if c in df_old_cor.columns]
+            df_migrado = df_old_cor[cols_disponiveis].drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last")
+            df_migrado.to_excel(ARQUIVO_CORREIAS, index=False)
+        except Exception:
+            pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+    else:
+        pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
 
 df_correias = pd.read_excel(ARQUIVO_CORREIAS)
 if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -341,7 +348,6 @@ if tela == "Painel Correias":
                 "🏭 Selecione o Setor:", lista_setores_p_cor, index=0, key="painel_cor_setor"
             )
 
-    # Legenda alinhada com as faixas de tempo
     st.markdown(
         """
         <div style="background:#ffffff; border-radius:8px; padding:10px 16px; margin: 12px 0 20px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
@@ -384,46 +390,41 @@ if tela == "Painel Correias":
             status_label = "Pendente"
 
             if not reg_maq.empty:
-                reg_com_dado = reg_maq[
-                    (reg_maq["Tipo_Correia"].notna() & (reg_maq["Tipo_Correia"].astype(str).str.strip() != "")) |
-                    (reg_maq["Data_Instalacao"].notna() & (reg_maq["Data_Instalacao"].astype(str).str.strip() != ""))
-                ]
-                if not reg_com_dado.empty:
-                    ultimo = reg_com_dado.iloc[-1]
-                    tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                    if tipo_val and tipo_val != "nan":
-                        tipo_txt = tipo_val
+                ultimo = reg_maq.iloc[-1]
+                tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                if tipo_val and tipo_val != "nan":
+                    tipo_txt = tipo_val
 
-                    dt_val = str(ultimo["Data_Instalacao"]).strip()
-                    if dt_val and dt_val != "nan":
-                        try:
-                            dt_inst = pd.to_datetime(dt_val).date()
-                            dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                            data_txt = f"Montagem: {dt_fmt}"
+                dt_val = str(ultimo["Data_Instalacao"]).strip()
+                if dt_val and dt_val != "nan":
+                    try:
+                        dt_inst = pd.to_datetime(dt_val).date()
+                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                        data_txt = f"Montagem: {dt_fmt}"
 
-                            dias = (data_hoje - dt_inst).days
-                            meses = round(dias / 30.4, 1)
+                        dias = (data_hoje - dt_inst).days
+                        meses = round(dias / 30.4, 1)
 
-                            if dias <= 365:
-                                classe_card = "status-verde"
-                                classe_badge = "badge-verde"
-                                classe_tempo = "tempo-verde"
-                                status_label = "Correia Nova"
-                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                            elif 365 < dias <= 547:
-                                classe_card = "status-amarelo"
-                                classe_badge = "badge-amarelo"
-                                classe_tempo = "tempo-amarelo"
-                                status_label = "Meia-Vida"
-                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                            else:
-                                classe_card = "status-vermelho"
-                                classe_badge = "badge-vermelho"
-                                classe_tempo = "tempo-vermelho"
-                                status_label = "Fim de Vida Útil"
-                                tempo_txt = f"{meses} meses ({dias} dias em operação)"
-                        except Exception:
-                            data_txt = f"Montagem: {dt_val}"
+                        if dias <= 365:
+                            classe_card = "status-verde"
+                            classe_badge = "badge-verde"
+                            classe_tempo = "tempo-verde"
+                            status_label = "Correia Nova"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                        elif 365 < dias <= 547:
+                            classe_card = "status-amarelo"
+                            classe_badge = "badge-amarelo"
+                            classe_tempo = "tempo-amarelo"
+                            status_label = "Meia-Vida"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                        else:
+                            classe_card = "status-vermelho"
+                            classe_badge = "badge-vermelho"
+                            classe_tempo = "tempo-vermelho"
+                            status_label = "Fim de Vida Útil"
+                            tempo_txt = f"{meses} meses ({dias} dias em operação)"
+                    except Exception:
+                        data_txt = f"Montagem: {dt_val}"
 
             with col_atual:
                 st.markdown(
@@ -444,133 +445,108 @@ if tela == "Painel Correias":
         st.markdown("---")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (INTACTO)
+# 2. LANÇAMENTOS: CORREIAS (APENAS FILTRO POR SETOR)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
-    st.caption("Acompanhamento de tipos de correias e datas de instalação por equipamento")
+    st.caption("Cadastro contínuo de tipos de correias e datas de instalação por máquina")
 
+    # Apenas o filtro de setor
     with st.container(border=True):
-        col_ano, col_setor, _ = st.columns([1.5, 2, 3])
-        with col_ano:
-            ano_selecionado = st.selectbox(
-                "📅 Ano de Fechamento:", [2024, 2025, 2026, 2027, 2028], index=2, key="sel_ano_correias"
-            )
+        col_setor, _ = st.columns([2, 3])
         with col_setor:
             setor_selecionado = st.selectbox(
-                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_correias"
+                "🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_correias_direto"
             )
 
     st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader(f"Apontamento de Correias — {setor_selecionado}")
 
-    abas_meses = st.tabs(lista_meses_puros)
+    df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
+    df_filtrado_cor = df_atual_cor[df_atual_cor["Setor"] == setor_selecionado]
     maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
 
-    for idx, nome_mes in enumerate(lista_meses_puros):
-        with abas_meses[idx]:
-            st.subheader(f"Apontamento — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
-
-            df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
-
-            df_filtrado_cor = df_atual_cor[
-                (df_atual_cor["Ano"] == ano_selecionado)
-                & (df_atual_cor["Mes"] == nome_mes)
-                & (df_atual_cor["Setor"] == setor_selecionado)
-            ]
-
-            dados_grade_cor = []
-            for maq in maquinas_do_setor:
-                registro_existente = df_filtrado_cor[
-                    df_filtrado_cor["Maquina_TAG"] == maq
-                ]
-                if not registro_existente.empty:
-                    tipo_c = str(registro_existente.iloc[0]["Tipo_Correia"])
-                    if tipo_c == "nan":
-                        tipo_c = ""
-                    dt_val = registro_existente.iloc[0]["Data_Instalacao"]
-                    try:
-                        if pd.notna(dt_val) and str(dt_val).strip() != "":
-                            dt_inst = pd.to_datetime(dt_val).date()
-                        else:
-                            dt_inst = None
-                    except Exception:
-                        dt_inst = None
+    dados_grade_cor = []
+    for maq in maquinas_do_setor:
+        reg_existente = df_filtrado_cor[df_filtrado_cor["Maquina_TAG"] == maq]
+        if not reg_existente.empty:
+            tipo_c = str(reg_existente.iloc[-1]["Tipo_Correia"])
+            if tipo_c == "nan":
+                tipo_c = ""
+            dt_val = reg_existente.iloc[-1]["Data_Instalacao"]
+            try:
+                if pd.notna(dt_val) and str(dt_val).strip() != "":
+                    dt_inst = pd.to_datetime(dt_val).date()
                 else:
-                    tipo_c = ""
                     dt_inst = None
+            except Exception:
+                dt_inst = None
+        else:
+            tipo_c = ""
+            dt_inst = None
 
-                dados_grade_cor.append(
-                    {
-                        "Máquina": maq,
-                        "Tipo de Correia": tipo_c,
-                        "Data de Instalação": dt_inst,
-                    }
-                )
-
-            df_grade_cor = pd.DataFrame(dados_grade_cor)
-
-            configuracao_colunas_cor = {
-                "Máquina": st.column_config.TextColumn(
-                    "Máquina",
-                    disabled=True,
-                ),
-                "Tipo de Correia": st.column_config.TextColumn(
-                    "Tipo / Modelo da Correia",
-                ),
-                "Data de Instalação": st.column_config.DateColumn(
-                    "Data de Instalação",
-                    format="DD/MM/YYYY",
-                ),
+        dados_grade_cor.append(
+            {
+                "Máquina": maq,
+                "Tipo / Modelo da Correia": tipo_c,
+                "Data de Instalação": dt_inst,
             }
+        )
 
-            tabela_editada_cor = st.data_editor(
-                df_grade_cor,
-                column_config=configuracao_colunas_cor,
-                hide_index=True,
-                use_container_width=True,
-                key=f"editor_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+    df_grade_cor = pd.DataFrame(dados_grade_cor)
+
+    configuracao_colunas_cor = {
+        "Máquina": st.column_config.TextColumn(
+            "Máquina",
+            disabled=True,
+        ),
+        "Tipo / Modelo da Correia": st.column_config.TextColumn(
+            "Tipo / Modelo da Correia",
+        ),
+        "Data de Instalação": st.column_config.DateColumn(
+            "Data de Instalação",
+            format="DD/MM/YYYY",
+        ),
+    }
+
+    tabela_editada_cor = st.data_editor(
+        df_grade_cor,
+        column_config=configuracao_colunas_cor,
+        hide_index=True,
+        use_container_width=True,
+        key=f"editor_cor_direto_{setor_selecionado}",
+    )
+
+    col_btn, _ = st.columns([2, 4])
+    with col_btn:
+        salvar_cor = st.button(
+            f"💾 Salvar Correias: {setor_selecionado}",
+            key=f"btn_salvar_cor_direto_{setor_selecionado}",
+            type="primary",
+        )
+
+    if salvar_cor:
+        df_limpo_cor = df_atual_cor[df_atual_cor["Setor"] != setor_selecionado]
+
+        novos_registros_cor = []
+        for _, linha in tabela_editada_cor.iterrows():
+            d_inst = linha["Data de Instalação"]
+            dt_str = d_inst.strftime("%Y-%m-%d") if pd.notna(d_inst) and d_inst is not None else ""
+            novos_registros_cor.append(
+                {
+                    "Setor": setor_selecionado,
+                    "Maquina_TAG": linha["Máquina"],
+                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]) if pd.notna(linha["Tipo / Modelo da Correia"]) else "",
+                    "Data_Instalacao": dt_str,
+                }
             )
 
-            col_btn, _ = st.columns([2, 4])
-            with col_btn:
-                salvar_mes_cor = st.button(
-                    f"💾 Salvar Correias: {setor_selecionado} ({nome_mes}/{ano_selecionado})",
-                    key=f"btn_salvar_cor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
-                    type="primary",
-                )
-
-            if salvar_mes_cor:
-                df_limpo_cor = df_atual_cor[
-                    ~(
-                        (df_atual_cor["Ano"] == ano_selecionado)
-                        & (df_atual_cor["Mes"] == nome_mes)
-                        & (df_atual_cor["Setor"] == setor_selecionado)
-                    )
-                ]
-
-                novos_registros_cor = []
-                for _, linha in tabela_editada_cor.iterrows():
-                    d_inst = linha["Data de Instalação"]
-                    dt_str = d_inst.strftime("%Y-%m-%d") if pd.notna(d_inst) and d_inst is not None else ""
-                    novos_registros_cor.append(
-                        {
-                            "Ano": int(ano_selecionado),
-                            "Mes": nome_mes,
-                            "Setor": setor_selecionado,
-                            "Maquina_TAG": linha["Máquina"],
-                            "Tipo_Correia": str(linha["Tipo de Correia"]) if pd.notna(linha["Tipo de Correia"]) else "",
-                            "Data_Instalacao": dt_str,
-                        }
-                    )
-
-                df_final_cor = pd.concat(
-                    [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
-                )
-                df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
-                st.success(
-                    f"✅ Apontamento de Correias do {setor_selecionado} ({nome_mes}/{ano_selecionado}) salvo com sucesso!"
-                )
-                st.rerun()
+        df_final_cor = pd.concat(
+            [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
+        )
+        df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
+        st.success(f"✅ Dados de correias do {setor_selecionado} salvos com sucesso!")
+        st.rerun()
 
 # ------------------------------------------
 # 3. PAINEL GERENCIAL DE FUSOS (INTACTO)
