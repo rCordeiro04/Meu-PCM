@@ -34,13 +34,13 @@ st.markdown(
             resize: none !important;
         }
         
-        /* Botões de máquinas super compactos */
+        /* Botões de máquinas compactos em grelha */
         div[data-testid="stButton"] button {
             padding: 2px 4px !important;
-            font-size: 0.78rem !important;
+            font-size: 0.8rem !important;
             font-weight: 600 !important;
             min-height: 32px !important;
-            margin-bottom: 2px !important;
+            margin-bottom: 3px !important;
         }
 
         /* Card KPI Executivo */
@@ -72,16 +72,17 @@ st.markdown(
             color: #757575;
         }
 
-        /* Balão de Detalhes Ultra Compacto */
+        /* Balão de Detalhes da Máquina Clicada */
         .card-balao-compacto {
             border-radius: 8px;
-            padding: 8px 12px;
-            margin: 6px 0;
-            font-size: 0.85rem;
+            padding: 10px 16px;
+            margin: 10px 0 16px 0;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-left: 5px solid #94a3b8;
+            border-left: 6px solid #94a3b8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .card-balao-compacto.status-verde {
             background-color: #f0fdf4;
@@ -102,6 +103,16 @@ st.markdown(
             background-color: #f8fafc;
             border-left-color: #94a3b8;
             color: #334155;
+        }
+
+        .titulo-setor-painel {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 2px;
         }
     </style>
     """,
@@ -148,7 +159,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -296,193 +307,123 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (COM OPÇÃO "TODOS" EM 1 PÁGINA)
+# 1. PAINEL GERENCIAL DE CORREIAS (SEM FILTRO, VISÃO TOTAL E LIMPA)
 # ------------------------------------------
 if tela == "Painel Correias":
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
     data_hoje = date.today()
 
-    if not df_cor_base.empty and "Data_Instalacao" in df_cor_base.columns:
-        df_cor_base["dt_parsed"] = pd.to_datetime(df_cor_base["Data_Instalacao"], errors="coerce")
-    else:
-        df_cor_base["dt_parsed"] = pd.NaT
-
-    # Linha de Título Compacta com Legenda Integrada
-    c_title, c_legenda = st.columns([1.5, 2.5])
+    # Cabeçalho limpo com legenda horizontal
+    c_title, c_legenda = st.columns([1.8, 2.2])
     with c_title:
-        st.markdown("<h3 style='margin:0; padding:0;'>🔄 Painel de Correias</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin:0; padding:0;'>🔄 Mapa Geral de Correias — Fábrica Completa</h3>", unsafe_allow_html=True)
     with c_legenda:
         st.markdown(
             """
-            <div style='text-align:right; font-size:0.8rem; font-weight:600; padding-top:4px;'>
-                🟢 Nova (&le;1a) &nbsp;|&nbsp; 🟡 Meia-Vida (1-1,5a) &nbsp;|&nbsp; 🔴 Fim de Vida (&gt;1,5a) &nbsp;|&nbsp; ⚪ S/ Data
+            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:6px;'>
+                🟢 Nova (&le;1 ano) &nbsp;|&nbsp; 🟡 Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp; 🔴 Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp; ⚪ Sem Apontamento
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+    # SE HOUVER MÁQUINA CLICADA: MOSTRA O BALÃO EM DESTAQUE NO TOPO
+    if st.session_state.maq_clicada_cor is not None:
+        maq_sel = st.session_state.maq_clicada_cor
+        c_box, c_close = st.columns([6, 1])
+        with c_box:
+            st.markdown(
+                f"""
+                <div class="card-balao-compacto {maq_sel['classe_card']}">
+                    <span>⚙️ <b>Ativo: {maq_sel['tag']}</b> ({maq_sel['setor']}) &nbsp;|&nbsp; 🏷️ <b>Modelo:</b> {maq_sel['tipo']} &nbsp;|&nbsp; 📅 <b>Instalação:</b> {maq_sel['data']}</span>
+                    <span>⏱️ <b>Tempo de Uso:</b> {maq_sel['tempo']}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with c_close:
+            st.write("")
+            if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
+                st.session_state.maq_clicada_cor = None
+                st.rerun()
 
-    col_mes_esq, col_mapa_dir = st.columns([1.2, 2])
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # --- LADO ESQUERDO: CORREIAS DO MÊS ---
-    with col_mes_esq:
-        with st.container(border=True):
-            st.markdown("<b style='font-size:0.9rem;'>📅 Substituições no Mês</b>", unsafe_allow_html=True)
+    # RENDERIZAÇÃO DIRETA DE TODOS OS SETORES
+    COLS_POR_LINHA = 10  # 10 botões por linha para manter o mapa compacto e organizado
+
+    for setor, maqs_setor in DICIONARIO_SETORES.items():
+        st.markdown(f"<div class='titulo-setor-painel'>📍 {setor} ({len(maqs_setor)} máquinas)</div>", unsafe_allow_html=True)
+        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
+
+        dados_maqs_setor = {}
+        for maq_tag in maqs_setor:
+            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
             
-            c_m1, c_m2 = st.columns([1.3, 1])
-            idx_mes_atual = max(0, min(data_hoje.month - 1, 11))
-            with c_m1:
-                mes_consulta = st.selectbox(
-                    "Mês:", lista_meses_puros, index=idx_mes_atual, key="p_cor_mes_comp", label_visibility="collapsed"
-                )
-            with c_m2:
-                anos_disponiveis = [2024, 2025, 2026, 2027, 2028]
-                ano_padrao_idx = anos_disponiveis.index(data_hoje.year) if data_hoje.year in anos_disponiveis else 2
-                ano_consulta = st.selectbox(
-                    "Ano:", anos_disponiveis, index=ano_padrao_idx, key="p_cor_ano_comp", label_visibility="collapsed"
-                )
+            tipo_txt = "Não informada"
+            data_txt = "Sem registro"
+            tempo_txt = "Sem histórico"
+            classe_card = "status-cinza"
+            icone_cor = "⚪"
 
-            num_mes_consulta = lista_meses_puros.index(mes_consulta) + 1
-            df_trocas_mes = df_cor_base[
-                (df_cor_base["dt_parsed"].notna())
-                & (df_cor_base["dt_parsed"].dt.month == num_mes_consulta)
-                & (df_cor_base["dt_parsed"].dt.year == int(ano_consulta))
-            ].copy()
+            if not reg_maq.empty:
+                ultimo = reg_maq.iloc[-1]
+                tipo_val = str(ultimo["Tipo_Correia"]).strip()
+                if tipo_val and tipo_val != "nan":
+                    tipo_txt = tipo_val
 
-            if not df_trocas_mes.empty:
-                df_trocas_mes["Data"] = df_trocas_mes["dt_parsed"].dt.strftime("%d/%m")
-                total_trocas_mes = len(df_trocas_mes)
-                
-                st.markdown(
-                    f"<div style='font-size:0.8rem; color:#1e293b; margin: 4px 0;'><b>Total:</b> {total_trocas_mes} trocas registradas</div>",
-                    unsafe_allow_html=True
-                )
-                
-                st.dataframe(
-                    df_trocas_mes[["Maquina_TAG", "Tipo_Correia", "Data"]].rename(
-                        columns={"Maquina_TAG": "TAG", "Tipo_Correia": "Modelo"}
-                    ),
-                    use_container_width=True,
-                    hide_index=True,
-                    height=280,
-                )
-            else:
-                st.info(f"Sem trocas em {mes_consulta}/{ano_consulta}.")
+                dt_val = str(ultimo["Data_Instalacao"]).strip()
+                if dt_val and dt_val != "nan":
+                    try:
+                        dt_inst = pd.to_datetime(dt_val).date()
+                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                        data_txt = f"{dt_fmt}"
 
-    # --- LADO DIREITO: MAPA DOS SETORES COM OPÇÃO "TODOS" ---
-    with col_mapa_dir:
-        with st.container(border=True):
-            lista_opcoes_setor = ["Todos"] + list(DICIONARIO_SETORES.keys())
-            c_setor_sel, c_info_topo = st.columns([1.2, 1.8])
-            with c_setor_sel:
-                setor_ativo_cor = st.selectbox(
-                    "Setor:", lista_opcoes_setor, index=0, key="painel_cor_setor_comp", label_visibility="collapsed"
-                )
-            with c_info_topo:
-                st.caption("Clique na máquina para ver detalhes de instalação.")
+                        dias = (data_hoje - dt_inst).days
+                        meses = round(dias / 30.4, 1)
 
-            # SE HOUVER MÁQUINA CLICADA: MOSTRA DETALHES COMPACTOS NO TOPO DO MAPA
-            if st.session_state.maq_clicada_cor is not None:
-                maq_sel = st.session_state.maq_clicada_cor
-                c_box, c_close = st.columns([5, 1])
-                with c_box:
-                    st.markdown(
-                        f"""
-                        <div class="card-balao-compacto {maq_sel['classe_card']}">
-                            <span>⚙️ <b>{maq_sel['tag']}</b> ({maq_sel['setor']}) | 🏷️ {maq_sel['tipo']} | 📅 {maq_sel['data']}</span>
-                            <span>⏱️ <b>{maq_sel['tempo']}</b></span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                with c_close:
-                    if st.button("✖", key="btn_fechar_balao_mini"):
-                        st.session_state.maq_clicada_cor = None
+                        if dias <= 365:
+                            classe_card = "status-verde"
+                            icone_cor = "🟢"
+                            tempo_txt = f"{meses} meses ({dias} dias)"
+                        elif 365 < dias <= 547:
+                            classe_card = "status-amarelo"
+                            icone_cor = "🟡"
+                            tempo_txt = f"{meses} meses ({dias} dias)"
+                        else:
+                            classe_card = "status-vermelho"
+                            icone_cor = "🔴"
+                            tempo_txt = f"{meses} meses ({dias} dias)"
+                    except Exception:
+                        data_txt = f"{dt_val}"
+
+            dados_maqs_setor[maq_tag] = {
+                "icone": icone_cor,
+                "tipo": tipo_txt,
+                "data": data_txt,
+                "tempo": tempo_txt,
+                "classe_card": classe_card,
+                "setor": setor,
+            }
+
+        # Grelha de botões compactos
+        linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
+
+        for linha in linhas_maquinas:
+            cols = st.columns(COLS_POR_LINHA)
+            for idx_c, maq_tag in enumerate(linha):
+                info_m = dados_maqs_setor[maq_tag]
+                with cols[idx_c]:
+                    if st.button(
+                        f"{info_m['icone']} {maq_tag}",
+                        key=f"btn_m_semfiltro_{setor}_{maq_tag}",
+                        use_container_width=True,
+                    ):
+                        st.session_state.maq_clicada_cor = {
+                            "tag": maq_tag,
+                            **info_m,
+                        }
                         st.rerun()
-
-            # Função auxiliar para desenhar a grade compacta de um setor
-            def desenhar_grade_setor(nome_setor):
-                maqs_setor = DICIONARIO_SETORES[nome_setor]
-                df_setor_cor = df_cor_base[df_cor_base["Setor"] == nome_setor]
-
-                dados_maqs_setor = {}
-                for maq_tag in maqs_setor:
-                    reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
-                    
-                    tipo_txt = "Não informada"
-                    data_txt = "Sem registro"
-                    tempo_txt = "Sem histórico"
-                    classe_card = "status-cinza"
-                    icone_cor = "⚪"
-
-                    if not reg_maq.empty:
-                        ultimo = reg_maq.iloc[-1]
-                        tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                        if tipo_val and tipo_val != "nan":
-                            tipo_txt = tipo_val
-
-                        dt_val = str(ultimo["Data_Instalacao"]).strip()
-                        if dt_val and dt_val != "nan":
-                            try:
-                                dt_inst = pd.to_datetime(dt_val).date()
-                                dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                                data_txt = f"{dt_fmt}"
-
-                                dias = (data_hoje - dt_inst).days
-                                meses = round(dias / 30.4, 1)
-
-                                if dias <= 365:
-                                    classe_card = "status-verde"
-                                    icone_cor = "🟢"
-                                    tempo_txt = f"{meses}m ({dias}d)"
-                                elif 365 < dias <= 547:
-                                    classe_card = "status-amarelo"
-                                    icone_cor = "🟡"
-                                    tempo_txt = f"{meses}m ({dias}d)"
-                                else:
-                                    classe_card = "status-vermelho"
-                                    icone_cor = "🔴"
-                                    tempo_txt = f"{meses}m ({dias}d)"
-                            except Exception:
-                                data_txt = f"{dt_val}"
-
-                    dados_maqs_setor[maq_tag] = {
-                        "icone": icone_cor,
-                        "tipo": tipo_txt,
-                        "data": data_txt,
-                        "tempo": tempo_txt,
-                        "classe_card": classe_card,
-                        "setor": nome_setor,
-                    }
-
-                COLS_POR_LINHA = 8
-                linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
-
-                for linha in linhas_maquinas:
-                    cols = st.columns(COLS_POR_LINHA)
-                    for idx_c, maq_tag in enumerate(linha):
-                        info_m = dados_maqs_setor[maq_tag]
-                        with cols[idx_c]:
-                            if st.button(
-                                f"{info_m['icone']} {maq_tag}",
-                                key=f"btn_m_onepage_{nome_setor}_{maq_tag}",
-                                use_container_width=True,
-                            ):
-                                st.session_state.maq_clicada_cor = {
-                                    "tag": maq_tag,
-                                    **info_m,
-                                }
-                                st.rerun()
-
-            # Renderização de acordo com o filtro ("Todos" cria abas compactas para manter 1 tela)
-            if setor_ativo_cor == "Todos":
-                abas_setores = st.tabs(list(DICIONARIO_SETORES.keys()))
-                for idx_s, nome_s in enumerate(DICIONARIO_SETORES.keys()):
-                    with abas_setores[idx_s]:
-                        desenhar_grade_setor(nome_s)
-            else:
-                desenhar_grade_setor(setor_ativo_cor)
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (INTACTO)
