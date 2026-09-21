@@ -1,5 +1,5 @@
-import os
 from datetime import date
+import os
 import pandas as pd
 import streamlit as st
 
@@ -35,10 +35,32 @@ if not all(col in df_fusos.columns for col in colunas_obrigatorias):
 # Mapeamento oficial dos setores e máquinas
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
-DICIONARIO_SETORES = {
-    "Setor A": maquinas_setor_a,
-    # Espaço reservado para próximos setores: "Setor B": [...],
-}
+maquinas_setor_b = [
+    "L-29",
+    "L-30",
+    "L-31",
+    "L-32",
+    "L-33",
+    "L-34",
+    "L-35",
+    "L-36",
+    "L-37",
+    "L-38",
+    "L-39",
+    "L-40",
+    "L-41",
+    "L-42",
+    "L-43",
+    "L-44",
+    "L-45",
+    "L-46",
+    "L-50",
+    "L-51",
+    "L-52",
+    "L-53",
+]
+
+DICIONARIO_SETORES = {"Setor A": maquinas_setor_a, "Setor B": maquinas_setor_b}
 
 # Controle de navegação da página
 if "pagina_atual" not in st.session_state:
@@ -151,7 +173,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: FUSOS
+# 1. LANÇAMENTOS: FUSOS (SETOR A e SETOR B)
 # ------------------------------------------
 if tela == "Lançamento Fusos":
     st.header("🔩 Lançamentos: Grade de Quebras de Fusos")
@@ -191,7 +213,7 @@ if tela == "Lançamento Fusos":
                 & (df_atual["Setor"] == setor_selecionado)
             ]
 
-            # Monta a grade com as máquinas L-01 até L-28
+            # Monta a grade com as máquinas do setor escolhido
             dados_grade = []
             for maq in maquinas_do_setor:
                 registro_existente = df_filtrado[
@@ -220,7 +242,6 @@ if tela == "Lançamento Fusos":
                 "👉 Dê dois cliques na célula de quantidade para editar os valores:"
             )
 
-            # Editor interativo na tela
             tabela_editada = st.data_editor(
                 df_grade,
                 disabled=["Máquina"],
@@ -297,7 +318,10 @@ elif tela == "Painel Fusos":
         )
     with col_setor:
         setor_painel = st.selectbox(
-            "🏭 Filtrar por Setor:", lista_setores_painel, index=0, key="p_setor"
+            "🏭 Filtrar por Setor:",
+            lista_setores_painel,
+            index=0,
+            key="p_setor",
         )
 
     st.markdown("---")
@@ -332,7 +356,9 @@ elif tela == "Painel Fusos":
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
-        m2.metric("Máquinas com Ocorrência", f"{total_maquinas_falharam} ativas")
+        m2.metric(
+            "Máquinas com Ocorrência", f"{total_maquinas_falharam} ativas"
+        )
         m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
 
         st.markdown("---")
