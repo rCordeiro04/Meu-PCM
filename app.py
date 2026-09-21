@@ -229,7 +229,6 @@ if tela == "Painel Fusos":
         "Acompanhe a curva de evolução de Janeiro a Dezembro para o ano selecionado."
     )
 
-    # Filtros de Ano, Setor e Máquina (Ano com foco anual exato)
     col_ano, col_setor, col_maq_f = st.columns([1, 1.5, 1.5])
     lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
     lista_setores_painel = ["Todos"] + list(DICIONARIO_SETORES.keys())
@@ -246,7 +245,6 @@ if tela == "Painel Fusos":
             key="p_setor",
         )
 
-    # Lista de máquinas correspondente ao setor selecionado
     if setor_painel != "Todos":
         lista_maquinas_painel = ["Todas"] + DICIONARIO_SETORES[setor_painel]
     else:
@@ -268,7 +266,6 @@ if tela == "Painel Fusos":
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
-    # Aplica os filtros: o Ano filtra exatamente o exercício anual escolhido
     df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
 
     if setor_painel != "Todos":
@@ -278,7 +275,6 @@ if tela == "Painel Fusos":
 
     df_quebras_reais = df_filtrado[df_filtrado["Quantidade_Quebras"] > 0]
 
-    # Subtítulo explicativo
     escopo_texto = []
     if setor_painel != "Todos":
         escopo_texto.append(setor_painel)
@@ -286,10 +282,10 @@ if tela == "Painel Fusos":
         escopo_texto.append(f"Máquina {maquina_painel}")
     texto_cabecalho = " - ".join(escopo_texto) if escopo_texto else "Total Fábrica"
 
-    # --- SEÇÃO 1: GRÁFICO DE LINHA (JANEIRO A DEZEMBRO DO ANO) ---
+    # --- SEÇÃO 1: GRÁFICO DE LINHA (JANEIRO A DEZEMBRO ORDENADO) ---
     st.subheader(f"📈 Tendência Mensal de Quebras em {ano_painel} ({texto_cabecalho})")
 
-    # Garante os 12 meses fixos e sequenciais
+    # Base estrita com os 12 meses
     df_meses_base = pd.DataFrame({"Mes": lista_meses_puros})
     agrupado_mes = (
         df_filtrado.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
@@ -297,8 +293,16 @@ if tela == "Painel Fusos":
     df_evolucao = pd.merge(df_meses_base, agrupado_mes, on="Mes", how="left").fillna(0)
     df_evolucao["Quantidade_Quebras"] = df_evolucao["Quantidade_Quebras"].astype(int)
 
+    # Força a ordem categórica cronológica para o eixo X não ordenar alfabeticamente
+    df_evolucao["Mes"] = pd.Categorical(
+        df_evolucao["Mes"], categories=lista_meses_puros, ordered=True
+    )
+    df_evolucao = df_evolucao.sort_values("Mes")
+
     st.line_chart(
-        data=df_evolucao.set_index("Mes")["Quantidade_Quebras"],
+        data=df_evolucao,
+        x="Mes",
+        y="Quantidade_Quebras",
         use_container_width=True,
     )
 
