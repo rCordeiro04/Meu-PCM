@@ -1,5 +1,5 @@
-from datetime import date
 import os
+from datetime import date
 import pandas as pd
 import streamlit as st
 
@@ -21,7 +21,7 @@ colunas_obrigatorias = [
     "Observacoes",
 ]
 
-# Inicializa o arquivo com a estrutura correta se não existir
+# Inicializa o ficheiro se ainda não existir
 if not os.path.exists(ARQUIVO_FUSOS):
     pd.DataFrame(columns=colunas_obrigatorias).to_excel(
         ARQUIVO_FUSOS, index=False
@@ -32,7 +32,7 @@ if not all(col in df_fusos.columns for col in colunas_obrigatorias):
     df_fusos = pd.DataFrame(columns=colunas_obrigatorias)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Mapeamento oficial dos setores e máquinas
+# Mapeamento oficial dos setores e respetivas máquinas
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -60,9 +60,57 @@ maquinas_setor_b = [
     "L-53",
 ]
 
-DICIONARIO_SETORES = {"Setor A": maquinas_setor_a, "Setor B": maquinas_setor_b}
+maquinas_setor_latex = [
+    "B-71",
+    "B-72",
+    "B-73",
+    "B-74",
+    "B-75",
+    "B-76",
+    "B-77",
+    "B-78",
+    "B-79",
+    "B-80",
+    "B-83",
+    "B-84",
+    "B-85",
+    "B-86",
+    "B-87",
+    "B-88",
+    "B-89",
+    "B-102",
+    "B-103",
+    "B-104",
+]
 
-# Controle de navegação da página
+maquinas_setor_menegatto = [
+    "B-47",
+    "B-48",
+    "B-49",
+    "B-81",
+    "B-82",
+    "B-90",
+    "B-91",
+    "B-92",
+    "B-93",
+    "B-94",
+    "B-95",
+    "B-96",
+    "B-97",
+    "B-98",
+    "B-99",
+    "B-100",
+    "B-101",
+]
+
+DICIONARIO_SETORES = {
+    "Setor A": maquinas_setor_a,
+    "Setor B": maquinas_setor_b,
+    "Setor Látex": maquinas_setor_latex,
+    "Setor Menegatto": maquinas_setor_menegatto,
+}
+
+# Gestão de navegação da aplicação
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Lançamento Fusos"
 
@@ -153,7 +201,7 @@ with st.sidebar:
     st.caption("Perfil: Analista de PCM")
 
 # ==========================================
-# ÁREA PRINCIPAL (TELA DA DIREITA)
+# ÁREA PRINCIPAL
 # ==========================================
 tela = st.session_state.pagina_atual
 
@@ -173,7 +221,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: FUSOS (SETOR A e SETOR B)
+# 1. LANÇAMENTOS: FUSOS
 # ------------------------------------------
 if tela == "Lançamento Fusos":
     st.header("🔩 Lançamentos: Grade de Quebras de Fusos")
@@ -194,7 +242,7 @@ if tela == "Lançamento Fusos":
 
     st.markdown("---")
 
-    # Abas dos meses na parte superior
+    # Separadores dos meses
     abas_meses = st.tabs(lista_meses_puros)
     maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
 
@@ -206,14 +254,14 @@ if tela == "Lançamento Fusos":
 
             df_atual = pd.read_excel(ARQUIVO_FUSOS)
 
-            # Filtra os dados existentes desse ano, mês e setor
+            # Filtra os dados existentes
             df_filtrado = df_atual[
                 (df_atual["Ano"] == ano_selecionado)
                 & (df_atual["Mes"] == nome_mes)
                 & (df_atual["Setor"] == setor_selecionado)
             ]
 
-            # Monta a grade com as máquinas do setor escolhido
+            # Constrói os dados da tabela
             dados_grade = []
             for maq in maquinas_do_setor:
                 registro_existente = df_filtrado[
@@ -385,7 +433,7 @@ elif tela == "Painel Fusos":
                 hide_index=True,
             )
     else:
-        st.info("Nenhuma quebra registrada para o filtro selecionado.")
+        st.info("Nenhuma quebra registada para o filtro selecionado.")
 
 # DEMAIS TELAS MANTIDAS
 elif tela == "Correias":
