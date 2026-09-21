@@ -226,27 +226,27 @@ lista_meses_puros = [
 if tela == "Painel Fusos":
     st.header("📊 Painel Gerencial: Tendência e Quebras de Fusos")
     st.write(
-        "Acompanhe a curva de evolução temporal e a distribuição de quebras por setor e equipamento."
+        "Acompanhe a curva de evolução de Janeiro a Dezembro para o ano selecionado."
     )
 
-    # Filtros de Ano, Setor e Máquina
+    # Filtros de Ano, Setor e Máquina (Ano com foco anual exato)
     col_ano, col_setor, col_maq_f = st.columns([1, 1.5, 1.5])
-    lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
+    lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
     lista_setores_painel = ["Todos"] + list(DICIONARIO_SETORES.keys())
 
     with col_ano:
         ano_painel = st.selectbox(
-            "📅 Filtrar por Ano:", lista_anos, index=3, key="p_ano"
+            "📅 Ano:", lista_anos_painel, index=2, key="p_ano"
         )
     with col_setor:
         setor_painel = st.selectbox(
-            "🏭 Filtrar por Setor:",
+            "🏭 Setor:",
             lista_setores_painel,
             index=0,
             key="p_setor",
         )
 
-    # Monta a lista de máquinas dinamicamente com base no setor selecionado
+    # Lista de máquinas correspondente ao setor selecionado
     if setor_painel != "Todos":
         lista_maquinas_painel = ["Todas"] + DICIONARIO_SETORES[setor_painel]
     else:
@@ -257,7 +257,7 @@ if tela == "Painel Fusos":
 
     with col_maq_f:
         maquina_painel = st.selectbox(
-            "⚙️ Filtrar por Máquina:",
+            "⚙️ Máquina:",
             lista_maquinas_painel,
             index=0,
             key="p_maquina",
@@ -268,9 +268,9 @@ if tela == "Painel Fusos":
     df_dados = pd.read_excel(ARQUIVO_FUSOS)
     df_filtrado = df_dados.copy()
 
-    # Aplica os 3 filtros
-    if ano_painel != "Todos":
-        df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
+    # Aplica os filtros: o Ano filtra exatamente o exercício anual escolhido
+    df_filtrado = df_filtrado[df_filtrado["Ano"] == int(ano_painel)]
+
     if setor_painel != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Setor"] == setor_painel]
     if maquina_painel != "Todas":
@@ -278,7 +278,7 @@ if tela == "Painel Fusos":
 
     df_quebras_reais = df_filtrado[df_filtrado["Quantidade_Quebras"] > 0]
 
-    # Subtítulo explicativo dinâmico
+    # Subtítulo explicativo
     escopo_texto = []
     if setor_painel != "Todos":
         escopo_texto.append(setor_painel)
@@ -286,9 +286,10 @@ if tela == "Painel Fusos":
         escopo_texto.append(f"Máquina {maquina_painel}")
     texto_cabecalho = " - ".join(escopo_texto) if escopo_texto else "Total Fábrica"
 
-    # --- SEÇÃO 1: GRÁFICO DE LINHA (EVOLUÇÃO MENSAL) ---
-    st.subheader(f"📈 Tendência Mensal de Quebras ({texto_cabecalho})")
+    # --- SEÇÃO 1: GRÁFICO DE LINHA (JANEIRO A DEZEMBRO DO ANO) ---
+    st.subheader(f"📈 Tendência Mensal de Quebras em {ano_painel} ({texto_cabecalho})")
 
+    # Garante os 12 meses fixos e sequenciais
     df_meses_base = pd.DataFrame({"Mes": lista_meses_puros})
     agrupado_mes = (
         df_filtrado.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
@@ -319,7 +320,7 @@ if tela == "Painel Fusos":
         qtd_top = agrupado_maq.iloc[0]["Quantidade_Quebras"]
 
         m1, m2, m3 = st.columns(3)
-        m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
+        m1.metric(f"Total Quebras em {ano_painel}", f"{total_quebras} unid.")
         
         if maquina_painel == "Todas":
             m2.metric(
@@ -332,7 +333,7 @@ if tela == "Painel Fusos":
 
         st.markdown("---")
 
-        # --- SEÇÃO 3: RANKING / TABELA ---
+        # --- SEÇÃO 3: RANKING OU HISTÓRICO ---
         if maquina_painel == "Todas":
             graf_col, tab_col = st.columns([2, 1])
             with graf_col:
@@ -354,14 +355,14 @@ if tela == "Painel Fusos":
                     hide_index=True,
                 )
         else:
-            st.subheader(f"Histórico Detalhado da Máquina {maquina_painel}")
+            st.subheader(f"Histórico Detalhado: Máquina {maquina_painel} em {ano_painel}")
             df_detalhe_maq = df_quebras_reais[
                 ["Ano", "Mes", "Setor", "Quantidade_Quebras", "Observacoes"]
             ]
             st.dataframe(df_detalhe_maq, use_container_width=True, hide_index=True)
 
     else:
-        st.info("Nenhuma quebra registrada para os filtros selecionados.")
+        st.info(f"Nenhuma quebra registrada em {ano_painel} para os filtros selecionados.")
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: FUSOS
