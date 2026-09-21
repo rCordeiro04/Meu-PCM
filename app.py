@@ -1,5 +1,5 @@
-from datetime import date
 import os
+from datetime import date
 import pandas as pd
 import streamlit as st
 
@@ -10,11 +10,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-ARQUIVO_FUSOS = "lancamentos_fusos_v3.xlsx"
+ARQUIVO_FUSOS = "lancamentos_fusos_v4.xlsx"
 
 colunas_obrigatorias = [
     "Ano",
     "Mes",
+    "Setor",
     "Maquina_TAG",
     "Quantidade_Quebras",
     "Observacoes",
@@ -30,6 +31,14 @@ df_fusos = pd.read_excel(ARQUIVO_FUSOS)
 if not all(col in df_fusos.columns for col in colunas_obrigatorias):
     df_fusos = pd.DataFrame(columns=colunas_obrigatorias)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+
+# Mapeamento oficial dos setores e máquinas
+maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
+
+DICIONARIO_SETORES = {
+    "Setor A": maquinas_setor_a,
+    # Espaço reservado para próximos setores: "Setor B": [...],
+}
 
 # Controle de navegação da página
 if "pagina_atual" not in st.session_state:
@@ -142,47 +151,52 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. LANÇAMENTOS: FUSOS (LISTA DE MÁQUINAS 1 A 10 POR MÊS)
+# 1. LANÇAMENTOS: FUSOS
 # ------------------------------------------
 if tela == "Lançamento Fusos":
     st.header("🔩 Lançamentos: Grade de Quebras de Fusos")
     st.write(
-        "Escolha o ano, selecione a aba do mês correspondente no topo e aponte a quantidade de quebras para as máquinas de 1 a 10."
+        "Selecione o Ano e o Setor abaixo e aponte as quebras de cada máquina na aba do mês correspondente."
     )
 
-    # 1. Seleção do Ano no topo
-    col_ano, _ = st.columns([2, 4])
+    # FILTROS LADO A LADO: ANO E SETOR
+    col_ano, col_setor, _ = st.columns([1.5, 2, 3])
     with col_ano:
         ano_selecionado = st.selectbox(
-            "📅 Selecione o Ano:", [2024, 2025, 2026, 2027, 2028], index=2
+            "📅 Ano:", [2024, 2025, 2026, 2027, 2028], index=2
+        )
+    with col_setor:
+        setor_selecionado = st.selectbox(
+            "🏭 Setor:", list(DICIONARIO_SETORES.keys())
         )
 
     st.markdown("---")
 
-    # 2. Abas horizontais dos 12 meses na parte superior
+    # Abas dos meses na parte superior
     abas_meses = st.tabs(lista_meses_puros)
-
-    # Lista fixa das máquinas de 1 a 10
-    lista_maquinas = [f"Máquina {i}" for i in range(1, 11)]
+    maquinas_do_setor = DICIONARIO_SETORES[setor_selecionado]
 
     for idx, nome_mes in enumerate(lista_meses_puros):
         with abas_meses[idx]:
-            st.subheader(f"Apontamento: {nome_mes} / {ano_selecionado}")
+            st.subheader(
+                f"Apontamento: {setor_selecionado} — {nome_mes}/{ano_selecionado}"
+            )
 
-            # Lê os dados atuais
             df_atual = pd.read_excel(ARQUIVO_FUSOS)
 
-            # Filtra os dados já salvos desse ano e mês
-            df_mes_ano = df_atual[
+            # Filtra os dados existentes desse ano, mês e setor
+            df_filtrado = df_atual[
                 (df_atual["Ano"] == ano_selecionado)
                 & (df_atual["Mes"] == nome_mes)
+                & (df_atual["Setor"] == setor_selecionado)
             ]
 
-            # Monta a tabela base com as 10 máquinas
+            # Monta a grade com as máquinas L-01 até L-28
             dados_grade = []
-            for maq in lista_maquinas:
-                # Se já tiver registro salvo, recupera o valor; senão coloca 0
-                registro_existente = df_mes_ano[df_mes_ano["Maquina_TAG"] == maq]
+            for maq in maquinas_do_setor:
+                registro_existente = df_filtrado[
+                    df_filtrado["Maquina_TAG"] == maq
+                ]
                 if not registro_existente.empty:
                     qtd = int(registro_existente.iloc[0]["Quantidade_Quebras"])
                     obs = str(registro_existente.iloc[0]["Observacoes"])
@@ -203,42 +217,42 @@ if tela == "Lançamento Fusos":
             df_grade = pd.DataFrame(dados_grade)
 
             st.write(
-                "👉 Dê dois cliques no número para editar a quantidade de quebras de cada máquina:"
+                "👉 Dê dois cliques na célula de quantidade para editar os valores:"
             )
 
             # Editor interativo na tela
             tabela_editada = st.data_editor(
                 df_grade,
-                disabled=["Máquina"],  # Trava o nome das máquinas para ninguém apagar
+                disabled=["Máquina"],
                 hide_index=True,
                 use_container_width=True,
-                key=f"editor_{ano_selecionado}_{nome_mes}",
+                key=f"editor_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
             )
 
-            col_btn, col_info = st.columns([2, 4])
+            col_btn, _ = st.columns([2, 4])
             with col_btn:
                 salvar_mes = st.button(
-                    f"💾 Salvar {nome_mes}/{ano_selecionado}",
-                    key=f"btn_{ano_selecionado}_{nome_mes}",
+                    f"💾 Salvar {setor_selecionado} ({nome_mes}/{ano_selecionado})",
+                    key=f"btn_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
                     type="primary",
                 )
 
             if salvar_mes:
-                # 1. Remove qualquer registro antigo desse mês/ano para não duplicar
                 df_limpo = df_atual[
                     ~(
                         (df_atual["Ano"] == ano_selecionado)
                         & (df_atual["Mes"] == nome_mes)
+                        & (df_atual["Setor"] == setor_selecionado)
                     )
                 ]
 
-                # 2. Prepara os novos dados da tabela editada
                 novos_registros = []
                 for _, linha in tabela_editada.iterrows():
                     novos_registros.append(
                         {
                             "Ano": int(ano_selecionado),
                             "Mes": nome_mes,
+                            "Setor": setor_selecionado,
                             "Maquina_TAG": linha["Máquina"],
                             "Quantidade_Quebras": int(
                                 linha["Quantidade de Quebras"]
@@ -252,14 +266,13 @@ if tela == "Lançamento Fusos":
                 )
                 df_final.to_excel(ARQUIVO_FUSOS, index=False)
                 st.success(
-                    f"✅ Fechamento de {nome_mes}/{ano_selecionado} salvo com sucesso!"
+                    f"✅ Fechamento do {setor_selecionado} para {nome_mes}/{ano_selecionado} salvo com sucesso!"
                 )
                 st.rerun()
 
-            # Métricas rápidas logo abaixo da tabela
-            total_quebras_mes = tabela_editada["Quantidade de Quebras"].sum()
+            total_mes = tabela_editada["Quantidade de Quebras"].sum()
             st.caption(
-                f"Total de quebras acumuladas em {nome_mes}: **{total_quebras_mes} fusos**"
+                f"Total de fusos quebrados no {setor_selecionado} em {nome_mes}: **{total_mes} unid.**"
             )
 
 # ------------------------------------------
@@ -267,11 +280,12 @@ if tela == "Lançamento Fusos":
 # ------------------------------------------
 elif tela == "Painel Fusos":
     st.header("📊 Painel Gerencial: Quebras de Fusos")
-    st.write("Análise visual consolidada das quebras apontadas nas máquinas.")
+    st.write("Análise visual e ranking de quebras.")
 
-    col_ano, col_mes = st.columns([1, 2])
+    col_ano, col_mes, col_setor = st.columns(3)
     lista_anos = ["Todos", "2024", "2025", "2026", "2027", "2028"]
     lista_meses = ["Todos"] + lista_meses_puros
+    lista_setores_painel = ["Todos"] + list(DICIONARIO_SETORES.keys())
 
     with col_ano:
         ano_painel = st.selectbox(
@@ -280,6 +294,10 @@ elif tela == "Painel Fusos":
     with col_mes:
         mes_painel = st.selectbox(
             "🗓️ Filtrar por Mês:", lista_meses, index=0, key="p_mes"
+        )
+    with col_setor:
+        setor_painel = st.selectbox(
+            "🏭 Filtrar por Setor:", lista_setores_painel, index=0, key="p_setor"
         )
 
     st.markdown("---")
@@ -291,8 +309,9 @@ elif tela == "Painel Fusos":
         df_filtrado_p = df_filtrado_p[df_filtrado_p["Ano"] == int(ano_painel)]
     if mes_painel != "Todos":
         df_filtrado_p = df_filtrado_p[df_filtrado_p["Mes"] == mes_painel]
+    if setor_painel != "Todos":
+        df_filtrado_p = df_filtrado_p[df_filtrado_p["Setor"] == setor_painel]
 
-    # Filtra apenas quem tem quebras maior que zero para o ranking
     df_quebras_reais = df_filtrado_p[df_filtrado_p["Quantidade_Quebras"] > 0]
 
     if not df_quebras_reais.empty:
@@ -300,7 +319,7 @@ elif tela == "Painel Fusos":
         total_maquinas_falharam = df_quebras_reais["Maquina_TAG"].nunique()
 
         agrupado_maq = (
-            df_filtrado_p.groupby("Maquina_TAG")["Quantidade_Quebras"]
+            df_quebras_reais.groupby("Maquina_TAG")["Quantidade_Quebras"]
             .sum()
             .reset_index()
         )
@@ -313,7 +332,7 @@ elif tela == "Painel Fusos":
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Total de Fusos Quebrados", f"{total_quebras} unid.")
-        m2.metric("Máquinas com Quebras", f"{total_maquinas_falharam} de 10")
+        m2.metric("Máquinas com Ocorrência", f"{total_maquinas_falharam} ativas")
         m3.metric("Maior Ofensor", f"{maquina_top} ({qtd_top} quebras)")
 
         st.markdown("---")
@@ -328,19 +347,19 @@ elif tela == "Painel Fusos":
             )
 
         with tab_col:
-            st.subheader("Resumo por Máquina")
+            st.subheader("Resumo Consolidado")
             st.dataframe(
                 agrupado_maq.rename(
                     columns={
                         "Maquina_TAG": "Máquina",
-                        "Quantidade_Quebras": "Total",
+                        "Quantidade_Quebras": "Total Falhas",
                     }
                 ),
                 use_container_width=True,
                 hide_index=True,
             )
     else:
-        st.info("Nenhuma quebra registrada para o período selecionado.")
+        st.info("Nenhuma quebra registrada para o filtro selecionado.")
 
 # DEMAIS TELAS MANTIDAS
 elif tela == "Correias":
