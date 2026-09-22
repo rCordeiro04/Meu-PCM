@@ -51,7 +51,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -427,13 +427,13 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADOS PINTADOS REALMENTE)
+# 1. PAINEL GERENCIAL DE CORREIAS (CONTROLE DE CORREIAS)
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho limpo com legenda gráfica compacta
+    # Cabeçalho limpo: "Controle de correias"
     c_title, c_legenda = st.columns([1.6, 2.4])
     with c_title:
-        st.markdown("<h4 style='margin:0; padding:0;'>🔄 Mapa Geral de Correias (Ativos da Fábrica)</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='margin:0; padding:0;'>🔄 Controle de correias</h4>", unsafe_allow_html=True)
     with c_legenda:
         st.markdown(
             """
@@ -469,7 +469,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA COM CORES DIRETAS
+    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
