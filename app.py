@@ -622,6 +622,13 @@ lista_meses_puros = [
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ]
 
+MAPA_MES_ABREV = {
+    "Janeiro": "JAN", "Fevereiro": "FEV", "Março": "MAR", "Abril": "ABR",
+    "Maio": "MAI", "Junho": "JUN", "Julho": "JUL", "Agosto": "AGO",
+    "Setembro": "SET", "Outubro": "OUT", "Novembro": "NOV", "Dezembro": "DEZ"
+}
+ORDEM_MESES_ABREV = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
+
 # ------------------------------------------
 # 1. PAINEL GERENCIAL DE CORREIAS (BLINDADO)
 # ------------------------------------------
@@ -1227,7 +1234,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart(chart_men, use_container_width=True)
 
     # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (APENAS OS DOIS GRÁFICOS SUPERIORES)
+    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR
     # ==========================================
     else:
         setor_ativo = st.session_state.aba_setor_fuso
@@ -1307,7 +1314,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso (Exclusivos da Aba)
+        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
         c_linha_s, c_tipo_s = st.columns([1.55, 1.45])
 
         with c_linha_s:
@@ -1380,6 +1387,97 @@ elif tela == "Painel Fusos":
                     st.altair_chart(chart_rosca, use_container_width=True)
                 else:
                     st.info(f"Sem registos de tipos de fuso para {setor_ativo} em {ano_painel}.")
+
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+        # =========================================================
+        # MAPA DE CALOR: QUEBRAS POR MÁQUINA X MÊS (JAN A DEZ)
+        # =========================================================
+        with st.container(border=True):
+            st.markdown(
+                f"""
+                <div class="chart-header-row">
+                    <span class="chart-header-title">🔥 Mapa de Calor Operacional — Quebras por Máquina x Mês ({setor_ativo} - {ano_painel})</span>
+                    <span class="chart-header-badge" style="color:#d97706;">Eixo Cronológico: Jan a Dez</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Construção da grade completa Máquinas do Setor x 12 Meses
+            linhas_grade_calor = []
+            for maq in maquinas_setor_lista:
+                for mes_completo in lista_meses_puros:
+                    mes_abrev = MAPA_MES_ABREV[mes_completo]
+                    linhas_grade_calor.append({
+                        "MAQ": maq,
+                        "Mes_Completo": mes_completo,
+                        "MES": mes_abrev,
+                        "Quantidade_Quebras": 0
+                    })
+            
+            df_calor_base = pd.DataFrame(linhas_grade_calor)
+
+            if not df_setor.empty:
+                df_setor_agrup = df_setor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
+                df_setor_agrup.rename(columns={"Maquina_TAG": "MAQ", "Mes": "Mes_Completo", "Quantidade_Quebras": "QTD_REAL"}, inplace=True)
+                df_calor_mesclado = pd.merge(df_calor_base, df_setor_agrup, on=["MAQ", "Mes_Completo"], how="left")
+                df_calor_mesclado["Quantidade_Quebras"] = df_calor_mesclado["QTD_REAL"].fillna(0).astype(int)
+            else:
+                df_calor_mesclado = df_calor_base
+
+            # Altura dinâmica proporcional à quantidade de máquinas do setor
+            altura_calor = max(380, len(maquinas_setor_lista) * 24)
+
+            # Camada 1: Células térmicas coloridas
+            rect_heatmap = (
+                alt.Chart(df_calor_mesclado)
+                .mark_rect(stroke="#ffffff", strokeWidth=1)
+                .encode(
+                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold", labelColor="#0f172a")),
+                    y=alt.Y("MAQ:N", sort=maquinas_setor_lista, title="Máquina", axis=alt.Axis(labelFontWeight="bold", labelColor="#0f172a")),
+                    color=alt.Color(
+                        "Quantidade_Quebras:Q",
+                        scale=alt.Scale(
+                            domain=[0, 3, 8, 15],
+                            range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]
+                        ),
+                        legend=alt.Legend(title="Escala de Quebras", orient="right")
+                    ),
+                    tooltip=[
+                        alt.Tooltip("MAQ:N", title="Máquina"),
+                        alt.Tooltip("MES:N", title="Mês"),
+                        alt.Tooltip("Quantidade_Quebras:Q", title="Quebras Apontadas"),
+                    ],
+                )
+            )
+
+            # Camada 2: Rótulos numéricos centralizados
+            text_heatmap = (
+                alt.Chart(df_calor_mesclado)
+                .mark_text(baseline="middle", fontSize=11, fontWeight=700)
+                .encode(
+                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
+                    y=alt.Y("MAQ:N", sort=maquinas_setor_lista),
+                    text=alt.Text("Quantidade_Quebras:Q"),
+                    color=alt.condition(
+                        alt.datum.Quantidade_Quebras >= 10,
+                        alt.value("#ffffff"),
+                        alt.value("#0f172a")
+                    ),
+                    tooltip=[
+                        alt.Tooltip("MAQ:N", title="Máquina"),
+                        alt.Tooltip("MES:N", title="Mês"),
+                        alt.Tooltip("Quantidade_Quebras:Q", title="Quebras Apontadas"),
+                    ],
+                )
+            )
+
+            chart_calor_final = (rect_heatmap + text_heatmap).properties(
+                height=altura_calor
+            )
+
+            st.altair_chart(chart_calor_final, use_container_width=True)
 
 # ------------------------------------------
 # 4. LANÇAMENTOS: FUSOS (INTACTO)
