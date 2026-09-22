@@ -386,6 +386,34 @@ st.markdown(
             margin-bottom: 3px;
         }}
 
+        /* Alerta de Correias Críticas */
+        .alerta-criticas {{
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-left: 6px solid #ef4444;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin: 6px 0 10px 0;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #991b1b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(239,68,68,0.05);
+        }}
+        .chip-critico {{
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-right: 4px;
+        }}
+
         .hud-detalhe {{
             background: #ffffff;
             border: 1px solid #cbd5e1;
@@ -642,6 +670,23 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
+    # Alerta em baixo dos cartões discriminando as correias críticas por modelo
+    if lista_correias_criticas:
+        df_crit = pd.DataFrame(lista_correias_criticas)
+        contagem_criticas = df_crit["modelo"].value_counts().to_dict()
+        chips_crit_html = " ".join([
+            f"<span class='chip-critico'>🏷️ {formatar_modelo(mod)}: <b>{qtd} un.</b></span>"
+            for mod, qtd in contagem_criticas.items()
+        ])
+        st.markdown(
+            f"""
+            <div class="alerta-criticas">
+                <span>🚨 <b>Alerta de Manutenção (Troca Urgente):</b> &nbsp; {chips_crit_html}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
     # Balão HUD ao Clicar numa Máquina
@@ -697,16 +742,6 @@ if tela == "Painel Correias":
             if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
-    else:
-        st.markdown(
-            """
-            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 4px 0 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
-                <span>💡</span>
-                <span><b>Painel Operacional:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de instalação e tempo de operação.</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
