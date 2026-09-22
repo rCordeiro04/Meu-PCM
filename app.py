@@ -14,12 +14,12 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* Compactação geral de página */
+        /* Compactação geral da página */
         .block-container {
-            padding-top: 1.5rem !important;
+            padding-top: 1.2rem !important;
             padding-bottom: 1rem !important;
-            padding-left: 2rem !important;
-            padding-right: 2rem !important;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
         }
         
         /* Trava contra scroll e zoom acidental em gráficos e tabelas */
@@ -33,14 +33,44 @@ st.markdown(
         div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
             resize: none !important;
         }
-        
-        /* Botões de máquinas compactos em grelha */
+
+        /* Estilização base de botões de máquinas (quadradinhos compactos) */
         div[data-testid="stButton"] button {
-            padding: 2px 4px !important;
-            font-size: 0.8rem !important;
-            font-weight: 600 !important;
-            min-height: 32px !important;
-            margin-bottom: 3px !important;
+            padding: 2px 2px !important;
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            min-height: 28px !important;
+            max-height: 28px !important;
+            margin-bottom: 2px !important;
+            border-radius: 5px !important;
+            border: 1px solid rgba(0,0,0,0.12) !important;
+            transition: transform 0.1s ease, filter 0.1s ease !important;
+        }
+        div[data-testid="stButton"] button:hover {
+            transform: scale(1.04) !important;
+            filter: brightness(0.95) !important;
+        }
+
+        /* Cores de fundo sólidas para os quadradinhos */
+        .btn-verde button {
+            background-color: #22c55e !important;
+            color: #ffffff !important;
+            border-color: #16a34a !important;
+        }
+        .btn-amarelo button {
+            background-color: #facc15 !important;
+            color: #713f12 !important;
+            border-color: #ca8a04 !important;
+        }
+        .btn-vermelho button {
+            background-color: #ef4444 !important;
+            color: #ffffff !important;
+            border-color: #dc2626 !important;
+        }
+        .btn-cinza button {
+            background-color: #cbd5e1 !important;
+            color: #334155 !important;
+            border-color: #94a3b8 !important;
         }
 
         /* Card KPI Executivo */
@@ -75,28 +105,28 @@ st.markdown(
         /* Balão de Detalhes da Máquina Clicada */
         .card-balao-compacto {
             border-radius: 8px;
-            padding: 10px 16px;
-            margin: 10px 0 16px 0;
-            font-size: 0.9rem;
+            padding: 8px 14px;
+            margin: 6px 0 10px 0;
+            font-size: 0.88rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-left: 6px solid #94a3b8;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
         .card-balao-compacto.status-verde {
             background-color: #f0fdf4;
-            border-left-color: #16a34a;
+            border-left-color: #22c55e;
             color: #14532d;
         }
         .card-balao-compacto.status-amarelo {
             background-color: #fefce8;
-            border-left-color: #ca8a04;
+            border-left-color: #eab308;
             color: #713f12;
         }
         .card-balao-compacto.status-vermelho {
             background-color: #fef2f2;
-            border-left-color: #dc2626;
+            border-left-color: #ef4444;
             color: #7f1d1d;
         }
         .card-balao-compacto.status-cinza {
@@ -104,15 +134,16 @@ st.markdown(
             border-left-color: #94a3b8;
             color: #334155;
         }
-
-        .titulo-setor-painel {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-top: 10px;
-            margin-bottom: 4px;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 2px;
+        
+        /* Amostras de cores da Legenda */
+        .amostra-cor {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 4px;
+            border: 1px solid rgba(0,0,0,0.15);
         }
     </style>
     """,
@@ -159,7 +190,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -307,36 +338,39 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (SEM FILTRO, VISÃO TOTAL E LIMPA)
+# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADINHOS PINTADOS POR INTEIRO, SEM FILTRO E COMPACTO)
 # ------------------------------------------
 if tela == "Painel Correias":
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
     data_hoje = date.today()
 
-    # Cabeçalho limpo com legenda horizontal
-    c_title, c_legenda = st.columns([1.8, 2.2])
+    # Cabeçalho limpo com legenda gráfica compacta
+    c_title, c_legenda = st.columns([1.6, 2.4])
     with c_title:
-        st.markdown("<h3 style='margin:0; padding:0;'>🔄 Mapa Geral de Correias — Fábrica Completa</h3>", unsafe_allow_html=True)
+        st.markdown("<h4 style='margin:0; padding:0;'>🔄 Mapa Geral de Correias (Ativos da Fábrica)</h4>", unsafe_allow_html=True)
     with c_legenda:
         st.markdown(
             """
-            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:6px;'>
-                🟢 Nova (&le;1 ano) &nbsp;|&nbsp; 🟡 Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp; 🔴 Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp; ⚪ Sem Apontamento
+            <div style='text-align:right; font-size:0.8rem; font-weight:600; padding-top:4px;'>
+                <span class='amostra-cor' style='background:#22c55e;'></span> Nova (&le;1 ano) &nbsp;|&nbsp;
+                <span class='amostra-cor' style='background:#facc15;'></span> Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp;
+                <span class='amostra-cor' style='background:#ef4444;'></span> Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp;
+                <span class='amostra-cor' style='background:#cbd5e1;'></span> Sem Apontamento
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    # SE HOUVER MÁQUINA CLICADA: MOSTRA O BALÃO EM DESTAQUE NO TOPO
+    # SE HOUVER MÁQUINA CLICADA: BALÃO EM LINHA NO TOPO
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
-        c_box, c_close = st.columns([6, 1])
+        c_box, c_close = st.columns([6.2, 0.8])
         with c_box:
             st.markdown(
                 f"""
                 <div class="card-balao-compacto {maq_sel['classe_card']}">
                     <span>⚙️ <b>Ativo: {maq_sel['tag']}</b> ({maq_sel['setor']}) &nbsp;|&nbsp; 🏷️ <b>Modelo:</b> {maq_sel['tipo']} &nbsp;|&nbsp; 📅 <b>Instalação:</b> {maq_sel['data']}</span>
-                    <span>⏱️ <b>Tempo de Uso:</b> {maq_sel['tempo']}</span>
+                    <span>⏱️ <b>Uso:</b> {maq_sel['tempo']}</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -349,81 +383,90 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # RENDERIZAÇÃO DIRETA DE TODOS OS SETORES
-    COLS_POR_LINHA = 10  # 10 botões por linha para manter o mapa compacto e organizado
+    # Coleta todas as máquinas de todos os setores de forma unificada
+    todas_as_maquinas = []
+    mapa_setor_maquina = {}
+    for setor_nome, lista_m in DICIONARIO_SETORES.items():
+        for m in lista_m:
+            todas_as_maquinas.append(m)
+            mapa_setor_maquina[m] = setor_nome
 
-    for setor, maqs_setor in DICIONARIO_SETORES.items():
-        st.markdown(f"<div class='titulo-setor-painel'>📍 {setor} ({len(maqs_setor)} máquinas)</div>", unsafe_allow_html=True)
-        df_setor_cor = df_cor_base[df_cor_base["Setor"] == setor]
+    # Processamento rápido dos dados de cada máquina
+    dados_maquinas = {}
+    for maq_tag in todas_as_maquinas:
+        setor_m = mapa_setor_maquina[maq_tag]
+        reg_maq = df_cor_base[
+            (df_cor_base["Setor"] == setor_m) & (df_cor_base["Maquina_TAG"] == maq_tag)
+        ]
 
-        dados_maqs_setor = {}
-        for maq_tag in maqs_setor:
-            reg_maq = df_setor_cor[df_setor_cor["Maquina_TAG"] == maq_tag]
-            
-            tipo_txt = "Não informada"
-            data_txt = "Sem registro"
-            tempo_txt = "Sem histórico"
-            classe_card = "status-cinza"
-            icone_cor = "⚪"
+        tipo_txt = "Não informada"
+        data_txt = "Sem registro"
+        tempo_txt = "Sem histórico"
+        classe_card = "status-cinza"
+        classe_btn = "btn-cinza"
 
-            if not reg_maq.empty:
-                ultimo = reg_maq.iloc[-1]
-                tipo_val = str(ultimo["Tipo_Correia"]).strip()
-                if tipo_val and tipo_val != "nan":
-                    tipo_txt = tipo_val
+        if not reg_maq.empty:
+            ultimo = reg_maq.iloc[-1]
+            tipo_val = str(ultimo["Tipo_Correia"]).strip()
+            if tipo_val and tipo_val != "nan":
+                tipo_txt = tipo_val
 
-                dt_val = str(ultimo["Data_Instalacao"]).strip()
-                if dt_val and dt_val != "nan":
-                    try:
-                        dt_inst = pd.to_datetime(dt_val).date()
-                        dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                        data_txt = f"{dt_fmt}"
+            dt_val = str(ultimo["Data_Instalacao"]).strip()
+            if dt_val and dt_val != "nan":
+                try:
+                    dt_inst = pd.to_datetime(dt_val).date()
+                    dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                    data_txt = f"{dt_fmt}"
 
-                        dias = (data_hoje - dt_inst).days
-                        meses = round(dias / 30.4, 1)
+                    dias = (data_hoje - dt_inst).days
+                    meses = round(dias / 30.4, 1)
 
-                        if dias <= 365:
-                            classe_card = "status-verde"
-                            icone_cor = "🟢"
-                            tempo_txt = f"{meses} meses ({dias} dias)"
-                        elif 365 < dias <= 547:
-                            classe_card = "status-amarelo"
-                            icone_cor = "🟡"
-                            tempo_txt = f"{meses} meses ({dias} dias)"
-                        else:
-                            classe_card = "status-vermelho"
-                            icone_cor = "🔴"
-                            tempo_txt = f"{meses} meses ({dias} dias)"
-                    except Exception:
-                        data_txt = f"{dt_val}"
+                    if dias <= 365:
+                        classe_card = "status-verde"
+                        classe_btn = "btn-verde"
+                        tempo_txt = f"{meses} meses ({dias} dias)"
+                    elif 365 < dias <= 547:
+                        classe_card = "status-amarelo"
+                        classe_btn = "btn-amarelo"
+                        tempo_txt = f"{meses} meses ({dias} dias)"
+                    else:
+                        classe_card = "status-vermelho"
+                        classe_btn = "btn-vermelho"
+                        tempo_txt = f"{meses} meses ({dias} dias)"
+                except Exception:
+                    data_txt = f"{dt_val}"
 
-            dados_maqs_setor[maq_tag] = {
-                "icone": icone_cor,
-                "tipo": tipo_txt,
-                "data": data_txt,
-                "tempo": tempo_txt,
-                "classe_card": classe_card,
-                "setor": setor,
-            }
+        dados_maquinas[maq_tag] = {
+            "setor": setor_m,
+            "tipo": tipo_txt,
+            "data": data_txt,
+            "tempo": tempo_txt,
+            "classe_card": classe_card,
+            "classe_btn": classe_btn,
+        }
 
-        # Grelha de botões compactos
-        linhas_maquinas = [maqs_setor[i:i + COLS_POR_LINHA] for i in range(0, len(maqs_setor), COLS_POR_LINHA)]
+    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA
+    COLS_GRELHA = 12
+    linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
-        for linha in linhas_maquinas:
-            cols = st.columns(COLS_POR_LINHA)
-            for idx_c, maq_tag in enumerate(linha):
-                info_m = dados_maqs_setor[maq_tag]
-                with cols[idx_c]:
-                    if st.button(
-                        f"{info_m['icone']} {maq_tag}",
-                        key=f"btn_m_semfiltro_{setor}_{maq_tag}",
-                        use_container_width=True,
-                    ):
-                        st.session_state.maq_clicada_cor = {
-                            "tag": maq_tag,
-                            **info_m,
-                        }
-                        st.rerun()
+    for linha in linhas_grid:
+        cols = st.columns(COLS_GRELHA)
+        for idx_col, maq_tag in enumerate(linha):
+            info = dados_maquinas[maq_tag]
+            with cols[idx_col]:
+                # Envolve o botão numa div CSS que pinta o quadradinho por inteiro
+                st.markdown(f"<div class='{info['classe_btn']}'>", unsafe_allow_html=True)
+                if st.button(
+                    maq_tag,
+                    key=f"btn_quadrado_{maq_tag}",
+                    use_container_width=True,
+                ):
+                    st.session_state.maq_clicada_cor = {
+                        "tag": maq_tag,
+                        **info,
+                    }
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (INTACTO)
