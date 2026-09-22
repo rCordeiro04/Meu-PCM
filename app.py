@@ -67,9 +67,27 @@ for col in colunas_correias:
     if col not in df_correias.columns:
         df_correias[col] = ""
 
-df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].astype(str)
+
+# Função de formatação para garantir sempre 3 dígitos após o ponto (ex: 36.100)
+def formatar_modelo(val):
+    if not val or str(val).strip() in ["", "nan", "None"]:
+        return ""
+    v_str = str(val).strip()
+    if "." in v_str:
+        partes = v_str.split(".")
+        parte_inteira = partes[0]
+        parte_decimal = partes[1]
+        if len(parte_decimal) < 3:
+            parte_decimal = parte_decimal.ljust(3, "0")
+        elif len(parte_decimal) > 3:
+            parte_decimal = parte_decimal[:3]
+        return f"{parte_inteira}.{parte_decimal}"
+    return v_str
+
+
+df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].apply(formatar_modelo)
 df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
-df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
+df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
 # Mapeamento oficial de ativos por setor[cite: 4, 5]
@@ -170,7 +188,7 @@ for maq_tag in todas_as_maquinas:
 
     if not reg_maq.empty:
         ultimo = reg_maq.iloc[-1]
-        v1 = str(ultimo.get("Tipo_Correia_1", "")).strip()
+        v1 = formatar_modelo(ultimo.get("Tipo_Correia_1", ""))
         dt1_raw = str(ultimo.get("Data_Instalacao_1", "")).strip()
         if (v1 and v1 != "nan") or (dt1_raw and dt1_raw != "nan"):
             t1 = v1 if (v1 and v1 != "nan") else "Não informada"
@@ -185,7 +203,7 @@ for maq_tag in todas_as_maquinas:
             elif c1_score == 3:
                 lista_correias_criticas.append(reg_c1)
 
-        v2 = str(ultimo.get("Tipo_Correia_2", "")).strip()
+        v2 = formatar_modelo(ultimo.get("Tipo_Correia_2", ""))
         dt2_raw = str(ultimo.get("Data_Instalacao_2", "")).strip()
         if (v2 and v2 != "nan") or (dt2_raw and dt2_raw != "nan"):
             t2 = v2 if (v2 and v2 != "nan") else "Não informada"
@@ -328,7 +346,7 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* DESIGN PREMIUM DOS BOTÕES KPI SUPERIORES */
+        /* ESTILO PREMIUM REFINADO DOS BOTÕES KPI SUPERIORES */
         div.kpi-btn-box div[data-testid="stButton"] button {{
             background: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
@@ -352,7 +370,7 @@ st.markdown(
             font-size: 0.95rem !important;
             font-weight: 800 !important;
             margin: 0 !important;
-            line-height: 1.25 !important;
+            line-height: 1.35 !important;
             text-align: left !important;
             letter-spacing: 0.3px !important;
             font-family: ui-monospace, monospace !important;
@@ -601,7 +619,7 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cartões KPI em formato de Botão Nativo com Design Industrial Premium
+    # 4 Cartões KPI formatados com duas linhas (Rótulo em cima, Valor + Ícone embaixo)
     k1, k2, k3, k4 = st.columns(4)
 
     with k1:
@@ -652,7 +670,7 @@ if tela == "Painel Correias":
         if not df_kpi_sel.empty:
             contagem = df_kpi_sel["modelo"].value_counts().to_dict()
             chips_html = " ".join([
-                f"<span class='chip-tt'>🏷️ {mod}: <b>{qtd} un.</b></span>"
+                f"<span class='chip-tt'>🏷️ {formatar_modelo(mod)}: <b>{qtd} un.</b></span>"
                 for mod, qtd in contagem.items()
             ])
         else:
@@ -697,7 +715,7 @@ if tela == "Painel Correias":
             html_linhas = ""
             if maq_sel["tem_c1"]:
                 html_linhas += f"""
-                <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {maq_sel['t1']} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
+                <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {formatar_modelo(maq_sel['t1'])} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
                 """
             else:
                 html_linhas += """
@@ -706,7 +724,7 @@ if tela == "Painel Correias":
 
             if maq_sel["tem_c2"]:
                 html_linhas += f"""
-                <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {maq_sel['t2']} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
+                <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {formatar_modelo(maq_sel['t2'])} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
                 """
             else:
                 html_linhas += """
@@ -790,7 +808,7 @@ elif tela == "Correias":
         if not reg_existente.empty:
             ultimo = reg_existente.iloc[-1]
             
-            c1 = str(ultimo.get("Tipo_Correia_1", ""))
+            c1 = formatar_modelo(ultimo.get("Tipo_Correia_1", ""))
             t1 = c1 if c1 != "nan" else ""
             d1_val = ultimo.get("Data_Instalacao_1", "")
             try:
@@ -799,7 +817,7 @@ elif tela == "Correias":
             except Exception:
                 dt1 = None
 
-            c2 = str(ultimo.get("Tipo_Correia_2", ""))
+            c2 = formatar_modelo(ultimo.get("Tipo_Correia_2", ""))
             t2 = c2 if c2 != "nan" else ""
             d2_val = ultimo.get("Data_Instalacao_2", "")
             try:
@@ -866,8 +884,8 @@ elif tela == "Correias":
                 except Exception:
                     dt2_str = ""
 
-            m1 = str(linha["Modelo (Superior / Cabeceira)"]).strip() if pd.notna(linha["Modelo (Superior / Cabeceira)"]) and str(linha["Modelo (Superior / Cabeceira)"]).strip() != "None" else ""
-            m2 = str(linha["Modelo (Inferior / Traseira)"]).strip() if pd.notna(linha["Modelo (Inferior / Traseira)"]) and str(linha["Modelo (Inferior / Traseira)"]).strip() != "None" else ""
+            m1 = formatar_modelo(linha["Modelo (Superior / Cabeceira)"]) if pd.notna(linha["Modelo (Superior / Cabeceira)"]) and str(linha["Modelo (Superior / Cabeceira)"]).strip() != "None" else ""
+            m2 = formatar_modelo(linha["Modelo (Inferior / Traseira)"]) if pd.notna(linha["Modelo (Inferior / Traseira)"]) and str(linha["Modelo (Inferior / Traseira)"]).strip() != "None" else ""
 
             novos_registros_cor.append(
                 {
