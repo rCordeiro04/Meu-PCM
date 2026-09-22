@@ -44,6 +44,16 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
+# Carga automática dos dados de Março/2026 para o Setor B
+dados_marco_setor_b = [
+    ("L-29", 1), ("L-30", 15), ("L-31", 4), ("L-32", 8),
+    ("L-33", 14), ("L-34", 6), ("L-35", 8), ("L-36", 9),
+    ("L-37", 18), ("L-38", 2), ("L-39", 5), ("L-40", 6),
+    ("L-50", 0), ("L-51", 4), ("L-41", 1), ("L-42", 1),
+    ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 0),
+    ("L-52", 3), ("L-53", 6)
+]
+
 # Carga automática dos dados de Abril/2026 para o Setor B
 dados_abril_setor_b = [
     ("L-29", 2), ("L-30", 3), ("L-31", 1), ("L-32", 2),
@@ -85,6 +95,24 @@ dados_julho_setor_b = [
 ]
 
 precisa_salvar_fusos = False
+
+# Verificação e inserção: Março/2026 - Setor B
+linhas_setor_b_marco = df_fusos[(df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Março") & (df_fusos["Setor"] == "Setor B")]
+if linhas_setor_b_marco.empty or linhas_setor_b_marco["Quantidade_Quebras"].sum() == 0:
+    df_fusos = df_fusos[~((df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Março") & (df_fusos["Setor"] == "Setor B"))]
+    novos_reg_marco = [
+        {
+            "Ano": 2026,
+            "Mes": "Março",
+            "Setor": "Setor B",
+            "Maquina_TAG": maq,
+            "Quantidade_Quebras": int(qtd),
+            "Tipo_Fuso": "TEP"
+        }
+        for maq, qtd in dados_marco_setor_b
+    ]
+    df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg_marco)], ignore_index=True)
+    precisa_salvar_fusos = True
 
 # Verificação e inserção: Abril/2026 - Setor B
 linhas_setor_b_abril = df_fusos[(df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Abril") & (df_fusos["Setor"] == "Setor B")]
@@ -1276,22 +1304,37 @@ elif tela == "Painel Fusos":
             df_base_meses = pd.DataFrame({"Mes": lista_meses_puros})
             df_consolidado = pd.merge(df_base_meses, agrup_s, on="Mes", how="left").fillna(0)
             df_consolidado["Quantidade_Quebras"] = df_consolidado["Quantidade_Quebras"].astype(int)
+            df_consolidado["Mes_Abrev"] = df_consolidado["Mes"].map(MAPA_MES_ABREV)
             total_setor = df_consolidado["Quantidade_Quebras"].sum()
 
-            chart = (
+            barras = (
                 alt.Chart(df_consolidado)
-                .mark_line(
-                    point=alt.OverlayMarkDef(color=cor_primaria, size=45),
-                    color=cor_primaria,
-                    strokeWidth=2.5,
-                )
+                .mark_bar(color=cor_primaria, cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
                 .encode(
-                    x=alt.X("Mes:N", sort=lista_meses_puros, title=None, axis=alt.Axis(labelAngle=-45)),
+                    x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
                     y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
-                    tooltip=["Mes", "Quantidade_Quebras"],
+                    tooltip=[
+                        alt.Tooltip("Mes:N", title="Mês"),
+                        alt.Tooltip("Quantidade_Quebras:Q", title="Quebras"),
+                    ],
                 )
-                .properties(height=210)
             )
+
+            rotulos = (
+                alt.Chart(df_consolidado)
+                .mark_text(dy=-6, fontSize=11, fontWeight=700, color="#334155")
+                .encode(
+                    x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV),
+                    y=alt.Y("Quantidade_Quebras:Q"),
+                    text=alt.condition(
+                        alt.datum.Quantidade_Quebras > 0,
+                        alt.Text("Quantidade_Quebras:Q"),
+                        alt.value("")
+                    ),
+                )
+            )
+
+            chart = (barras + rotulos).properties(height=210)
             return chart, total_setor
 
         col_g1, col_g2 = st.columns(2)
@@ -1431,7 +1474,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
+        # Gráfico de Colunas Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
         c_linha_s, c_tipo_s = st.columns([1.55, 1.45])
 
         with c_linha_s:
@@ -1439,7 +1482,7 @@ elif tela == "Painel Fusos":
                 st.markdown(
                     f"""
                     <div class="chart-header-row">
-                        <span class="chart-header-title">📈 Evolução Cronológica de Quebras ({setor_ativo} - {ano_painel})</span>
+                        <span class="chart-header-title">📊 Evolução Mensal de Quebras ({setor_ativo} - {ano_painel})</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1448,22 +1491,37 @@ elif tela == "Painel Fusos":
                 agrup_mes_setor = df_setor.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
                 df_evol_setor = pd.merge(df_base_meses, agrup_mes_setor, on="Mes", how="left").fillna(0)
                 df_evol_setor["Quantidade_Quebras"] = df_evol_setor["Quantidade_Quebras"].astype(int)
+                df_evol_setor["Mes_Abrev"] = df_evol_setor["Mes"].map(MAPA_MES_ABREV)
 
-                chart_linha_setor = (
+                barras_setor = (
                     alt.Chart(df_evol_setor)
-                    .mark_line(
-                        point=alt.OverlayMarkDef(color="#2563eb", size=60),
-                        color="#2563eb",
-                        strokeWidth=3,
-                    )
+                    .mark_bar(color="#2563eb", cornerRadiusTopLeft=5, cornerRadiusTopRight=5)
                     .encode(
-                        x=alt.X("Mes:N", sort=lista_meses_puros, title="Mês", axis=alt.Axis(labelAngle=0)),
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
                         y=alt.Y("Quantidade_Quebras:Q", title="Quebras Apontadas"),
-                        tooltip=["Mes", "Quantidade_Quebras"],
+                        tooltip=[
+                            alt.Tooltip("Mes:N", title="Mês"),
+                            alt.Tooltip("Quantidade_Quebras:Q", title="Quebras Apontadas"),
+                        ],
                     )
-                    .properties(height=280)
                 )
-                st.altair_chart(chart_linha_setor, use_container_width=True)
+
+                rotulos_setor = (
+                    alt.Chart(df_evol_setor)
+                    .mark_text(dy=-8, fontSize=11, fontWeight=700, color="#1e293b")
+                    .encode(
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV),
+                        y=alt.Y("Quantidade_Quebras:Q"),
+                        text=alt.condition(
+                            alt.datum.Quantidade_Quebras > 0,
+                            alt.Text("Quantidade_Quebras:Q"),
+                            alt.value("")
+                        ),
+                    )
+                )
+
+                chart_colunas_setor = (barras_setor + rotulos_setor).properties(height=280)
+                st.altair_chart(chart_colunas_setor, use_container_width=True)
 
         with c_tipo_s:
             with st.container(border=True):
