@@ -11,155 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(
-    """
-    <style>
-        /* Compactação geral da página */
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 0.8rem !important;
-            padding-left: 1.5rem !important;
-            padding-right: 1.5rem !important;
-        }
-        
-        /* Reduz o espaçamento entre as colunas do Streamlit */
-        div[data-testid="column"] {
-            padding: 0px 1px !important;
-            margin: 0px !important;
-        }
-        div[data-testid="stHorizontalBlock"] {
-            gap: 2px !important;
-            margin-bottom: 2px !important;
-        }
-
-        /* Trava contra scroll e zoom acidental em gráficos e tabelas */
-        div[data-testid="stVegaLiteChart"] summary,
-        div[data-testid="stVegaLiteChart"] .vega-actions {
-            display: none !important;
-        }
-        div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
-            overscroll-behavior: contain;
-        }
-        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
-            resize: none !important;
-        }
-
-        /* Formato dos quadradinhos de máquinas */
-        div[data-testid="stButton"] button {
-            padding: 2px 0px !important;
-            font-size: 0.8rem !important;
-            font-weight: 700 !important;
-            height: 30px !important;
-            min-height: 30px !important;
-            line-height: 28px !important;
-            border-radius: 4px !important;
-            border: 1px solid rgba(0,0,0,0.15) !important;
-            transition: transform 0.1s ease, filter 0.1s ease !important;
-        }
-        div[data-testid="stButton"] button:hover {
-            transform: scale(1.05) !important;
-            filter: brightness(0.92) !important;
-        }
-
-        /* Pintura dos quadradinhos via seletores de classe */
-        div.btn-quad-verde div[data-testid="stButton"] button {
-            background-color: #16a34a !important;
-            color: #ffffff !important;
-            border-color: #15803d !important;
-        }
-        div.btn-quad-amarelo div[data-testid="stButton"] button {
-            background-color: #facc15 !important;
-            color: #713f12 !important;
-            border-color: #ca8a04 !important;
-        }
-        div.btn-quad-vermelho div[data-testid="stButton"] button {
-            background-color: #dc2626 !important;
-            color: #ffffff !important;
-            border-color: #b91c1c !important;
-        }
-        div.btn-quad-cinza div[data-testid="stButton"] button {
-            background-color: #94a3b8 !important;
-            color: #ffffff !important;
-            border-color: #64748b !important;
-        }
-
-        /* Card KPI Executivo */
-        .metric-card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 10px 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid #1E88E5;
-            margin-bottom: 8px;
-        }
-        .metric-card.warning { border-left-color: #E53935; }
-        .metric-card.success { border-left-color: #43A047; }
-        .metric-label {
-            font-size: 0.75rem;
-            color: #616161;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-        .metric-value {
-            font-size: 1.3rem;
-            color: #212121;
-            font-weight: 700;
-            line-height: 1.1;
-        }
-        .metric-sub {
-            font-size: 0.72rem;
-            color: #757575;
-        }
-
-        /* Balão de Detalhes da Máquina Clicada */
-        .card-balao-compacto {
-            border-radius: 6px;
-            padding: 8px 14px;
-            margin: 4px 0 8px 0;
-            font-size: 0.88rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-left: 6px solid #94a3b8;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-        .card-balao-compacto.status-verde {
-            background-color: #f0fdf4;
-            border-left-color: #16a34a;
-            color: #14532d;
-        }
-        .card-balao-compacto.status-amarelo {
-            background-color: #fefce8;
-            border-left-color: #ca8a04;
-            color: #713f12;
-        }
-        .card-balao-compacto.status-vermelho {
-            background-color: #fef2f2;
-            border-left-color: #dc2626;
-            color: #7f1d1d;
-        }
-        .card-balao-compacto.status-cinza {
-            background-color: #f8fafc;
-            border-left-color: #94a3b8;
-            color: #334155;
-        }
-        
-        /* Amostras de cores da Legenda */
-        .amostra-cor {
-            display: inline-block;
-            width: 13px;
-            height: 13px;
-            border-radius: 3px;
-            vertical-align: middle;
-            margin-right: 4px;
-            border: 1px solid rgba(0,0,0,0.15);
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v3.xlsx"
@@ -237,6 +88,234 @@ if "maq_clicada_cor" not in st.session_state:
 def navegar(nome_pagina):
     st.session_state.pagina_atual = nome_pagina
 
+
+# ==========================================
+# CÁLCULO DAS CORES E DADOS DAS MÁQUINAS
+# ==========================================
+todas_as_maquinas = []
+mapa_setor_maquina = {}
+for setor_nome, lista_m in DICIONARIO_SETORES.items():
+    for m in lista_m:
+        todas_as_maquinas.append(m)
+        mapa_setor_maquina[m] = setor_nome
+
+data_hoje = date.today()
+dados_maquinas = {}
+css_botoes = []
+
+for maq_tag in todas_as_maquinas:
+    setor_m = mapa_setor_maquina[maq_tag]
+    reg_maq = df_correias[
+        (df_correias["Setor"] == setor_m) & (df_correias["Maquina_TAG"] == maq_tag)
+    ]
+
+    tipo_txt = "Não informada"
+    data_txt = "Sem registro"
+    tempo_txt = "Sem histórico"
+    classe_card = "status-cinza"
+    
+    # Cores sólidas padrão: cinza
+    cor_fundo = "#94a3b8"
+    cor_texto = "#ffffff"
+    cor_borda = "#64748b"
+
+    if not reg_maq.empty:
+        ultimo = reg_maq.iloc[-1]
+        tipo_val = str(ultimo["Tipo_Correia"]).strip()
+        if tipo_val and tipo_val != "nan":
+            tipo_txt = tipo_val
+
+        dt_val = str(ultimo["Data_Instalacao"]).strip()
+        if dt_val and dt_val != "nan":
+            try:
+                dt_inst = pd.to_datetime(dt_val).date()
+                dt_fmt = dt_inst.strftime("%d/%m/%Y")
+                data_txt = f"{dt_fmt}"
+
+                dias = (data_hoje - dt_inst).days
+                meses = round(dias / 30.4, 1)
+
+                if dias <= 365:
+                    classe_card = "status-verde"
+                    cor_fundo = "#16a34a"   # Verde
+                    cor_texto = "#ffffff"
+                    cor_borda = "#15803d"
+                    tempo_txt = f"{meses} meses ({dias} dias)"
+                elif 365 < dias <= 547:
+                    classe_card = "status-amarelo"
+                    cor_fundo = "#facc15"   # Amarelo
+                    cor_texto = "#713f12"
+                    cor_borda = "#ca8a04"
+                    tempo_txt = f"{meses} meses ({dias} dias)"
+                else:
+                    classe_card = "status-vermelho"
+                    cor_fundo = "#dc2626"   # Vermelho
+                    cor_texto = "#ffffff"
+                    cor_borda = "#b91c1c"
+                    tempo_txt = f"{meses} meses ({dias} dias)"
+            except Exception:
+                data_txt = f"{dt_val}"
+
+    dados_maquinas[maq_tag] = {
+        "setor": setor_m,
+        "tipo": tipo_txt,
+        "data": data_txt,
+        "tempo": tempo_txt,
+        "classe_card": classe_card,
+    }
+
+    # Injeção de regra CSS direta pela chave única do botão
+    chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
+    css_botoes.append(
+        f"""
+        button[key="{chave_btn}"],
+        div.st-key-{chave_btn} button {{
+            background-color: {cor_fundo} !important;
+            color: {cor_texto} !important;
+            border: 1px solid {cor_borda} !important;
+        }}
+        button[key="{chave_btn}"]:hover,
+        div.st-key-{chave_btn} button:hover {{
+            background-color: {cor_fundo} !important;
+            filter: brightness(0.9) !important;
+            color: {cor_texto} !important;
+        }}
+        button[key="{chave_btn}"] p,
+        div.st-key-{chave_btn} button p {{
+            color: {cor_texto} !important;
+            font-weight: 800 !important;
+        }}
+        """
+    )
+
+regras_css_botoes = "\n".join(css_botoes)
+
+st.markdown(
+    f"""
+    <style>
+        /* Compactação geral da página */
+        .block-container {{
+            padding-top: 1rem !important;
+            padding-bottom: 0.8rem !important;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
+        }}
+        
+        /* Reduz o espaçamento horizontal e vertical entre os botões */
+        div[data-testid="column"] {{
+            padding: 0px 1px !important;
+            margin: 0px !important;
+        }}
+        div[data-testid="stHorizontalBlock"] {{
+            gap: 2px !important;
+            margin-bottom: 2px !important;
+        }}
+
+        /* Trava contra scroll e zoom acidental em gráficos e tabelas */
+        div[data-testid="stVegaLiteChart"] summary,
+        div[data-testid="stVegaLiteChart"] .vega-actions {{
+            display: none !important;
+        }}
+        div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
+            overscroll-behavior: contain;
+        }}
+        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {{
+            resize: none !important;
+        }}
+
+        /* Formato dos quadradinhos de máquinas */
+        div[data-testid="stButton"] button {{
+            padding: 0px !important;
+            font-size: 0.78rem !important;
+            font-weight: 800 !important;
+            height: 28px !important;
+            min-height: 28px !important;
+            line-height: 26px !important;
+            border-radius: 4px !important;
+            transition: transform 0.08s ease, filter 0.08s ease !important;
+        }}
+        div[data-testid="stButton"] button:hover {{
+            transform: scale(1.06) !important;
+        }}
+
+        /* REGRAS DINÂMICAS DE CORES INJETADAS */
+        {regras_css_botoes}
+
+        /* Card KPI Executivo */
+        .metric-card {{
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #1E88E5;
+            margin-bottom: 8px;
+        }}
+        .metric-card.warning {{ border-left-color: #E53935; }}
+        .metric-card.success {{ border-left-color: #43A047; }}
+        .metric-label {{
+            font-size: 0.75rem;
+            color: #616161;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }}
+        .metric-value {{
+            font-size: 1.3rem;
+            color: #212121;
+            font-weight: 700;
+            line-height: 1.1;
+        }}
+        .metric-sub {{
+            font-size: 0.72rem;
+            color: #757575;
+        }}
+
+        /* Balão de Detalhes da Máquina Clicada */
+        .card-balao-compacto {{
+            border-radius: 6px;
+            padding: 8px 14px;
+            margin: 4px 0 8px 0;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 6px solid #94a3b8;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }}
+        .card-balao-compacto.status-verde {{
+            background-color: #f0fdf4;
+            border-left-color: #16a34a;
+            color: #14532d;
+        }}
+        .card-balao-compacto.status-amarelo {{
+            background-color: #fefce8;
+            border-left-color: #ca8a04;
+            color: #713f12;
+        }}
+        .card-balao-compacto.status-vermelho {{
+            background-color: #fef2f2;
+            border-left-color: #dc2626;
+            color: #7f1d1d;
+        }}
+        .card-balao-compacto.status-cinza {{
+            background-color: #f8fafc;
+            border-left-color: #94a3b8;
+            color: #334155;
+        }}
+        
+        .amostra-cor {{
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 4px;
+            border: 1px solid rgba(0,0,0,0.15);
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # ==========================================
 # BARRA LATERAL (SIDEBAR)
@@ -348,12 +427,9 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADOS PINTADOS POR INTEIRO E ESPAÇAMENTO COMPACTO)
+# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADOS PINTADOS REALMENTE)
 # ------------------------------------------
 if tela == "Painel Correias":
-    df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
-    data_hoje = date.today()
-
     # Cabeçalho limpo com legenda gráfica compacta
     c_title, c_legenda = st.columns([1.6, 2.4])
     with c_title:
@@ -393,69 +469,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Coleta todas as máquinas de todos os setores de forma unificada
-    todas_as_maquinas = []
-    mapa_setor_maquina = {}
-    for setor_nome, lista_m in DICIONARIO_SETORES.items():
-        for m in lista_m:
-            todas_as_maquinas.append(m)
-            mapa_setor_maquina[m] = setor_nome
-
-    # Processamento de dados e classificação semafórica
-    dados_maquinas = {}
-    for maq_tag in todas_as_maquinas:
-        setor_m = mapa_setor_maquina[maq_tag]
-        reg_maq = df_cor_base[
-            (df_cor_base["Setor"] == setor_m) & (df_cor_base["Maquina_TAG"] == maq_tag)
-        ]
-
-        tipo_txt = "Não informada"
-        data_txt = "Sem registro"
-        tempo_txt = "Sem histórico"
-        classe_card = "status-cinza"
-        classe_btn = "btn-quad-cinza"
-
-        if not reg_maq.empty:
-            ultimo = reg_maq.iloc[-1]
-            tipo_val = str(ultimo["Tipo_Correia"]).strip()
-            if tipo_val and tipo_val != "nan":
-                tipo_txt = tipo_val
-
-            dt_val = str(ultimo["Data_Instalacao"]).strip()
-            if dt_val and dt_val != "nan":
-                try:
-                    dt_inst = pd.to_datetime(dt_val).date()
-                    dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                    data_txt = f"{dt_fmt}"
-
-                    dias = (data_hoje - dt_inst).days
-                    meses = round(dias / 30.4, 1)
-
-                    if dias <= 365:
-                        classe_card = "status-verde"
-                        classe_btn = "btn-quad-verde"
-                        tempo_txt = f"{meses} meses ({dias} dias)"
-                    elif 365 < dias <= 547:
-                        classe_card = "status-amarelo"
-                        classe_btn = "btn-quad-amarelo"
-                        tempo_txt = f"{meses} meses ({dias} dias)"
-                    else:
-                        classe_card = "status-vermelho"
-                        classe_btn = "btn-quad-vermelho"
-                        tempo_txt = f"{meses} meses ({dias} dias)"
-                except Exception:
-                    data_txt = f"{dt_val}"
-
-        dados_maquinas[maq_tag] = {
-            "setor": setor_m,
-            "tipo": tipo_txt,
-            "data": data_txt,
-            "tempo": tempo_txt,
-            "classe_card": classe_card,
-            "classe_btn": classe_btn,
-        }
-
-    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA COM ESPAÇAMENTO MÍNIMO
+    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA COM CORES DIRETAS
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
@@ -463,12 +477,11 @@ if tela == "Painel Correias":
         cols = st.columns(COLS_GRELHA)
         for idx_col, maq_tag in enumerate(linha):
             info = dados_maquinas[maq_tag]
+            chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
             with cols[idx_col]:
-                # Envolve diretamente com a classe de cor CSS
-                st.markdown(f"<div class='{info['classe_btn']}'>", unsafe_allow_html=True)
                 if st.button(
                     maq_tag,
-                    key=f"btn_quadrado_{maq_tag}",
+                    key=chave_btn,
                     use_container_width=True,
                 ):
                     st.session_state.maq_clicada_cor = {
@@ -476,7 +489,6 @@ if tela == "Painel Correias":
                         **info,
                     }
                     st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (INTACTO)
