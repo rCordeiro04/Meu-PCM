@@ -72,7 +72,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -109,6 +109,9 @@ if "pagina_atual" not in st.session_state:
 
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
+
+if "card_selecionado_kpi" not in st.session_state:
+    st.session_state.card_selecionado_kpi = None
 
 
 def navegar(nome_pagina):
@@ -262,22 +265,6 @@ for maq_tag in todas_as_maquinas:
 
 regras_css_botoes = "\n".join(css_botoes)
 
-def montar_chips_categoria(lista_alvo, titulo):
-    if not lista_alvo:
-        return f"<b>{titulo}:</b> <i>Nenhuma correia registrada</i>"
-    df_temp = pd.DataFrame(lista_alvo)
-    contagem = df_temp["modelo"].value_counts().to_dict()
-    chips = " ".join([
-        f"<span class='chip-tt'>🏷️ {mod}: <b>{qtd} un.</b></span>"
-        for mod, qtd in contagem.items()
-    ])
-    return f"<b>{titulo} ({len(lista_alvo)} un.):</b> &nbsp; {chips}"
-
-chips_total = montar_chips_categoria(lista_correias_todas, "📦 TOTAL DE CORREIAS")
-chips_novas = montar_chips_categoria(lista_correias_novas, "🟢 OPERAÇÃO NORMAL")
-chips_meia = montar_chips_categoria(lista_correias_meia, "🟡 ATENÇÃO (MEIA-VIDA)")
-chips_crit = montar_chips_categoria(lista_correias_criticas, "🔴 TROCA NECESSÁRIA")
-
 st.markdown(
     f"""
     <style>
@@ -308,6 +295,7 @@ st.markdown(
             resize: none !important;
         }}
 
+        /* Botões das máquinas */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -340,72 +328,86 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* Container Principal dos Cards KPI */
-        .card-kpi-container {{
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            position: relative;
-            cursor: pointer;
-            transition: all 0.15s ease;
+        /* Cartões KPI Executivos Clicáveis */
+        div.kpi-card-btn div[data-testid="stButton"] button {{
+            height: 60px !important;
+            min-height: 60px !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+            padding: 8px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            transition: all 0.15s ease !important;
         }}
-        .card-kpi-container:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-color: #cbd5e1;
+        div.kpi-card-btn div[data-testid="stButton"] button:hover {{
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            border-color: #cbd5e1 !important;
         }}
-        .card-kpi-container::after {{
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-        }}
-        .card-kpi-container.c-total::after {{ background: #475569; }}
-        .card-kpi-container.c-ok::after {{ background: #10b981; }}
-        .card-kpi-container.c-warn::after {{ background: #f59e0b; }}
-        .card-kpi-container.c-crit::after {{ background: #ef4444; }}
-
-        .kpi-val {{
-            font-size: 1.45rem;
-            font-weight: 800;
-            line-height: 1;
-            font-family: ui-monospace, monospace;
-        }}
-        .kpi-lbl {{
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
+        div.kpi-card-btn div[data-testid="stButton"] button p {{
+            font-size: 0.95rem !important;
+            font-weight: 800 !important;
+            margin: 0px !important;
+            line-height: 1.2 !important;
+            text-align: left !important;
         }}
 
-        /* Barra HUD que responde ao Hover dos Cards superiores */
-        .hud-hover-display {{
+        div.kpi-card-btn.kpi-total div[data-testid="stButton"] button {{
+            border-left: 5px solid #475569 !important;
+        }}
+        div.kpi-card-btn.kpi-total div[data-testid="stButton"] button p {{
+            color: #0f172a !important;
+        }}
+
+        div.kpi-card-btn.kpi-ok div[data-testid="stButton"] button {{
+            border-left: 5px solid #10b981 !important;
+        }}
+        div.kpi-card-btn.kpi-ok div[data-testid="stButton"] button p {{
+            color: #059669 !important;
+        }}
+
+        div.kpi-card-btn.kpi-warn div[data-testid="stButton"] button {{
+            border-left: 5px solid #f59e0b !important;
+        }}
+        div.kpi-card-btn.kpi-warn div[data-testid="stButton"] button p {{
+            color: #d97706 !important;
+        }}
+
+        div.kpi-card-btn.kpi-crit div[data-testid="stButton"] button {{
+            border-left: 5px solid #ef4444 !important;
+        }}
+        div.kpi-card-btn.kpi-crit div[data-testid="stButton"] button p {{
+            color: #dc2626 !important;
+        }}
+
+        /* Faixa do Visualizador Operacional */
+        .faixa-visualizador {{
             background: #ffffff;
-            border: 1px solid #cbd5e1;
+            border: 1px dashed #cbd5e1;
             border-radius: 9px;
             padding: 8px 16px;
             margin: 6px 0 8px 0;
             font-size: 0.84rem;
             font-weight: 600;
             color: #475569;
-            min-height: 42px;
+            min-height: 44px;
             display: flex;
             align-items: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }}
+        .faixa-visualizador.ativa {{
+            border-style: solid;
+            border-color: #94a3b8;
+            background: #f8fafc;
         }}
         
         .chip-tt {{
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
             padding: 3px 8px;
             border-radius: 6px;
             font-size: 0.8rem;
@@ -414,16 +416,6 @@ st.markdown(
             margin-right: 4px;
             display: inline-block;
         }}
-
-        /* Controlos dinâmicos acionados por hover puro */
-        .hud-content {{ display: none; width: 100%; align-items: center; }}
-        .hud-padrao {{ display: flex; width: 100%; align-items: center; gap: 8px; }}
-
-        .kpi-section:hover .hud-padrao {{ display: none !important; }}
-        .kpi-section .card-total:hover ~ .hud-hover-display .hud-total {{ display: flex !important; }}
-        .kpi-section .card-novas:hover ~ .hud-hover-display .hud-novas {{ display: flex !important; }}
-        .kpi-section .card-meia:hover ~ .hud-hover-display .hud-meia {{ display: flex !important; }}
-        .kpi-section .card-crit:hover ~ .hud-hover-display .hud-crit {{ display: flex !important; }}
 
         .hud-detalhe {{
             background: #ffffff;
@@ -622,52 +614,109 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # Bloco integrado dos Cards + Faixa Dinâmica por Hover (100% livre de sobreposição com máquinas)
-    html_painel_kpi = f"""
-    <div class="kpi-section">
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <div class="card-kpi-container c-total card-total">
-                <div>
-                    <div class="kpi-lbl">Total de Correias</div>
-                    <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
+    # 4 Cartões KPI Acionados por Clique
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown("<div class='kpi-card-btn kpi-total'>", unsafe_allow_html=True)
+        if st.button(
+            f"TOTAL DE CORREIAS\n{len(lista_correias_todas)}  📦",
+            key="btn_kpi_total_click",
+            use_container_width=True,
+        ):
+            st.session_state.card_selecionado_kpi = (
+                "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
+            )
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with k2:
+        st.markdown("<div class='kpi-card-btn kpi-ok'>", unsafe_allow_html=True)
+        if st.button(
+            f"OPERAÇÃO NORMAL\n{len(lista_correias_novas)}  🟢",
+            key="btn_kpi_ok_click",
+            use_container_width=True,
+        ):
+            st.session_state.card_selecionado_kpi = (
+                "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
+            )
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with k3:
+        st.markdown("<div class='kpi-card-btn kpi-warn'>", unsafe_allow_html=True)
+        if st.button(
+            f"ATENÇÃO (MEIA-VIDA)\n{len(lista_correias_meia)}  🟡",
+            key="btn_kpi_warn_click",
+            use_container_width=True,
+        ):
+            st.session_state.card_selecionado_kpi = (
+                "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
+            )
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with k4:
+        st.markdown("<div class='kpi-card-btn kpi-crit'>", unsafe_allow_html=True)
+        if st.button(
+            f"TROCA NECESSÁRIA\n{len(lista_correias_criticas)}  🔴",
+            key="btn_kpi_crit_click",
+            use_container_width=True,
+        ):
+            st.session_state.card_selecionado_kpi = (
+                "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
+            )
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Faixa do Visualizador: Apresenta a Contagem por Modelo ao Clicar num Card
+    if st.session_state.card_selecionado_kpi is not None:
+        sel = st.session_state.card_selecionado_kpi
+        if sel == "TODAS":
+            lista_alvo = lista_correias_todas
+            titulo_faixa = "📦 Total de Correias Instaladas"
+        elif sel == "NOVAS":
+            lista_alvo = lista_correias_novas
+            titulo_faixa = "🟢 Correias em Operação Normal (≤ 1 ano)"
+        elif sel == "MEIA":
+            lista_alvo = lista_correias_meia
+            titulo_faixa = "🟡 Correias em Meia-Vida (1 a 1,5 anos)"
+        else:
+            lista_alvo = lista_correias_criticas
+            titulo_faixa = "🔴 Correias com Troca Necessária (> 1,5 anos)"
+
+        df_kpi_sel = pd.DataFrame(lista_alvo)
+        if not df_kpi_sel.empty:
+            contagem = df_kpi_sel["modelo"].value_counts().to_dict()
+            chips_html = " ".join([
+                f"<span class='chip-tt'>🏷️ {mod}: <b>{qtd} un.</b></span>"
+                for mod, qtd in contagem.items()
+            ])
+        else:
+            chips_html = "<i>Nenhum registo encontrado</i>"
+
+        c_fx, c_fechar = st.columns([6.2, 0.8])
+        with c_fx:
+            st.markdown(
+                f"""
+                <div class="faixa-visualizador ativa">
+                    <span><b>{titulo_faixa} ({len(lista_alvo)} un.):</b> &nbsp; {chips_html}</span>
                 </div>
-                <div style="font-size:1.5rem; opacity:0.8;">📦</div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with c_fechar:
+            if st.button("✖ Fechar", key="btn_fechar_faixa_kpi"):
+                st.session_state.card_selecionado_kpi = None
+                st.rerun()
+    else:
+        st.markdown(
+            """
+            <div class="faixa-visualizador">
+                <span>💡 <b>Visualizador Operacional:</b> Clique em qualquer um dos cards acima para exibir as quantidades por modelo de correia ou clique numa máquina abaixo para ver o histórico.</span>
             </div>
-            <div class="card-kpi-container c-ok card-novas">
-                <div>
-                    <div class="kpi-lbl">Operação Normal</div>
-                    <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
-                </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
-            </div>
-            <div class="card-kpi-container c-warn card-meia">
-                <div>
-                    <div class="kpi-lbl">Atenção (Meia-Vida)</div>
-                    <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
-                </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
-            </div>
-            <div class="card-kpi-container c-crit card-crit">
-                <div>
-                    <div class="kpi-lbl">Troca Necessária</div>
-                    <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
-                </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
-            </div>
-        </div>
-        <div class="hud-hover-display">
-            <div class="hud-padrao">
-                <span>💡</span>
-                <span><b>Visualizador Operacional:</b> Passe o cursor pelos cards acima para discriminar as quantidades por modelo de correia ou clique numa máquina abaixo.</span>
-            </div>
-            <div class="hud-content hud-total">{chips_total}</div>
-            <div class="hud-content hud-novas">{chips_novas}</div>
-            <div class="hud-content hud-meia">{chips_meia}</div>
-            <div class="hud-content hud-crit">{chips_crit}</div>
-        </div>
-    </div>
-    """
-    st.markdown(html_painel_kpi, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
