@@ -52,7 +52,9 @@ else:
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Carga automática dos dados de Janeiro a Julho/2026 para o Setor B
+# ==========================================
+# DADOS HISTÓRICOS: SETOR B (JAN A JUL/2026)
+# ==========================================
 dados_janeiro_setor_b = [
     ("L-29", 1), ("L-30", 13), ("L-31", 10), ("L-32", 7),
     ("L-33", 5), ("L-34", 2), ("L-35", 2), ("L-36", 8),
@@ -126,8 +128,105 @@ mapa_cargas_setor_b = [
     ("Julho", dados_julho_setor_b),
 ]
 
+# ==========================================
+# DADOS HISTÓRICOS: SETOR A (JAN A SET/2026)
+# ==========================================
+dados_janeiro_setor_a = [
+    ("L-01", 8), ("L-02", 9), ("L-03", 2), ("L-04", 3), ("L-05", 3),
+    ("L-06", 13), ("L-07", 6), ("L-08", 4), ("L-09", 8), ("L-10", 9),
+    ("L-11", 3), ("L-12", 6), ("L-13", 5), ("L-14", 8), ("L-15", 9),
+    ("L-16", 4), ("L-17", 2), ("L-18", 3), ("L-19", 10), ("L-20", 5),
+    ("L-21", 4), ("L-22", 4), ("L-23", 6), ("L-24", 10), ("L-25", 4),
+    ("L-26", 3), ("L-27", 4), ("L-28", 3)
+][cite: 1]
+
+dados_fevereiro_setor_a = [
+    ("L-01", 3), ("L-02", 6), ("L-03", 4), ("L-04", 4), ("L-05", 2),
+    ("L-06", 5), ("L-07", 7), ("L-08", 3), ("L-09", 4), ("L-10", 2),
+    ("L-11", 4), ("L-12", 14), ("L-13", 14), ("L-14", 13), ("L-15", 4),
+    ("L-16", 10), ("L-17", 1), ("L-18", 4), ("L-19", 0), ("L-20", 6),
+    ("L-21", 7), ("L-22", 4), ("L-23", 3), ("L-24", 4), ("L-25", 4),
+    ("L-26", 0), ("L-27", 0), ("L-28", 8)
+][cite: 1]
+
+dados_marco_setor_a = [
+    ("L-01", 4), ("L-02", 7), ("L-03", 6), ("L-04", 3), ("L-05", 1),
+    ("L-06", 5), ("L-07", 10), ("L-08", 2), ("L-09", 12), ("L-10", 8),
+    ("L-11", 10), ("L-12", 9), ("L-13", 9), ("L-14", 9), ("L-15", 12),
+    ("L-16", 3), ("L-17", 8), ("L-18", 20), ("L-19", 10), ("L-20", 3),
+    ("L-21", 4), ("L-22", 5), ("L-23", 3), ("L-24", 8), ("L-25", 4),
+    ("L-26", 9), ("L-27", 2), ("L-28", 2)
+][cite: 1]
+
+dados_abril_setor_a = [
+    ("L-01", 1), ("L-02", 8), ("L-03", 3), ("L-04", 6), ("L-05", 2),
+    ("L-06", 7), ("L-07", 8), ("L-08", 0), ("L-09", 2), ("L-10", 6),
+    ("L-11", 9), ("L-12", 6), ("L-13", 5), ("L-14", 2), ("L-15", 2),
+    ("L-16", 7), ("L-17", 5), ("L-18", 8), ("L-19", 2), ("L-20", 5),
+    ("L-21", 3), ("L-22", 12), ("L-23", 5), ("L-24", 9), ("L-25", 2),
+    ("L-26", 7), ("L-27", 5), ("L-28", 2)
+][cite: 1]
+
+dados_maio_setor_a = [
+    ("L-01", 8), ("L-02", 5), ("L-03", 11), ("L-04", 1), ("L-05", 5),
+    ("L-06", 7), ("L-07", 6), ("L-08", 2), ("L-09", 8), ("L-10", 1),
+    ("L-11", 4), ("L-12", 1), ("L-13", 2), ("L-14", 6), ("L-15", 6),
+    ("L-16", 10), ("L-17", 4), ("L-18", 5), ("L-19", 7), ("L-20", 13),
+    ("L-21", 3), ("L-22", 4), ("L-23", 9), ("L-24", 7), ("L-25", 1),
+    ("L-26", 2), ("L-27", 4), ("L-28", 4)
+][cite: 1]
+
+dados_junho_setor_a = [
+    ("L-01", 5), ("L-02", 2), ("L-03", 4), ("L-04", 4), ("L-05", 5),
+    ("L-06", 3), ("L-07", 8), ("L-08", 1), ("L-09", 6), ("L-10", 5),
+    ("L-11", 9), ("L-12", 5), ("L-13", 8), ("L-14", 3), ("L-15", 2),
+    ("L-16", 5), ("L-17", 2), ("L-18", 4), ("L-19", 3), ("L-20", 5),
+    ("L-21", 5), ("L-22", 3), ("L-23", 4), ("L-24", 4), ("L-25", 3),
+    ("L-26", 9), ("L-27", 3), ("L-28", 1)
+][cite: 1]
+
+dados_julho_setor_a = [
+    ("L-01", 5), ("L-02", 3), ("L-03", 3), ("L-04", 10), ("L-05", 2),
+    ("L-06", 6), ("L-07", 11), ("L-08", 8), ("L-09", 11), ("L-10", 7),
+    ("L-11", 5), ("L-12", 3), ("L-13", 2), ("L-14", 7), ("L-15", 6),
+    ("L-16", 9), ("L-17", 4), ("L-18", 8), ("L-19", 8), ("L-20", 5),
+    ("L-21", 11), ("L-22", 18), ("L-23", 9), ("L-24", 10), ("L-25", 7),
+    ("L-26", 9), ("L-27", 3), ("L-28", 9)
+][cite: 1]
+
+dados_agosto_setor_a = [
+    ("L-01", 5), ("L-02", 8), ("L-03", 3), ("L-04", 5), ("L-05", 11),
+    ("L-06", 8), ("L-07", 15), ("L-08", 5), ("L-09", 14), ("L-10", 6),
+    ("L-11", 9), ("L-12", 5), ("L-13", 7), ("L-14", 9), ("L-15", 11),
+    ("L-16", 5), ("L-17", 6), ("L-18", 12), ("L-19", 10), ("L-20", 10),
+    ("L-21", 9), ("L-22", 16), ("L-23", 11), ("L-24", 8), ("L-25", 4),
+    ("L-26", 2), ("L-27", 5), ("L-28", 10)
+][cite: 1]
+
+dados_setembro_setor_a = [
+    ("L-01", 1), ("L-02", 2), ("L-03", 2), ("L-04", 4), ("L-05", 1),
+    ("L-06", 0), ("L-07", 1), ("L-08", 0), ("L-09", 3), ("L-10", 4),
+    ("L-11", 7), ("L-12", 2), ("L-13", 4), ("L-14", 3), ("L-15", 1),
+    ("L-16", 0), ("L-17", 1), ("L-18", 1), ("L-19", 4), ("L-20", 4),
+    ("L-21", 2), ("L-22", 3), ("L-23", 1), ("L-24", 5), ("L-25", 1),
+    ("L-26", 0), ("L-27", 2), ("L-28", 4)
+][cite: 1]
+
+mapa_cargas_setor_a = [
+    ("Janeiro", dados_janeiro_setor_a),
+    ("Fevereiro", dados_fevereiro_setor_a),
+    ("Março", dados_marco_setor_a),
+    ("Abril", dados_abril_setor_a),
+    ("Maio", dados_maio_setor_a),
+    ("Junho", dados_junho_setor_a),
+    ("Julho", dados_julho_setor_a),
+    ("Agosto", dados_agosto_setor_a),
+    ("Setembro", dados_setembro_setor_a),
+][cite: 1]
+
 precisa_salvar_fusos = False
 
+# Injeção Setor B
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_b:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
@@ -150,6 +249,35 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_b:
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
                 "Tipo_Fuso": "TEP",
+            }
+            for maq, qtd in lista_dados_carga
+        ]
+        df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
+        precisa_salvar_fusos = True
+
+# Injeção Setor A
+for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
+    linhas_mes = df_fusos[
+        (df_fusos["Ano"] == 2026)
+        & (df_fusos["Mes"] == nome_mes_carga)
+        & (df_fusos["Setor"] == "Setor A")
+    ]
+    if linhas_mes.empty or linhas_mes["Quantidade_Quebras"].sum() == 0:
+        df_fusos = df_fusos[
+            ~(
+                (df_fusos["Ano"] == 2026)
+                & (df_fusos["Mes"] == nome_mes_carga)
+                & (df_fusos["Setor"] == "Setor A")
+            )
+        ]
+        novos_reg = [
+            {
+                "Ano": 2026,
+                "Mes": nome_mes_carga,
+                "Setor": "Setor A",
+                "Maquina_TAG": maq,
+                "Quantidade_Quebras": int(qtd),
+                "Tipo_Fuso": "FAG",
             }
             for maq, qtd in lista_dados_carga
         ]
@@ -247,7 +375,7 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
         mapa_setor_maquina[m] = setor_nome
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Painel Correias"
+    st.session_state.pagina_atual = "Painel Fusos"
 
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
@@ -256,7 +384,7 @@ if "card_selecionado_kpi" not in st.session_state:
     st.session_state.card_selecionado_kpi = None
 
 if "aba_setor_fuso" not in st.session_state:
-    st.session_state.aba_setor_fuso = "Geral"
+    st.session_state.aba_setor_fuso = "Setor A"
 
 
 def navegar(nome_pagina):
@@ -453,7 +581,7 @@ st.markdown(
 
         {regras_css_botoes}
 
-        /* Overlay Invisível Aperfeiçoado */
+        /* Overlay Invisível */
         div.st-key-btn_inv_total,
         div.st-key-btn_inv_novas,
         div.st-key-btn_inv_meia,
@@ -610,7 +738,6 @@ st.markdown(
             display: inline-block;
         }}
 
-        /* Cabeçalho de cada card de gráfico com borda */
         .chart-header-row {{
             display: flex;
             align-items: center;
@@ -1399,12 +1526,11 @@ elif tela == "Painel Fusos":
 
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
         
-        # Pega estritamente a lista de máquinas do setor ativo
         maquinas_setor_lista = DICIONARIO_SETORES[setor_ativo]
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
-        # Identificação do último mês com apontamentos APENAS no setor ativo
+        # Identificação do último mês com apontamentos no setor ativo
         ultimo_mes_nome = "Nenhum"
         top_maq_ultimo_mes = "Nenhuma"
         qtd_top_ultimo_mes = 0
@@ -1427,7 +1553,6 @@ elif tela == "Painel Fusos":
                     qtd_top_ultimo_mes = int(agrup_ult_m.iloc[0]["Quantidade_Quebras"])
                     break
 
-        # Cálculo da Média de Quebras por Máquina no último mês para o setor ativo
         if qtd_maquinas_setor > 0 and quebras_ultimo_mes_setor > 0:
             quebras_por_maquina_calc = round(quebras_ultimo_mes_setor / qtd_maquinas_setor, 1)
         else:
@@ -1721,7 +1846,6 @@ elif tela == "Painel Fusos":
                 top_maq_fuso = "Nenhuma"
                 qtd_top_fuso = 0
 
-            # 4 Cards informativos mantidos
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             with c_f1:
                 st.markdown(
@@ -1778,7 +1902,6 @@ elif tela == "Painel Fusos":
 
             st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-            # Mapa de calor filtrado apenas pelas máquinas que possuem o tipo de fuso selecionado
             st.markdown(
                 f"""
                 <div class="chart-header-row">
