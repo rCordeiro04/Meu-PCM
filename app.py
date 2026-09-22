@@ -90,7 +90,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -323,12 +323,12 @@ st.markdown(
 
         {regras_css_botoes}
 
-        /* Moldura de cartão elegante para o cabeçalho superior alinhado */
+        /* Moldura de cartão elegante para o cabeçalho superior */
         .header-bar-clean {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 8px 16px;
+            padding: 12px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -586,34 +586,22 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho unificado dentro de uma moldura de cartão elegante com alinhamento perfeito
+    # Cabeçalho unificado com o título "Dashboard Correias" e a legenda na mesma linha
     st.markdown("<div class='header-bar-clean'>", unsafe_allow_html=True)
-    col_t1, col_f1, col_f2, col_leg = st.columns([2.4, 1.4, 1.4, 3.8])
+    c_titulo, c_leg = st.columns([3.5, 6.5])
 
-    with col_t1:
+    with c_titulo:
         st.markdown(
             """
-            <div style="font-size: 1.12rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
                 <span>🔄</span>
-                <span>Controle de correias</span>
+                <span>Dashboard Correias</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    with col_f1:
-        lista_setores_filtro = ["Setor"] + list(DICIONARIO_SETORES.keys())
-        filtro_setor = st.selectbox("", lista_setores_filtro, key="filtro_setor_painel", label_visibility="collapsed")
-
-    with col_f2:
-        modelos_unicos = set()
-        for r in lista_correias_todas:
-            if r["modelo"] and r["modelo"] != "Não informada":
-                modelos_unicos.add(r["modelo"])
-        lista_modelos_filtro = ["Tipo"] + sorted(list(modelos_unicos))
-        filtro_modelo = st.selectbox("", lista_modelos_filtro, key="filtro_modelo_painel", label_visibility="collapsed")
-
-    with col_leg:
+    with c_leg:
         st.markdown(
             """
             <div style="text-align: right;">
@@ -627,21 +615,9 @@ if tela == "Painel Correias":
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Aplicação dos filtros às máquinas
     todas_as_maquinas = []
     for setor_nome, lista_m in DICIONARIO_SETORES.items():
-        if filtro_setor != "Setor" and setor_nome != filtro_setor:
-            continue
         for m in lista_m:
-            if filtro_modelo != "Tipo":
-                reg_m = df_correias[(df_correias["Setor"] == setor_nome) & (df_correias["Maquina_TAG"] == m)]
-                tem_mod = False
-                if not reg_m.empty:
-                    ult = reg_m.iloc[-1]
-                    if formatar_modelo(ult.get("Tipo_Correia_1", "")) == filtro_modelo or formatar_modelo(ult.get("Tipo_Correia_2", "")) == filtro_modelo:
-                        tem_mod = True
-                if not tem_mod:
-                    continue
             todas_as_maquinas.append(m)
 
     # 4 Cartões KPI Estilizados
@@ -778,28 +754,25 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    if todas_as_maquinas:
-        COLS_GRELHA = 12
-        linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
+    COLS_GRELHA = 12
+    linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
-        for linha in linhas_grid:
-            cols = st.columns(COLS_GRELHA)
-            for idx_col, maq_tag in enumerate(linha):
-                info = dados_maquinas[maq_tag]
-                chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
-                with cols[idx_col]:
-                    if st.button(
-                        maq_tag,
-                        key=chave_btn,
-                        use_container_width=True,
-                    ):
-                        st.session_state.maq_clicada_cor = {
-                            "tag": maq_tag,
-                            **info,
-                        }
-                        st.rerun()
-    else:
-        st.info("Nenhuma máquina encontrada com os filtros selecionados.")
+    for linha in linhas_grid:
+        cols = st.columns(COLS_GRELHA)
+        for idx_col, maq_tag in enumerate(linha):
+            info = dados_maquinas[maq_tag]
+            chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
+            with cols[idx_col]:
+                if st.button(
+                    maq_tag,
+                    key=chave_btn,
+                    use_container_width=True,
+                ):
+                    st.session_state.maq_clicada_cor = {
+                        "tag": maq_tag,
+                        **info,
+                    }
+                    st.rerun()
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (SUPERIOR / INFERIOR)
