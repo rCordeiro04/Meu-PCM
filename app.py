@@ -16,12 +16,22 @@ st.markdown(
     <style>
         /* Compactação geral da página */
         .block-container {
-            padding-top: 1.2rem !important;
-            padding-bottom: 1rem !important;
+            padding-top: 1rem !important;
+            padding-bottom: 0.8rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
         }
         
+        /* Reduz o espaçamento entre as colunas do Streamlit */
+        div[data-testid="column"] {
+            padding: 0px 1px !important;
+            margin: 0px !important;
+        }
+        div[data-testid="stHorizontalBlock"] {
+            gap: 2px !important;
+            margin-bottom: 2px !important;
+        }
+
         /* Trava contra scroll e zoom acidental em gráficos e tabelas */
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {
@@ -34,43 +44,43 @@ st.markdown(
             resize: none !important;
         }
 
-        /* Estilização base de botões de máquinas (quadradinhos compactos) */
+        /* Formato dos quadradinhos de máquinas */
         div[data-testid="stButton"] button {
-            padding: 2px 2px !important;
-            font-size: 0.78rem !important;
+            padding: 2px 0px !important;
+            font-size: 0.8rem !important;
             font-weight: 700 !important;
-            min-height: 28px !important;
-            max-height: 28px !important;
-            margin-bottom: 2px !important;
-            border-radius: 5px !important;
-            border: 1px solid rgba(0,0,0,0.12) !important;
+            height: 30px !important;
+            min-height: 30px !important;
+            line-height: 28px !important;
+            border-radius: 4px !important;
+            border: 1px solid rgba(0,0,0,0.15) !important;
             transition: transform 0.1s ease, filter 0.1s ease !important;
         }
         div[data-testid="stButton"] button:hover {
-            transform: scale(1.04) !important;
-            filter: brightness(0.95) !important;
+            transform: scale(1.05) !important;
+            filter: brightness(0.92) !important;
         }
 
-        /* Cores de fundo sólidas para os quadradinhos */
-        .btn-verde button {
-            background-color: #22c55e !important;
+        /* Pintura dos quadradinhos via seletores de classe */
+        div.btn-quad-verde div[data-testid="stButton"] button {
+            background-color: #16a34a !important;
             color: #ffffff !important;
-            border-color: #16a34a !important;
+            border-color: #15803d !important;
         }
-        .btn-amarelo button {
+        div.btn-quad-amarelo div[data-testid="stButton"] button {
             background-color: #facc15 !important;
             color: #713f12 !important;
             border-color: #ca8a04 !important;
         }
-        .btn-vermelho button {
-            background-color: #ef4444 !important;
+        div.btn-quad-vermelho div[data-testid="stButton"] button {
+            background-color: #dc2626 !important;
             color: #ffffff !important;
-            border-color: #dc2626 !important;
+            border-color: #b91c1c !important;
         }
-        .btn-cinza button {
-            background-color: #cbd5e1 !important;
-            color: #334155 !important;
-            border-color: #94a3b8 !important;
+        div.btn-quad-cinza div[data-testid="stButton"] button {
+            background-color: #94a3b8 !important;
+            color: #ffffff !important;
+            border-color: #64748b !important;
         }
 
         /* Card KPI Executivo */
@@ -104,9 +114,9 @@ st.markdown(
 
         /* Balão de Detalhes da Máquina Clicada */
         .card-balao-compacto {
-            border-radius: 8px;
+            border-radius: 6px;
             padding: 8px 14px;
-            margin: 6px 0 10px 0;
+            margin: 4px 0 8px 0;
             font-size: 0.88rem;
             display: flex;
             align-items: center;
@@ -116,17 +126,17 @@ st.markdown(
         }
         .card-balao-compacto.status-verde {
             background-color: #f0fdf4;
-            border-left-color: #22c55e;
+            border-left-color: #16a34a;
             color: #14532d;
         }
         .card-balao-compacto.status-amarelo {
             background-color: #fefce8;
-            border-left-color: #eab308;
+            border-left-color: #ca8a04;
             color: #713f12;
         }
         .card-balao-compacto.status-vermelho {
             background-color: #fef2f2;
-            border-left-color: #ef4444;
+            border-left-color: #dc2626;
             color: #7f1d1d;
         }
         .card-balao-compacto.status-cinza {
@@ -138,8 +148,8 @@ st.markdown(
         /* Amostras de cores da Legenda */
         .amostra-cor {
             display: inline-block;
-            width: 12px;
-            height: 12px;
+            width: 13px;
+            height: 13px;
             border-radius: 3px;
             vertical-align: middle;
             margin-right: 4px;
@@ -150,7 +160,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Ficheiros de dados blindados e separados
+# Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v3.xlsx"
 
@@ -338,7 +348,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADINHOS PINTADOS POR INTEIRO, SEM FILTRO E COMPACTO)
+# 1. PAINEL GERENCIAL DE CORREIAS (QUADRADOS PINTADOS POR INTEIRO E ESPAÇAMENTO COMPACTO)
 # ------------------------------------------
 if tela == "Painel Correias":
     df_cor_base = pd.read_excel(ARQUIVO_CORREIAS)
@@ -351,11 +361,11 @@ if tela == "Painel Correias":
     with c_legenda:
         st.markdown(
             """
-            <div style='text-align:right; font-size:0.8rem; font-weight:600; padding-top:4px;'>
-                <span class='amostra-cor' style='background:#22c55e;'></span> Nova (&le;1 ano) &nbsp;|&nbsp;
+            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:4px;'>
+                <span class='amostra-cor' style='background:#16a34a;'></span> Nova (&le;1 ano) &nbsp;|&nbsp;
                 <span class='amostra-cor' style='background:#facc15;'></span> Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp;
-                <span class='amostra-cor' style='background:#ef4444;'></span> Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp;
-                <span class='amostra-cor' style='background:#cbd5e1;'></span> Sem Apontamento
+                <span class='amostra-cor' style='background:#dc2626;'></span> Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp;
+                <span class='amostra-cor' style='background:#94a3b8;'></span> Sem Apontamento
             </div>
             """,
             unsafe_allow_html=True,
@@ -391,7 +401,7 @@ if tela == "Painel Correias":
             todas_as_maquinas.append(m)
             mapa_setor_maquina[m] = setor_nome
 
-    # Processamento rápido dos dados de cada máquina
+    # Processamento de dados e classificação semafórica
     dados_maquinas = {}
     for maq_tag in todas_as_maquinas:
         setor_m = mapa_setor_maquina[maq_tag]
@@ -403,7 +413,7 @@ if tela == "Painel Correias":
         data_txt = "Sem registro"
         tempo_txt = "Sem histórico"
         classe_card = "status-cinza"
-        classe_btn = "btn-cinza"
+        classe_btn = "btn-quad-cinza"
 
         if not reg_maq.empty:
             ultimo = reg_maq.iloc[-1]
@@ -423,15 +433,15 @@ if tela == "Painel Correias":
 
                     if dias <= 365:
                         classe_card = "status-verde"
-                        classe_btn = "btn-verde"
+                        classe_btn = "btn-quad-verde"
                         tempo_txt = f"{meses} meses ({dias} dias)"
                     elif 365 < dias <= 547:
                         classe_card = "status-amarelo"
-                        classe_btn = "btn-amarelo"
+                        classe_btn = "btn-quad-amarelo"
                         tempo_txt = f"{meses} meses ({dias} dias)"
                     else:
                         classe_card = "status-vermelho"
-                        classe_btn = "btn-vermelho"
+                        classe_btn = "btn-quad-vermelho"
                         tempo_txt = f"{meses} meses ({dias} dias)"
                 except Exception:
                     data_txt = f"{dt_val}"
@@ -445,7 +455,7 @@ if tela == "Painel Correias":
             "classe_btn": classe_btn,
         }
 
-    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA
+    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA COM ESPAÇAMENTO MÍNIMO
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
@@ -454,7 +464,7 @@ if tela == "Painel Correias":
         for idx_col, maq_tag in enumerate(linha):
             info = dados_maquinas[maq_tag]
             with cols[idx_col]:
-                # Envolve o botão numa div CSS que pinta o quadradinho por inteiro
+                # Envolve diretamente com a classe de cor CSS
                 st.markdown(f"<div class='{info['classe_btn']}'>", unsafe_allow_html=True)
                 if st.button(
                     maq_tag,
