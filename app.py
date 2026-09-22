@@ -328,33 +328,34 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* ESTILO DOS BOTÕES KPI SUPERIORES (DESIGN PREMIUM) */
+        /* DESIGN PREMIUM DOS BOTÕES KPI SUPERIORES */
         div.kpi-btn-box div[data-testid="stButton"] button {{
             background: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 10px !important;
             height: 64px !important;
             min-height: 64px !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03) !important;
             padding: 8px 14px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            transition: all 0.15s ease !important;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
         div.kpi-btn-box div[data-testid="stButton"] button:hover {{
             transform: translateY(-2px) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.09) !important;
             border-color: #cbd5e1 !important;
             filter: none !important;
         }}
         div.kpi-btn-box div[data-testid="stButton"] button p {{
-            font-size: 0.92rem !important;
+            font-size: 0.95rem !important;
             font-weight: 800 !important;
             margin: 0 !important;
             line-height: 1.25 !important;
             text-align: left !important;
             letter-spacing: 0.3px !important;
+            font-family: ui-monospace, monospace !important;
         }}
 
         div.kpi-total div[data-testid="stButton"] button {{ border-left: 5px solid #475569 !important; }}
@@ -600,7 +601,7 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cards KPI em formato de Botão Nativo com Estilo Premium Aplicado via CSS
+    # 4 Cartões KPI em formato de Botão Nativo com Design Industrial Premium
     k1, k2, k3, k4 = st.columns(4)
 
     with k1:
