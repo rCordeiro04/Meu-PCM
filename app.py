@@ -103,6 +103,12 @@ data_hoje = date.today()
 dados_maquinas = {}
 css_botoes = []
 
+# Contadores para os mini cards de resumo
+qtd_novas = 0
+qtd_meia_vida = 0
+qtd_criticas = 0
+qtd_sem_dado = 0
+
 for maq_tag in todas_as_maquinas:
     setor_m = mapa_setor_maquina[maq_tag]
     reg_maq = df_correias[
@@ -114,10 +120,11 @@ for maq_tag in todas_as_maquinas:
     tempo_txt = "Sem histórico"
     classe_card = "status-cinza"
     
-    # Padrão: cinza
+    # Cores refinadas (Design System Industrial)
     cor_fundo = "#94a3b8"
     cor_texto = "#ffffff"
     cor_borda = "#64748b"
+    status_label = "Pendente"
 
     if not reg_maq.empty:
         ultimo = reg_maq.iloc[-1]
@@ -137,30 +144,42 @@ for maq_tag in todas_as_maquinas:
 
                 if dias <= 365:
                     classe_card = "status-verde"
-                    cor_fundo = "#16a34a"   # Verde
+                    cor_fundo = "#10b981"   # Emerald
                     cor_texto = "#ffffff"
-                    cor_borda = "#15803d"
+                    cor_borda = "#059669"
+                    status_label = "Nova"
                     tempo_txt = f"{meses} meses ({dias} dias)"
+                    qtd_novas += 1
                 elif 365 < dias <= 547:
                     classe_card = "status-amarelo"
-                    cor_fundo = "#facc15"   # Amarelo
-                    cor_texto = "#713f12"
-                    cor_borda = "#ca8a04"
+                    cor_fundo = "#f59e0b"   # Amber
+                    cor_texto = "#ffffff"
+                    cor_borda = "#d97706"
+                    status_label = "Meia-Vida"
                     tempo_txt = f"{meses} meses ({dias} dias)"
+                    qtd_meia_vida += 1
                 else:
                     classe_card = "status-vermelho"
-                    cor_fundo = "#dc2626"   # Vermelho
+                    cor_fundo = "#ef4444"   # Red Coral
                     cor_texto = "#ffffff"
-                    cor_borda = "#b91c1c"
+                    cor_borda = "#dc2626"
+                    status_label = "Fim de Vida"
                     tempo_txt = f"{meses} meses ({dias} dias)"
+                    qtd_criticas += 1
             except Exception:
                 data_txt = f"{dt_val}"
+                qtd_sem_dado += 1
+        else:
+            qtd_sem_dado += 1
+    else:
+        qtd_sem_dado += 1
 
     dados_maquinas[maq_tag] = {
         "setor": setor_m,
         "tipo": tipo_txt,
         "data": data_txt,
         "tempo": tempo_txt,
+        "status_label": status_label,
         "classe_card": classe_card,
     }
 
@@ -169,20 +188,22 @@ for maq_tag in todas_as_maquinas:
         f"""
         button[key="{chave_btn}"],
         div.st-key-{chave_btn} button {{
-            background-color: {cor_fundo} !important;
+            background: {cor_fundo} !important;
             color: {cor_texto} !important;
             border: 1px solid {cor_borda} !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
         }}
         button[key="{chave_btn}"]:hover,
         div.st-key-{chave_btn} button:hover {{
-            background-color: {cor_fundo} !important;
-            filter: brightness(0.9) !important;
+            filter: brightness(1.1) !important;
             color: {cor_texto} !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
         }}
         button[key="{chave_btn}"] p,
         div.st-key-{chave_btn} button p {{
             color: {cor_texto} !important;
             font-weight: 800 !important;
+            letter-spacing: 0.3px !important;
         }}
         """
     )
@@ -192,22 +213,22 @@ regras_css_botoes = "\n".join(css_botoes)
 st.markdown(
     f"""
     <style>
-        /* Topo visível sem cortar */
+        /* Compactação e acabamento geral */
         .block-container {{
-            padding-top: 2rem !important;
-            padding-bottom: 1rem !important;
-            padding-left: 1.5rem !important;
-            padding-right: 1.5rem !important;
+            padding-top: 1.5rem !important;
+            padding-bottom: 0.8rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
         }}
         
-        /* Reduz o espaçamento horizontal e vertical entre os botões */
+        /* Grelha de botões com espaçamento refinado */
         div[data-testid="column"] {{
-            padding: 0px 1px !important;
+            padding: 1px !important;
             margin: 0px !important;
         }}
         div[data-testid="stHorizontalBlock"] {{
-            gap: 2px !important;
-            margin-bottom: 2px !important;
+            gap: 4px !important;
+            margin-bottom: 4px !important;
         }}
 
         /* Trava contra scroll e zoom acidental em gráficos e tabelas */
@@ -222,94 +243,110 @@ st.markdown(
             resize: none !important;
         }}
 
-        /* Formato dos quadradinhos de máquinas */
+        /* Formato dos botões das máquinas */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
-            font-size: 0.78rem !important;
-            font-weight: 800 !important;
-            height: 28px !important;
-            min-height: 28px !important;
-            line-height: 26px !important;
-            border-radius: 4px !important;
-            transition: transform 0.08s ease, filter 0.08s ease !important;
+            font-size: 0.8rem !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            line-height: 30px !important;
+            border-radius: 6px !important;
+            transition: all 0.15s ease !important;
         }}
         div[data-testid="stButton"] button:hover {{
-            transform: scale(1.06) !important;
+            transform: translateY(-2px) !important;
         }}
 
         /* REGRAS DINÂMICAS DE CORES INJETADAS */
         {regras_css_botoes}
 
-        /* Card KPI Executivo */
-        .metric-card {{
-            background-color: #ffffff;
+        /* Mini Cards KPI de Topo */
+        .mini-stat-card {{
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 10px 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid #1E88E5;
-            margin-bottom: 8px;
-        }}
-        .metric-card.warning {{ border-left-color: #E53935; }}
-        .metric-card.success {{ border-left-color: #43A047; }}
-        .metric-label {{
-            font-size: 0.75rem;
-            color: #616161;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }}
-        .metric-value {{
-            font-size: 1.3rem;
-            color: #212121;
-            font-weight: 700;
-            line-height: 1.1;
-        }}
-        .metric-sub {{
-            font-size: 0.72rem;
-            color: #757575;
-        }}
-
-        /* Balão de Detalhes da Máquina Clicada */
-        .card-balao-compacto {{
-            border-radius: 6px;
-            padding: 8px 14px;
-            margin: 6px 0 10px 0;
-            font-size: 0.88rem;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }}
+        .mini-stat-val {{
+            font-size: 1.25rem;
+            font-weight: 800;
+            line-height: 1;
+        }}
+        .mini-stat-lbl {{
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+        }}
+
+        /* Balão de Detalhes - HUD Industrial */
+        .hud-detalhe {{
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin: 8px 0 12px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             border-left: 6px solid #94a3b8;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            animation: fadeIn 0.15s ease-in;
         }}
-        .card-balao-compacto.status-verde {{
-            background-color: #f0fdf4;
-            border-left-color: #16a34a;
-            color: #14532d;
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(-4px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
         }}
-        .card-balao-compacto.status-amarelo {{
-            background-color: #fefce8;
-            border-left-color: #ca8a04;
-            color: #713f12;
-        }}
-        .card-balao-compacto.status-vermelho {{
-            background-color: #fef2f2;
-            border-left-color: #dc2626;
-            color: #7f1d1d;
-        }}
-        .card-balao-compacto.status-cinza {{
-            background-color: #f8fafc;
-            border-left-color: #94a3b8;
+        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
+        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
+        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
+        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
+
+        .tag-pill {{
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
             color: #334155;
-        }}
-        
-        .amostra-cor {{
             display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            vertical-align: middle;
-            margin-right: 4px;
-            border: 1px solid rgba(0,0,0,0.15);
+            margin-right: 8px;
+        }}
+        .badge-status {{
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }}
+        .badge-verde {{ background: #d1fae5; color: #065f46; }}
+        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
+        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
+        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
+
+        /* Legenda em pílulas */
+        .pill-legenda {{
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-left: 6px;
+        }}
+        .dot-legenda {{
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
         }}
     </style>
     """,
@@ -426,36 +463,110 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (CONTROLE DE CORREIAS COM CABEÇALHO GARANTIDO)
+# 1. PAINEL GERENCIAL DE CORREIAS (LAYOUT PREMIUM)
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho visível e limpo
-    c_title, c_legenda = st.columns([1.5, 2.5])
-    with c_title:
-        st.subheader("🔄 Controle de correias")
-    with c_legenda:
+    # Linha 1: Título e Legenda em Cápsulas Modernas
+    c_head1, c_head2 = st.columns([1.3, 2.7])
+    with c_head1:
+        st.markdown("<h3 style='margin:0; font-weight:800; color:#0f172a;'>🔄 Controle de correias</h3>", unsafe_allow_html=True)
+    with c_head2:
         st.markdown(
             """
-            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:12px;'>
-                <span class='amostra-cor' style='background:#16a34a;'></span> Nova (&le;1 ano) &nbsp;|&nbsp;
-                <span class='amostra-cor' style='background:#facc15;'></span> Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp;
-                <span class='amostra-cor' style='background:#dc2626;'></span> Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp;
-                <span class='amostra-cor' style='background:#94a3b8;'></span> Sem Apontamento
+            <div style='text-align:right; padding-top:4px;'>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    # SE HOUVER MÁQUINA CLICADA: MOSTRA OS DETALHES. SENÃO, EXIBE ORIENTAÇÃO LIMPA
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Linha 2: Quatro Mini Cards KPI (Diagnóstico Rápido da Fábrica)
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.markdown(
+            f"""
+            <div class='mini-stat-card' style='border-left: 4px solid #64748b;'>
+                <div>
+                    <div class='mini-stat-lbl'>Total de Ativos</div>
+                    <div class='mini-stat-val' style='color:#0f172a;'>{len(todas_as_maquinas)}</div>
+                </div>
+                <div style='font-size:1.4rem;'>🏭</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with k2:
+        st.markdown(
+            f"""
+            <div class='mini-stat-card' style='border-left: 4px solid #10b981;'>
+                <div>
+                    <div class='mini-stat-lbl'>Operação Normal</div>
+                    <div class='mini-stat-val' style='color:#059669;'>{qtd_novas}</div>
+                </div>
+                <div style='font-size:1.4rem;'>🟢</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with k3:
+        st.markdown(
+            f"""
+            <div class='mini-stat-card' style='border-left: 4px solid #f59e0b;'>
+                <div>
+                    <div class='mini-stat-lbl'>Atenção (Meia-Vida)</div>
+                    <div class='mini-stat-val' style='color:#d97706;'>{qtd_meia_vida}</div>
+                </div>
+                <div style='font-size:1.4rem;'>🟡</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with k4:
+        st.markdown(
+            f"""
+            <div class='mini-stat-card' style='border-left: 4px solid #ef4444;'>
+                <div>
+                    <div class='mini-stat-lbl'>Troca Necessária</div>
+                    <div class='mini-stat-val' style='color:#dc2626;'>{qtd_criticas}</div>
+                </div>
+                <div style='font-size:1.4rem;'>🔴</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+
+    # Linha 3: Balão HUD Interativo (Ao Clicar numa Máquina)
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
+        classe_badge = (
+            "badge-verde" if maq_sel["status_label"] == "Nova"
+            else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
+            else "badge-vermelho" if maq_sel["status_label"] == "Fim de Vida"
+            else "badge-cinza"
+        )
+
         c_box, c_close = st.columns([6.2, 0.8])
         with c_box:
             st.markdown(
                 f"""
-                <div class="card-balao-compacto {maq_sel['classe_card']}">
-                    <span>⚙️ <b>Ativo: {maq_sel['tag']}</b> ({maq_sel['setor']}) &nbsp;|&nbsp; 🏷️ <b>Modelo:</b> {maq_sel['tipo']} &nbsp;|&nbsp; 📅 <b>Instalação:</b> {maq_sel['data']}</span>
-                    <span>⏱️ <b>Uso:</b> {maq_sel['tempo']}</span>
+                <div class="hud-detalhe {maq_sel['classe_card']}">
+                    <div>
+                        <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff;">⚙️ {maq_sel['tag']}</span>
+                        <span class="tag-pill">🏭 {maq_sel['setor']}</span>
+                        <span class="tag-pill">🏷️ Modelo: <b>{maq_sel['tipo']}</b></span>
+                        <span class="tag-pill">📅 Montagem: <b>{maq_sel['data']}</b></span>
+                    </div>
+                    <div>
+                        <span style="font-size:0.85rem; font-weight:700; color:#334155; margin-right:10px;">⏱️ {maq_sel['tempo']}</span>
+                        <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -466,11 +577,18 @@ if tela == "Painel Correias":
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
     else:
-        st.caption("💡 *Clique em qualquer quadrado para visualizar o modelo, data de montagem e tempo de uso do ativo.*")
+        st.markdown(
+            """
+            <div style='background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:6px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600;'>
+                💡 <b>Painel Interativo:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de troca e tempo de operação.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA
+    # Linha 4: Mosaico de Máquinas Ultra-Compacto (12 colunas)
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
