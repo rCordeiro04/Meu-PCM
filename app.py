@@ -72,7 +72,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -99,15 +99,20 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
-# Mapa de cada máquina para o respectivo setor
 mapa_setor_maquina = {}
 for setor_nome, lista_m in DICIONARIO_SETORES.items():
     for m in lista_m:
         mapa_setor_maquina[m] = setor_nome
 
 # ==========================================
-# ATUALIZAÇÃO SEGURA DOS DADOS (INFERIOR / TRASEIRA)[cite: 6]
+# ATUALIZAÇÃO SEGURA DOS APONTAMENTOS DE CORREIAS
 # ==========================================
+novos_dados_superior = [
+    {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
+    {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
+    {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
+]
+
 novos_dados_inferior = [
     {"Maquina_TAG": "L-42", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-10-02"},
     {"Maquina_TAG": "L-43", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-08-05"},
@@ -119,6 +124,34 @@ novos_dados_inferior = [
 ]
 
 houve_modificacao = False
+
+# Aplica dados Superior / Cabeceira
+for item in novos_dados_superior:
+    tag = item["Maquina_TAG"]
+    setor_alvo = mapa_setor_maquina.get(tag, "")
+    cond = (df_correias["Setor"] == setor_alvo) & (df_correias["Maquina_TAG"] == tag)
+    if not df_correias[cond].empty:
+        idx = df_correias[cond].index[-1]
+        if (
+            str(df_correias.at[idx, "Tipo_Correia_1"]) != item["Tipo_Correia_1"]
+            or str(df_correias.at[idx, "Data_Instalacao_1"]) != item["Data_Instalacao_1"]
+        ):
+            df_correias.at[idx, "Tipo_Correia_1"] = item["Tipo_Correia_1"]
+            df_correias.at[idx, "Data_Instalacao_1"] = item["Data_Instalacao_1"]
+            houve_modificacao = True
+    else:
+        novo_reg = {
+            "Setor": setor_alvo,
+            "Maquina_TAG": tag,
+            "Tipo_Correia_1": item["Tipo_Correia_1"],
+            "Data_Instalacao_1": item["Data_Instalacao_1"],
+            "Tipo_Correia_2": "",
+            "Data_Instalacao_2": "",
+        }
+        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
+        houve_modificacao = True
+
+# Aplica dados Inferior / Traseira
 for item in novos_dados_inferior:
     tag = item["Maquina_TAG"]
     setor_alvo = mapa_setor_maquina.get(tag, "")
