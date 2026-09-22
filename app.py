@@ -486,25 +486,27 @@ st.markdown(
             display: inline-block;
         }}
 
-        /* Estilo dos Cards Gráficos dos Setores */
-        .chart-box-setor {{
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 14px 16px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-            margin-bottom: 12px;
-        }}
-        .chart-box-setor-title {{
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: #0f172a;
+        /* Cabeçalho de cada card de gráfico com borda */
+        .chart-header-row {{
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
             padding-bottom: 6px;
+            margin-bottom: 6px;
             border-bottom: 1px solid #f1f5f9;
+        }}
+        .chart-header-title {{
+            font-size: 0.96rem;
+            font-weight: 800;
+            color: #0f172a;
+        }}
+        .chart-header-badge {{
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
         }}
     </style>
     """,
@@ -1014,7 +1016,7 @@ elif tela == "Correias":
         st.rerun()
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS (NOVO PADRÃO EXECUTIVO DINÂMICO)
+# 3. PAINEL GERENCIAL DE FUSOS (COM BORDAS CLARAS NOS GRÁFICOS)
 # ------------------------------------------
 elif tela == "Painel Fusos":
     # Cabeçalho Superior Alinhado
@@ -1076,7 +1078,7 @@ elif tela == "Painel Fusos":
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
     # ==========================================
-    # CASO 1: ABA GERAL (FÁBRICA COMPLETA COM 4 GRÁFICOS)
+    # CASO 1: ABA GERAL (FÁBRICA COMPLETA COM 4 GRÁFICOS EM CONTAINERS COM BORDA)
     # ==========================================
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
@@ -1161,7 +1163,7 @@ elif tela == "Painel Fusos":
             chart = (
                 alt.Chart(df_consolidado)
                 .mark_line(
-                    point=alt.OverlayMarkDef(color=cor_primaria, size=50),
+                    point=alt.OverlayMarkDef(color=cor_primaria, size=45),
                     color=cor_primaria,
                     strokeWidth=2.5,
                 )
@@ -1174,69 +1176,65 @@ elif tela == "Painel Fusos":
             )
             return chart, total_setor
 
-        # Grelha 2x2 com os gráficos de cada um dos 4 setores
+        # Grelha 2x2 com BORDAS NÍTIDAS para cada gráfico
         col_g1, col_g2 = st.columns(2)
 
         with col_g1:
-            chart_a, tot_a = gerar_grafico_setor("Setor A", "#2563eb")
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>🏭 Setor A</span>
-                        <span style="color:#2563eb; font-size:0.85rem;">Total: {tot_a} fusos</span>
+            with st.container(border=True):
+                chart_a, tot_a = gerar_grafico_setor("Setor A", "#2563eb")
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">🏭 Setor A</span>
+                        <span class="chart-header-badge" style="color:#2563eb;">Total: <b>{tot_a} fusos</b></span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.altair_chart(chart_a, use_container_width=True)
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.altair_chart(chart_a, use_container_width=True)
 
-            chart_latex, tot_latex = gerar_grafico_setor("Setor Látex", "#059669")
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>🌿 Setor Látex</span>
-                        <span style="color:#059669; font-size:0.85rem;">Total: {tot_latex} fusos</span>
+            with st.container(border=True):
+                chart_latex, tot_latex = gerar_grafico_setor("Setor Látex", "#059669")
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">🌿 Setor Látex</span>
+                        <span class="chart-header-badge" style="color:#059669;">Total: <b>{tot_latex} fusos</b></span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.altair_chart(chart_latex, use_container_width=True)
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.altair_chart(chart_latex, use_container_width=True)
 
         with col_g2:
-            chart_b, tot_b = gerar_grafico_setor("Setor B", "#d97706")
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>🏭 Setor B</span>
-                        <span style="color:#d97706; font-size:0.85rem;">Total: {tot_b} fusos</span>
+            with st.container(border=True):
+                chart_b, tot_b = gerar_grafico_setor("Setor B", "#d97706")
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">🏭 Setor B</span>
+                        <span class="chart-header-badge" style="color:#d97706;">Total: <b>{tot_b} fusos</b></span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.altair_chart(chart_b, use_container_width=True)
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.altair_chart(chart_b, use_container_width=True)
 
-            chart_men, tot_men = gerar_grafico_setor("Setor Menegatto", "#dc2626")
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>⚙️ Setor Menegatto</span>
-                        <span style="color:#dc2626; font-size:0.85rem;">Total: {tot_men} fusos</span>
+            with st.container(border=True):
+                chart_men, tot_men = gerar_grafico_setor("Setor Menegatto", "#dc2626")
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">⚙️ Setor Menegatto</span>
+                        <span class="chart-header-badge" style="color:#dc2626;">Total: <b>{tot_men} fusos</b></span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.altair_chart(chart_men, use_container_width=True)
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.altair_chart(chart_men, use_container_width=True)
 
     # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR
+    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (COM CONTAINERS COM BORDA)
     # ==========================================
     else:
         setor_ativo = st.session_state.aba_setor_fuso
@@ -1316,109 +1314,105 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Linha Mensal do Setor + Gráfico por Tipo de Fuso
+        # Gráfico de Linha Mensal do Setor + Gráfico por Tipo de Fuso (Em Containers com Borda)
         c_linha_s, c_tipo_s = st.columns([1.6, 1.0])
 
         with c_linha_s:
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>📈 Evolução Cronológica de Quebras ({setor_ativo} - {ano_painel})</span>
+            with st.container(border=True):
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">📈 Evolução Cronológica de Quebras ({setor_ativo} - {ano_painel})</span>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            df_base_meses = pd.DataFrame({"Mes": lista_meses_puros})
-            agrup_mes_setor = df_setor.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
-            df_evol_setor = pd.merge(df_base_meses, agrup_mes_setor, on="Mes", how="left").fillna(0)
-            df_evol_setor["Quantidade_Quebras"] = df_evol_setor["Quantidade_Quebras"].astype(int)
-
-            chart_linha_setor = (
-                alt.Chart(df_evol_setor)
-                .mark_line(
-                    point=alt.OverlayMarkDef(color="#2563eb", size=60),
-                    color="#2563eb",
-                    strokeWidth=3,
+                    """,
+                    unsafe_allow_html=True,
                 )
-                .encode(
-                    x=alt.X("Mes:N", sort=lista_meses_puros, title="Mês", axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y("Quantidade_Quebras:Q", title="Quebras Apontadas"),
-                    tooltip=["Mes", "Quantidade_Quebras"],
-                )
-                .properties(height=280)
-            )
-            st.altair_chart(chart_linha_setor, use_container_width=True)
+                df_base_meses = pd.DataFrame({"Mes": lista_meses_puros})
+                agrup_mes_setor = df_setor.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
+                df_evol_setor = pd.merge(df_base_meses, agrup_mes_setor, on="Mes", how="left").fillna(0)
+                df_evol_setor["Quantidade_Quebras"] = df_evol_setor["Quantidade_Quebras"].astype(int)
 
-        with c_tipo_s:
-            st.markdown(
-                f"""
-                <div class="chart-box-setor">
-                    <div class="chart-box-setor-title">
-                        <span>🔩 Distribuição por Tipo de Fuso</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if not df_setor.empty and total_setor_quebras > 0:
-                df_tipo_agrup = df_setor[df_setor["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
-                chart_tipos = (
-                    alt.Chart(df_tipo_agrup)
-                    .mark_bar(color="#0f172a", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                chart_linha_setor = (
+                    alt.Chart(df_evol_setor)
+                    .mark_line(
+                        point=alt.OverlayMarkDef(color="#2563eb", size=60),
+                        color="#2563eb",
+                        strokeWidth=3,
+                    )
                     .encode(
-                        x=alt.X("Quantidade_Quebras:Q", title="Total"),
-                        y=alt.Y("Tipo_Fuso:N", sort="-x", title=None),
-                        tooltip=["Tipo_Fuso", "Quantidade_Quebras"],
+                        x=alt.X("Mes:N", sort=lista_meses_puros, title="Mês", axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("Quantidade_Quebras:Q", title="Quebras Apontadas"),
+                        tooltip=["Mes", "Quantidade_Quebras"],
                     )
                     .properties(height=280)
                 )
-                st.altair_chart(chart_tipos, use_container_width=True)
-            else:
-                st.info(f"Sem registos de tipos de fuso para {setor_ativo} em {ano_painel}.")
+                st.altair_chart(chart_linha_setor, use_container_width=True)
 
-        # Ranking e Tabela Detalhada do Setor
+        with c_tipo_s:
+            with st.container(border=True):
+                st.markdown(
+                    f"""
+                    <div class="chart-header-row">
+                        <span class="chart-header-title">🔩 Distribuição por Tipo de Fuso</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if not df_setor.empty and total_setor_quebras > 0:
+                    df_tipo_agrup = df_setor[df_setor["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
+                    chart_tipos = (
+                        alt.Chart(df_tipo_agrup)
+                        .mark_bar(color="#0f172a", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                        .encode(
+                            x=alt.X("Quantidade_Quebras:Q", title="Total"),
+                            y=alt.Y("Tipo_Fuso:N", sort="-x", title=None),
+                            tooltip=["Tipo_Fuso", "Quantidade_Quebras"],
+                        )
+                        .properties(height=280)
+                    )
+                    st.altair_chart(chart_tipos, use_container_width=True)
+                else:
+                    st.info(f"Sem registos de tipos de fuso para {setor_ativo} em {ano_painel}.")
+
+        # Ranking e Tabela Detalhada do Setor (Em Containers com Borda)
         if not agrup_maq_setor.empty:
             c_rk, c_tb = st.columns([1.5, 1.5])
             with c_rk:
-                st.markdown(
-                    f"""
-                    <div class="chart-box-setor">
-                        <div class="chart-box-setor-title">
-                            <span>📊 Ranking de Máquinas com Falhas ({setor_ativo})</span>
+                with st.container(border=True):
+                    st.markdown(
+                        f"""
+                        <div class="chart-header-row">
+                            <span class="chart-header-title">📊 Ranking de Máquinas com Falhas ({setor_ativo})</span>
                         </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                chart_ranking_s = (
-                    alt.Chart(agrup_maq_setor)
-                    .mark_bar(color="#ef4444", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-                    .encode(
-                        x=alt.X("Maquina_TAG:N", sort="-y", title="Máquina"),
-                        y=alt.Y("Quantidade_Quebras:Q", title="Total de Quebras"),
-                        tooltip=["Maquina_TAG", "Quantidade_Quebras"],
+                        """,
+                        unsafe_allow_html=True,
                     )
-                    .properties(height=280)
-                )
-                st.altair_chart(chart_ranking_s, use_container_width=True)
+                    chart_ranking_s = (
+                        alt.Chart(agrup_maq_setor)
+                        .mark_bar(color="#ef4444", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                        .encode(
+                            x=alt.X("Maquina_TAG:N", sort="-y", title="Máquina"),
+                            y=alt.Y("Quantidade_Quebras:Q", title="Total de Quebras"),
+                            tooltip=["Maquina_TAG", "Quantidade_Quebras"],
+                        )
+                        .properties(height=280)
+                    )
+                    st.altair_chart(chart_ranking_s, use_container_width=True)
 
             with c_tb:
-                st.markdown(
-                    f"""
-                    <div class="chart-box-setor">
-                        <div class="chart-box-setor-title">
-                            <span>📋 Consolidado de Ocorrências</span>
+                with st.container(border=True):
+                    st.markdown(
+                        f"""
+                        <div class="chart-header-row">
+                            <span class="chart-header-title">📋 Consolidado de Ocorrências</span>
                         </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                df_tabela_s = agrup_maq_setor.rename(
-                    columns={"Maquina_TAG": "Equipamento", "Quantidade_Quebras": "Total Quebras"}
-                )
-                st.dataframe(df_tabela_s, use_container_width=True, hide_index=True, height=280)
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    df_tabela_s = agrup_maq_setor.rename(
+                        columns={"Maquina_TAG": "Equipamento", "Quantidade_Quebras": "Total Quebras"}
+                    )
+                    st.dataframe(df_tabela_s, use_container_width=True, hide_index=True, height=280)
 
 # ------------------------------------------
 # 4. LANÇAMENTOS: FUSOS (INTACTO)
