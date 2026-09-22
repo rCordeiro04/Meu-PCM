@@ -114,7 +114,7 @@ for maq_tag in todas_as_maquinas:
     tempo_txt = "Sem histórico"
     classe_card = "status-cinza"
     
-    # Cores sólidas padrão: cinza
+    # Padrão: cinza
     cor_fundo = "#94a3b8"
     cor_texto = "#ffffff"
     cor_borda = "#64748b"
@@ -164,7 +164,6 @@ for maq_tag in todas_as_maquinas:
         "classe_card": classe_card,
     }
 
-    # Injeção de regra CSS direta pela chave única do botão
     chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
     css_botoes.append(
         f"""
@@ -193,10 +192,10 @@ regras_css_botoes = "\n".join(css_botoes)
 st.markdown(
     f"""
     <style>
-        /* Compactação geral da página */
+        /* Topo visível sem cortar */
         .block-container {{
-            padding-top: 1rem !important;
-            padding-bottom: 0.8rem !important;
+            padding-top: 2rem !important;
+            padding-bottom: 1rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
         }}
@@ -274,7 +273,7 @@ st.markdown(
         .card-balao-compacto {{
             border-radius: 6px;
             padding: 8px 14px;
-            margin: 4px 0 8px 0;
+            margin: 6px 0 10px 0;
             font-size: 0.88rem;
             display: flex;
             align-items: center;
@@ -427,17 +426,17 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (CONTROLE DE CORREIAS)
+# 1. PAINEL GERENCIAL DE CORREIAS (CONTROLE DE CORREIAS COM CABEÇALHO GARANTIDO)
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho limpo: "Controle de correias"
-    c_title, c_legenda = st.columns([1.6, 2.4])
+    # Cabeçalho visível e limpo
+    c_title, c_legenda = st.columns([1.5, 2.5])
     with c_title:
-        st.markdown("<h4 style='margin:0; padding:0;'>🔄 Controle de correias</h4>", unsafe_allow_html=True)
+        st.subheader("🔄 Controle de correias")
     with c_legenda:
         st.markdown(
             """
-            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:4px;'>
+            <div style='text-align:right; font-size:0.82rem; font-weight:600; padding-top:12px;'>
                 <span class='amostra-cor' style='background:#16a34a;'></span> Nova (&le;1 ano) &nbsp;|&nbsp;
                 <span class='amostra-cor' style='background:#facc15;'></span> Meia-Vida (1 a 1,5 anos) &nbsp;|&nbsp;
                 <span class='amostra-cor' style='background:#dc2626;'></span> Fim de Vida (&gt;1,5 anos) &nbsp;|&nbsp;
@@ -447,7 +446,7 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
-    # SE HOUVER MÁQUINA CLICADA: BALÃO EM LINHA NO TOPO
+    # SE HOUVER MÁQUINA CLICADA: MOSTRA OS DETALHES. SENÃO, EXIBE ORIENTAÇÃO LIMPA
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         c_box, c_close = st.columns([6.2, 0.8])
@@ -466,8 +465,10 @@ if tela == "Painel Correias":
             if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
+    else:
+        st.caption("💡 *Clique em qualquer quadrado para visualizar o modelo, data de montagem e tempo de uso do ativo.*")
 
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
     # GRELHA ULTRA-COMPACTA: 12 QUADRADINHOS POR LINHA
     COLS_GRELHA = 12
