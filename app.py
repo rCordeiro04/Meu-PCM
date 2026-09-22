@@ -224,6 +224,66 @@ mapa_cargas_setor_a = [
     ("Setembro", dados_setembro_setor_a),
 ]
 
+# ==========================================
+# DADOS HISTÓRICOS: SETOR LÁTEX (JAN A SET/2026)
+# ==========================================
+dados_janeiro_setor_latex = [
+    ("B-72", 10), ("B-73", 13), ("B-74", 18), ("B-75", 4),
+    ("B-76", 9), ("B-77", 10), ("B-78", 5), ("B-79", 1), ("B-80", 0)
+]
+
+dados_fevereiro_setor_latex = [
+    ("B-72", 2), ("B-73", 5), ("B-74", 0), ("B-75", 0),
+    ("B-76", 1), ("B-77", 2), ("B-78", 3), ("B-79", 4), ("B-80", 0)
+]
+
+dados_marco_setor_latex = [
+    ("B-72", 7), ("B-73", 2), ("B-74", 1), ("B-75", 0),
+    ("B-76", 3), ("B-77", 4), ("B-78", 4), ("B-79", 0), ("B-80", 1)
+]
+
+dados_abril_setor_latex = [
+    ("B-72", 5), ("B-73", 9), ("B-74", 3), ("B-75", 5),
+    ("B-76", 2), ("B-77", 4), ("B-78", 5), ("B-79", 3), ("B-80", 0)
+]
+
+dados_maio_setor_latex = [
+    ("B-72", 7), ("B-73", 4), ("B-74", 5), ("B-75", 2),
+    ("B-76", 1), ("B-77", 4), ("B-78", 1), ("B-79", 0), ("B-80", 0)
+]
+
+dados_junho_setor_latex = [
+    ("B-72", 1), ("B-73", 7), ("B-74", 0), ("B-75", 7),
+    ("B-76", 1), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0)
+]
+
+dados_julho_setor_latex = [
+    ("B-72", 1), ("B-73", 3), ("B-74", 0), ("B-75", 0),
+    ("B-76", 0), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0)
+]
+
+dados_agosto_setor_latex = [
+    ("B-72", 1), ("B-73", 0), ("B-74", 0), ("B-75", 0),
+    ("B-76", 0), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0)
+]
+
+dados_setembro_setor_latex = [
+    ("B-72", 0), ("B-73", 0), ("B-74", 0), ("B-75", 0),
+    ("B-76", 0), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0)
+]
+
+mapa_cargas_setor_latex = [
+    ("Janeiro", dados_janeiro_setor_latex),
+    ("Fevereiro", dados_fevereiro_setor_latex),
+    ("Março", dados_marco_setor_latex),
+    ("Abril", dados_abril_setor_latex),
+    ("Maio", dados_maio_setor_latex),
+    ("Junho", dados_junho_setor_latex),
+    ("Julho", dados_julho_setor_latex),
+    ("Agosto", dados_agosto_setor_latex),
+    ("Setembro", dados_setembro_setor_latex),
+]
+
 precisa_salvar_fusos = False
 
 # Injeção Setor B
@@ -278,6 +338,35 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
                 "Tipo_Fuso": "FAG",
+            }
+            for maq, qtd in lista_dados_carga
+        ]
+        df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
+        precisa_salvar_fusos = True
+
+# Injeção Setor Látex
+for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
+    linhas_mes = df_fusos[
+        (df_fusos["Ano"] == 2026)
+        & (df_fusos["Mes"] == nome_mes_carga)
+        & (df_fusos["Setor"] == "Setor Látex")
+    ]
+    if linhas_mes.empty or linhas_mes["Quantidade_Quebras"].sum() == 0:
+        df_fusos = df_fusos[
+            ~(
+                (df_fusos["Ano"] == 2026)
+                & (df_fusos["Mes"] == nome_mes_carga)
+                & (df_fusos["Setor"] == "Setor Látex")
+            )
+        ]
+        novos_reg = [
+            {
+                "Ano": 2026,
+                "Mes": nome_mes_carga,
+                "Setor": "Setor Látex",
+                "Maquina_TAG": maq,
+                "Quantidade_Quebras": int(qtd),
+                "Tipo_Fuso": "M4BA",
             }
             for maq, qtd in lista_dados_carga
         ]
@@ -384,7 +473,7 @@ if "card_selecionado_kpi" not in st.session_state:
     st.session_state.card_selecionado_kpi = None
 
 if "aba_setor_fuso" not in st.session_state:
-    st.session_state.aba_setor_fuso = "Setor A"
+    st.session_state.aba_setor_fuso = "Setor Látex"
 
 
 def navegar(nome_pagina):
