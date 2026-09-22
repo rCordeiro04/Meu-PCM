@@ -44,6 +44,16 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
+# Carga automática dos dados de Abril/2026 para o Setor B
+dados_abril_setor_b = [
+    ("L-29", 2), ("L-30", 3), ("L-31", 1), ("L-32", 2),
+    ("L-33", 17), ("L-34", 8), ("L-35", 7), ("L-36", 15),
+    ("L-37", 17), ("L-38", 5), ("L-39", 12), ("L-40", 3),
+    ("L-50", 2), ("L-51", 3), ("L-41", 3), ("L-42", 4),
+    ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 1),
+    ("L-52", 1), ("L-53", 4)
+]
+
 # Carga automática dos dados de Maio/2026 para o Setor B
 dados_maio_setor_b = [
     ("L-29", 0), ("L-30", 5), ("L-31", 8), ("L-32", 0),
@@ -75,6 +85,24 @@ dados_julho_setor_b = [
 ]
 
 precisa_salvar_fusos = False
+
+# Verificação e inserção: Abril/2026 - Setor B
+linhas_setor_b_abril = df_fusos[(df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Abril") & (df_fusos["Setor"] == "Setor B")]
+if linhas_setor_b_abril.empty or linhas_setor_b_abril["Quantidade_Quebras"].sum() == 0:
+    df_fusos = df_fusos[~((df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Abril") & (df_fusos["Setor"] == "Setor B"))]
+    novos_reg_abril = [
+        {
+            "Ano": 2026,
+            "Mes": "Abril",
+            "Setor": "Setor B",
+            "Maquina_TAG": maq,
+            "Quantidade_Quebras": int(qtd),
+            "Tipo_Fuso": "TEP"
+        }
+        for maq, qtd in dados_abril_setor_b
+    ]
+    df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg_abril)], ignore_index=True)
+    precisa_salvar_fusos = True
 
 # Verificação e inserção: Maio/2026 - Setor B
 linhas_setor_b_maio = df_fusos[(df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Maio") & (df_fusos["Setor"] == "Setor B")]
