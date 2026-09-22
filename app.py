@@ -44,6 +44,33 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
+# Carga automática dos dados de Julho/2026 para o Setor B
+dados_julho_setor_b = [
+    ("L-29", 0), ("L-30", 31), ("L-31", 4), ("L-32", 13),
+    ("L-33", 26), ("L-34", 7), ("L-35", 14), ("L-36", 2),
+    ("L-37", 14), ("L-38", 0), ("L-39", 2), ("L-40", 11),
+    ("L-50", 2), ("L-51", 6), ("L-41", 3), ("L-42", 2),
+    ("L-43", 3), ("L-44", 5), ("L-45", 0), ("L-46", 0),
+    ("L-52", 6), ("L-53", 4)
+]
+
+# Verifica se os dados de Julho/2026 do Setor B já constam na base; se não, atualiza automaticamente
+linhas_setor_b_julho = df_fusos[(df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Julho") & (df_fusos["Setor"] == "Setor B")]
+if linhas_setor_b_julho.empty or linhas_setor_b_julho["Quantidade_Quebras"].sum() == 0:
+    df_fusos = df_fusos[~((df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == "Julho") & (df_fusos["Setor"] == "Setor B"))]
+    novos_reg_julho = []
+    for maq, qtd in dados_julho_setor_b:
+        novos_reg_julho.append({
+            "Ano": 2026,
+            "Mes": "Julho",
+            "Setor": "Setor B",
+            "Maquina_TAG": maq,
+            "Quantidade_Quebras": int(qtd),
+            "Tipo_Fuso": "TEP"
+        })
+    df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg_julho)], ignore_index=True)
+    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+
 # Base de Correias
 if not os.path.exists(ARQUIVO_CORREIAS):
     if os.path.exists("lancamentos_correias_v3.xlsx"):
