@@ -985,7 +985,7 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) COM CHAVE SELETORA
+# BARRA LATERAL (SIDEBAR) COM BOTÕES LADO A LADO
 # ==========================================
 with st.sidebar:
     st.markdown(
@@ -999,24 +999,26 @@ with st.sidebar:
     )
     st.markdown("---")
 
-    # Mapeamento do estado atual para a chave seletora
     is_lancamento = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
-    modo_selecionado = st.radio(
-        "Modo de Operação",
-        options=["📊 Painéis", "📝 Lançamentos"],
-        index=1 if is_lancamento else 0,
-        label_visibility="collapsed"
-    )
+
+    # Dois botões lado a lado para alternar o modo principal
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
+        if st.button("📊 Painéis", use_container_width=True, type="primary" if not is_lancamento else "secondary"):
+            if is_lancamento:
+                st.session_state.pagina_atual = "Painel Fusos"
+                st.rerun()
+    with col_b2:
+        if st.button("📝 Lançar", use_container_width=True, type="primary" if is_lancamento else "secondary"):
+            if not is_lancamento:
+                st.session_state.pagina_atual = "Lançamento Fusos"
+                st.rerun()
 
     st.markdown("---")
 
-    if modo_selecionado == "📊 Painéis":
+    if not is_lancamento:
         st.subheader("📊 Painéis Disponíveis")
-        tipo_painel_fusos = (
-            "primary"
-            if st.session_state.pagina_atual == "Painel Fusos"
-            else "secondary"
-        )
+        tipo_painel_fusos = "primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary"
         st.button(
             "🔩 Painel de Fusos",
             key="btn_nav_painel_fusos",
@@ -1026,11 +1028,7 @@ with st.sidebar:
             args=("Painel Fusos",),
         )
 
-        tipo_painel_correias = (
-            "primary"
-            if st.session_state.pagina_atual == "Painel Correias"
-            else "secondary"
-        )
+        tipo_painel_correias = "primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary"
         st.button(
             "🔄 Painel de Correias",
             key="btn_nav_painel_correias",
@@ -1039,19 +1037,9 @@ with st.sidebar:
             on_click=navegar,
             args=("Painel Correias",),
         )
-        
-        # Sincroniza se mudou de modo e estava numa tela de lançamento
-        if is_lancamento:
-            st.session_state.pagina_atual = "Painel Fusos"
-            st.rerun()
-
     else:
         st.subheader("📝 Módulos de Apontamento")
-        tipo_fusos = (
-            "primary"
-            if st.session_state.pagina_atual == "Lançamento Fusos"
-            else "secondary"
-        )
+        tipo_fusos = "primary" if st.session_state.pagina_atual == "Lançamento Fusos" else "secondary"
         st.button(
             "🔩 Fechamento de Fusos",
             key="btn_nav_lancto_fusos",
@@ -1061,11 +1049,7 @@ with st.sidebar:
             args=("Lançamento Fusos",),
         )
 
-        tipo_correias = (
-            "primary"
-            if st.session_state.pagina_atual == "Correias"
-            else "secondary"
-        )
+        tipo_correias = "primary" if st.session_state.pagina_atual == "Correias" else "secondary"
         st.button(
             "🔄 Gestão de Correias",
             key="btn_nav_lancto_correias",
@@ -1075,11 +1059,7 @@ with st.sidebar:
             args=("Correias",),
         )
 
-        tipo_prev = (
-            "primary"
-            if st.session_state.pagina_atual == "Preventiva"
-            else "secondary"
-        )
+        tipo_prev = "primary" if st.session_state.pagina_atual == "Preventiva" else "secondary"
         st.button(
             "🛠️ Preventiva",
             key="btn_nav_lancto_preventiva",
@@ -1089,11 +1069,7 @@ with st.sidebar:
             args=("Preventiva",),
         )
 
-        tipo_maq = (
-            "primary"
-            if st.session_state.pagina_atual == "Máquinas"
-            else "secondary"
-        )
+        tipo_maq = "primary" if st.session_state.pagina_atual == "Máquinas" else "secondary"
         st.button(
             "🏭 Máquinas",
             key="btn_nav_lancto_maquinas",
@@ -1102,11 +1078,6 @@ with st.sidebar:
             on_click=navegar,
             args=("Máquinas",),
         )
-        
-        # Sincroniza se mudou de modo e estava numa tela de painel
-        if not is_lancamento:
-            st.session_state.pagina_atual = "Lançamento Fusos"
-            st.rerun()
 
     st.markdown("---")
     st.caption("PCM • Versão Gerencial")
