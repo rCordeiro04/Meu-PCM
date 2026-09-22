@@ -985,11 +985,18 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR)
+# BARRA LATERAL (SIDEBAR) CUSTOMIZADA
 # ==========================================
 with st.sidebar:
-    st.title("⚙️ Portal PCM")
-    st.caption("Planejamento e Controle de Manutenção")
+    st.markdown(
+        """
+        <div style="margin-top: -1.5rem; margin-bottom: 0.5rem;">
+            <h1 style="font-size: 1.8rem; margin-bottom: 0px; color: #0f172a;">⚙️ Portal PCM</h1>
+            <p style="font-size: 0.9rem; font-weight: 700; color: #64748b; margin-top: 2px;">Controle MEC</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
 
     st.subheader("📊 Painéis")
