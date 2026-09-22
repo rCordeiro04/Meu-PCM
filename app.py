@@ -103,7 +103,6 @@ data_hoje = date.today()
 dados_maquinas = {}
 css_botoes = []
 
-# Contadores para os mini cards de resumo
 qtd_novas = 0
 qtd_meia_vida = 0
 qtd_criticas = 0
@@ -120,7 +119,6 @@ for maq_tag in todas_as_maquinas:
     tempo_txt = "Sem histórico"
     classe_card = "status-cinza"
     
-    # Cores refinadas (Design System Industrial)
     cor_fundo = "#94a3b8"
     cor_texto = "#ffffff"
     cor_borda = "#64748b"
@@ -144,7 +142,7 @@ for maq_tag in todas_as_maquinas:
 
                 if dias <= 365:
                     classe_card = "status-verde"
-                    cor_fundo = "#10b981"   # Emerald
+                    cor_fundo = "#10b981"
                     cor_texto = "#ffffff"
                     cor_borda = "#059669"
                     status_label = "Nova"
@@ -152,7 +150,7 @@ for maq_tag in todas_as_maquinas:
                     qtd_novas += 1
                 elif 365 < dias <= 547:
                     classe_card = "status-amarelo"
-                    cor_fundo = "#f59e0b"   # Amber
+                    cor_fundo = "#f59e0b"
                     cor_texto = "#ffffff"
                     cor_borda = "#d97706"
                     status_label = "Meia-Vida"
@@ -160,7 +158,7 @@ for maq_tag in todas_as_maquinas:
                     qtd_meia_vida += 1
                 else:
                     classe_card = "status-vermelho"
-                    cor_fundo = "#ef4444"   # Red Coral
+                    cor_fundo = "#ef4444"
                     cor_texto = "#ffffff"
                     cor_borda = "#dc2626"
                     status_label = "Fim de Vida"
@@ -213,9 +211,9 @@ regras_css_botoes = "\n".join(css_botoes)
 st.markdown(
     f"""
     <style>
-        /* Compactação e acabamento geral */
+        /* Deslocamento seguro para não cortar sob a barra superior do Streamlit */
         .block-container {{
-            padding-top: 1.5rem !important;
+            padding-top: 4.2rem !important;
             padding-bottom: 0.8rem !important;
             padding-left: 2rem !important;
             padding-right: 2rem !important;
@@ -334,17 +332,18 @@ st.markdown(
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 700;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 3px 10px;
+            padding: 3px 8px;
             border-radius: 20px;
-            margin-left: 6px;
+            margin-left: 4px;
+            white-space: nowrap;
         }}
         .dot-legenda {{
-            width: 9px;
-            height: 9px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
         }}
@@ -463,20 +462,20 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (LAYOUT PREMIUM)
+# 1. PAINEL GERENCIAL DE CORREIAS (SEM CORTES NO TOPO)
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Linha 1: Título e Legenda em Cápsulas Modernas
-    c_head1, c_head2 = st.columns([1.3, 2.7])
+    # Cabeçalho limpo com espaçamento seguro
+    c_head1, c_head2 = st.columns([1.2, 2.8])
     with c_head1:
-        st.markdown("<h3 style='margin:0; font-weight:800; color:#0f172a;'>🔄 Controle de correias</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin:0; padding:0; font-weight:800; color:#0f172a;'>🔄 Controle de correias</h3>", unsafe_allow_html=True)
     with c_head2:
         st.markdown(
             """
             <div style='text-align:right; padding-top:4px;'>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Necessária (&gt; 1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
             """,
@@ -485,7 +484,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # Linha 2: Quatro Mini Cards KPI (Diagnóstico Rápido da Fábrica)
+    # Mini Cards KPI
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
@@ -542,7 +541,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Linha 3: Balão HUD Interativo (Ao Clicar numa Máquina)
+    # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
@@ -588,7 +587,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Linha 4: Mosaico de Máquinas Ultra-Compacto (12 colunas)
+    # Mosaico de Máquinas Ultra-Compacto (12 colunas)
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
