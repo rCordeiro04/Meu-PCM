@@ -573,13 +573,13 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Barra Superior Limpa com Título "Dashboard Correias" e Filtros (Setor e Tipo)
-    col_t1, col_f1, col_f2, col_leg = st.columns([2.4, 1.4, 1.4, 3.8])
+    # Cabeçalho limpo com título maior em destaque e legendas alinhadas
+    col_t1, col_leg = st.columns([3.5, 6.5])
 
     with col_t1:
         st.markdown(
             """
-            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; padding-top: 6px;">
+            <div style="font-size: 1.45rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
                 <span>🔄</span>
                 <span>Dashboard Correias</span>
             </div>
@@ -587,22 +587,10 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
-    with col_f1:
-        lista_setores_filtro = ["Setor"] + list(DICIONARIO_SETORES.keys())
-        filtro_setor = st.selectbox("", lista_setores_filtro, key="filtro_setor_painel", label_visibility="collapsed")
-
-    with col_f2:
-        modelos_unicos = set()
-        for r in lista_correias_todas:
-            if r["modelo"] and r["modelo"] != "Não informada":
-                modelos_unicos.add(r["modelo"])
-        lista_modelos_filtro = ["Tipo"] + sorted(list(modelos_unicos))
-        filtro_modelo = st.selectbox("", lista_modelos_filtro, key="filtro_modelo_painel", label_visibility="collapsed")
-
     with col_leg:
         st.markdown(
             """
-            <div style="text-align: right; padding-top: 4px;">
+            <div style="text-align: right; padding-top: 6px;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
@@ -612,15 +600,29 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
+    # Filtros de Setor e Tipo de Correia logo abaixo do título
+    col_f1, col_f2, _ = st.columns([2, 2, 6])
+    with col_f1:
+        lista_setores_filtro = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
+        filtro_setor = st.selectbox("🏭 Filtrar Setor:", lista_setores_filtro, key="filtro_setor_painel")
+
+    with col_f2:
+        modelos_unicos = set()
+        for r in lista_correias_todas:
+            if r["modelo"] and r["modelo"] != "Não informada":
+                modelos_unicos.add(r["modelo"])
+        lista_modelos_filtro = ["Todos os Tipos"] + sorted(list(modelos_unicos))
+        filtro_modelo = st.selectbox("🏷️ Filtrar Tipo:", lista_modelos_filtro, key="filtro_modelo_painel")
+
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
     # Aplicação dos filtros às máquinas
     todas_as_maquinas = []
     for setor_nome, lista_m in DICIONARIO_SETORES.items():
-        if filtro_setor != "Setor" and setor_nome != filtro_setor:
+        if filtro_setor != "Todos os Setores" and setor_nome != filtro_setor:
             continue
         for m in lista_m:
-            if filtro_modelo != "Tipo":
+            if filtro_modelo != "Todos os Tipos":
                 reg_m = df_correias[(df_correias["Setor"] == setor_nome) & (df_correias["Maquina_TAG"] == m)]
                 tem_mod = False
                 if not reg_m.empty:
