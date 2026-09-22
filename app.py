@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Arquivos de dados blindados e separados
+# Ficheiros de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 
@@ -104,147 +104,11 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
     for m in lista_m:
         mapa_setor_maquina[m] = setor_nome
 
-# ==========================================
-# ATUALIZAÇÃO SEGURA DOS APONTAMENTOS DE CORREIAS
-# ==========================================
-correias_36100 = [
-    {"Maquina_TAG": "L-01", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-21"},
-    {"Maquina_TAG": "L-03", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-04"},
-    {"Maquina_TAG": "L-04", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-01-07"},
-    {"Maquina_TAG": "L-05", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-27"},
-    {"Maquina_TAG": "L-06", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2024-11-19"},
-    {"Maquina_TAG": "L-07", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-25"},
-    {"Maquina_TAG": "L-08", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-05-20"},
-    {"Maquina_TAG": "L-09", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-13"},
-    {"Maquina_TAG": "L-10", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-08"},
-    {"Maquina_TAG": "L-15", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-07"},
-    {"Maquina_TAG": "L-16", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-02-12"},
-    {"Maquina_TAG": "L-17", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-08-20"},
-    {"Maquina_TAG": "L-18", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
-    {"Maquina_TAG": "L-19", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-04-12"},
-    {"Maquina_TAG": "L-20", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-07-01"},
-    {"Maquina_TAG": "L-21", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-20"},
-    {"Maquina_TAG": "L-22", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-19"},
-    {"Maquina_TAG": "L-23", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-09-01"},
-    {"Maquina_TAG": "L-24", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-27"},
-    {"Maquina_TAG": "L-25", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-29"},
-    {"Maquina_TAG": "L-29", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-13"},
-    {"Maquina_TAG": "L-30", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-09-10"},
-    {"Maquina_TAG": "L-31", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
-    {"Maquina_TAG": "L-33", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-20"},
-    {"Maquina_TAG": "L-34", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-06"},
-    {"Maquina_TAG": "L-36", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-02-26"},
-    {"Maquina_TAG": "L-38", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-02"},
-    {"Maquina_TAG": "L-39", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-21"},
-    {"Maquina_TAG": "L-40", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-11"},
-    {"Maquina_TAG": "L-51", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-30"},
-]
-
-cabeceira_19500 = [
-    {"Maquina_TAG": "L-11", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-08-21"},
-    {"Maquina_TAG": "L-12", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-01-17"},
-    {"Maquina_TAG": "L-13", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-08-11"},
-    {"Maquina_TAG": "L-14", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-26"},
-    {"Maquina_TAG": "L-26", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-09-14"},
-    {"Maquina_TAG": "L-27", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-03-13"},
-    {"Maquina_TAG": "L-50", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-05"},
-]
-
-superior_33990 = [
-    {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
-    {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
-    {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
-]
-
-novos_dados_superior = correias_36100 + cabeceira_19500 + superior_33990
-
-traseira_18050 = [
-    {"Maquina_TAG": "L-11", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-01-27"},
-    {"Maquina_TAG": "L-12", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-01-17"},
-    {"Maquina_TAG": "L-14", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-02-02"},
-    {"Maquina_TAG": "L-28", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-03-22"},
-    {"Maquina_TAG": "L-50", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-07-28"},
-]
-
-novos_dados_inferior = [
-    {"Maquina_TAG": "L-42", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-10-02"},
-    {"Maquina_TAG": "L-43", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-08-05"},
-    {"Maquina_TAG": "L-44", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-08-08"},
-    {"Maquina_TAG": "B-73", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2026-06-13"},
-    {"Maquina_TAG": "B-74", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-02-15"},
-    {"Maquina_TAG": "B-78", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-12-29"},
-    {"Maquina_TAG": "B-79", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2024-11-30"},
-] + traseira_18050
-
-houve_modificacao = False
-
-# Aplica dados Superior / Cabeceira
-for item in novos_dados_superior:
-    tag = item["Maquina_TAG"]
-    setor_alvo = mapa_setor_maquina.get(tag, "")
-    cond = (df_correias["Setor"] == setor_alvo) & (df_correias["Maquina_TAG"] == tag)
-    if not df_correias[cond].empty:
-        idx = df_correias[cond].index[-1]
-        if (
-            str(df_correias.at[idx, "Tipo_Correia_1"]) != item["Tipo_Correia_1"]
-            or str(df_correias.at[idx, "Data_Instalacao_1"]) != item["Data_Instalacao_1"]
-        ):
-            df_correias.at[idx, "Tipo_Correia_1"] = item["Tipo_Correia_1"]
-            df_correias.at[idx, "Data_Instalacao_1"] = item["Data_Instalacao_1"]
-            houve_modificacao = True
-    else:
-        novo_reg = {
-            "Setor": setor_alvo,
-            "Maquina_TAG": tag,
-            "Tipo_Correia_1": item["Tipo_Correia_1"],
-            "Data_Instalacao_1": item["Data_Instalacao_1"],
-            "Tipo_Correia_2": "",
-            "Data_Instalacao_2": "",
-        }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
-        houve_modificacao = True
-
-# Aplica dados Inferior / Traseira
-for item in novos_dados_inferior:
-    tag = item["Maquina_TAG"]
-    setor_alvo = mapa_setor_maquina.get(tag, "")
-    cond = (df_correias["Setor"] == setor_alvo) & (df_correias["Maquina_TAG"] == tag)
-    if not df_correias[cond].empty:
-        idx = df_correias[cond].index[-1]
-        if (
-            str(df_correias.at[idx, "Tipo_Correia_2"]) != item["Tipo_Correia_2"]
-            or str(df_correias.at[idx, "Data_Instalacao_2"]) != item["Data_Instalacao_2"]
-        ):
-            df_correias.at[idx, "Tipo_Correia_2"] = item["Tipo_Correia_2"]
-            df_correias.at[idx, "Data_Instalacao_2"] = item["Data_Instalacao_2"]
-            houve_modificacao = True
-    else:
-        novo_reg = {
-            "Setor": setor_alvo,
-            "Maquina_TAG": tag,
-            "Tipo_Correia_1": "",
-            "Data_Instalacao_1": "",
-            "Tipo_Correia_2": item["Tipo_Correia_2"],
-            "Data_Instalacao_2": item["Data_Instalacao_2"],
-        }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
-        houve_modificacao = True
-
-if houve_modificacao:
-    df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].astype(str)
-    df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
-    df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
-    df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
 
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
-
-if "kpi_filtro_ativo" not in st.session_state:
-    st.session_state.kpi_filtro_ativo = None
 
 
 def navegar(nome_pagina):
@@ -398,6 +262,28 @@ for maq_tag in todas_as_maquinas:
 
 regras_css_botoes = "\n".join(css_botoes)
 
+# Função auxiliar para gerar o HTML do tooltip por modelo
+def gerar_html_tooltip(lista_alvo, titulo):
+    if not lista_alvo:
+        return f"<div class='kpi-tooltip'><div class='tt-title'>{titulo}</div><div class='tt-empty'>Sem correias registadas</div></div>"
+    df_temp = pd.DataFrame(lista_alvo)
+    contagem = df_temp["modelo"].value_counts().to_dict()
+    linhas_tt = "".join([
+        f"<div class='tt-row'><span>🏷️ {mod}</span><b>{qtd} un.</b></div>"
+        for mod, qtd in contagem.items()
+    ])
+    return f"""
+    <div class='kpi-tooltip'>
+        <div class='tt-title'>{titulo} ({len(lista_alvo)} un.)</div>
+        {linhas_tt}
+    </div>
+    """
+
+tt_total = gerar_html_tooltip(lista_correias_todas, "Total por Modelo")
+tt_novas = gerar_html_tooltip(lista_correias_novas, "Normais por Modelo")
+tt_meia = gerar_html_tooltip(lista_correias_meia, "Meia-Vida por Modelo")
+tt_crit = gerar_html_tooltip(lista_correias_criticas, "Troca Necessária")
+
 st.markdown(
     f"""
     <style>
@@ -460,7 +346,7 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* Container dos Cards KPI Estilizados */
+        /* Container do Card com suporte a Tooltip Flutuante no Hover */
         .card-kpi-container {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -471,13 +357,12 @@ st.markdown(
             justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             position: relative;
-            overflow: hidden;
             cursor: pointer;
             transition: all 0.15s ease;
         }}
         .card-kpi-container:hover {{
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border-color: #cbd5e1;
         }}
         .card-kpi-container::after {{
@@ -508,15 +393,54 @@ st.markdown(
             margin-bottom: 3px;
         }}
 
-        /* Botão invisível sobreposto para garantir clique perfeito */
-        .kpi-btn-invisible div[data-testid="stButton"] button {{
-            opacity: 0 !important;
-            height: 52px !important;
-            min-height: 52px !important;
-            margin-top: -52px !important;
-            cursor: pointer !important;
-            z-index: 10 !important;
-            position: relative !important;
+        /* Caixa Flutuante do Tooltip */
+        .kpi-tooltip {{
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            top: 105%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            width: 220px;
+            z-index: 9999;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }}
+        .card-kpi-container:hover .kpi-tooltip {{
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(4px);
+        }}
+        .tt-title {{
+            font-size: 0.76rem;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+        }}
+        .tt-row {{
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            padding: 2px 0;
+            color: #e2e8f0;
+        }}
+        .tt-row b {{
+            color: #ffffff;
+            font-family: ui-monospace, monospace;
+        }}
+        .tt-empty {{
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-style: italic;
         }}
 
         .hud-detalhe {{
@@ -695,7 +619,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (DESIGN PREMIUM + CARDS INTERATIVOS)
+# 1. PAINEL GERENCIAL DE CORREIAS (DESIGN INDUSTRIAL COM TOOLTIP NO HOVER)
 # ------------------------------------------
 if tela == "Painel Correias":
     st.markdown(
@@ -716,7 +640,7 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cards KPI Executivos Interativos
+    # 4 Cards KPI Executivos com Tooltip Inteligente no Hover
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
@@ -727,16 +651,11 @@ if tela == "Painel Correias":
                     <div class='kpi-val' style='color:#0f172a;'>{len(lista_correias_todas)}</div>
                 </div>
                 <div style='font-size:1.5rem; opacity:0.8;'>📦</div>
+                {tt_total}
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='kpi-btn-invisible'>", unsafe_allow_html=True)
-        if st.button("card_total_click", key="btn_kpi_total_inv", use_container_width=True):
-            st.session_state.kpi_filtro_ativo = "TODAS" if st.session_state.kpi_filtro_ativo != "TODAS" else None
-            st.session_state.maq_clicada_cor = None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k2:
         st.markdown(
@@ -747,16 +666,11 @@ if tela == "Painel Correias":
                     <div class='kpi-val' style='color:#059669;'>{len(lista_correias_novas)}</div>
                 </div>
                 <div style='font-size:1.5rem; opacity:0.8;'>🟢</div>
+                {tt_novas}
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='kpi-btn-invisible'>", unsafe_allow_html=True)
-        if st.button("card_novas_click", key="btn_kpi_novas_inv", use_container_width=True):
-            st.session_state.kpi_filtro_ativo = "NOVAS" if st.session_state.kpi_filtro_ativo != "NOVAS" else None
-            st.session_state.maq_clicada_cor = None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k3:
         st.markdown(
@@ -767,16 +681,11 @@ if tela == "Painel Correias":
                     <div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div>
                 </div>
                 <div style='font-size:1.5rem; opacity:0.8;'>🟡</div>
+                {tt_meia}
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='kpi-btn-invisible'>", unsafe_allow_html=True)
-        if st.button("card_meia_click", key="btn_kpi_meia_inv", use_container_width=True):
-            st.session_state.kpi_filtro_ativo = "MEIA" if st.session_state.kpi_filtro_ativo != "MEIA" else None
-            st.session_state.maq_clicada_cor = None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k4:
         st.markdown(
@@ -787,71 +696,16 @@ if tela == "Painel Correias":
                     <div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div>
                 </div>
                 <div style='font-size:1.5rem; opacity:0.8;'>🔴</div>
+                {tt_crit}
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='kpi-btn-invisible'>", unsafe_allow_html=True)
-        if st.button("card_crit_click", key="btn_kpi_crit_inv", use_container_width=True):
-            st.session_state.kpi_filtro_ativo = "CRITICAS" if st.session_state.kpi_filtro_ativo != "CRITICAS" else None
-            st.session_state.maq_clicada_cor = None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Balão HUD de Detalhes dos Cards KPI (Discriminação por Modelo de Correia)
-    if st.session_state.kpi_filtro_ativo is not None:
-        tipo_kpi = st.session_state.kpi_filtro_ativo
-        if tipo_kpi == "TODAS":
-            lista_alvo = lista_correias_todas
-            titulo_balao = "Total de Correias Instaladas na Fábrica"
-            cor_borda = "status-cinza"
-        elif tipo_kpi == "NOVAS":
-            lista_alvo = lista_correias_novas
-            titulo_balao = "Correias em Operação Normal (≤ 1 ano)"
-            cor_borda = "status-verde"
-        elif tipo_kpi == "MEIA":
-            lista_alvo = lista_correias_meia
-            titulo_balao = "Correias em Meia-Vida (1 a 1,5 anos)"
-            cor_borda = "status-amarelo"
-        else:
-            lista_alvo = lista_correias_criticas
-            titulo_balao = "Correias com Troca Necessária (> 1,5 anos)"
-            cor_borda = "status-vermelho"
-
-        c_box, c_close = st.columns([6.2, 0.8])
-        with c_box:
-            df_kpi_view = pd.DataFrame(lista_alvo)
-            if not df_kpi_view.empty:
-                contagem_modelos = df_kpi_view["modelo"].value_counts().to_dict()
-                html_modelos = " ".join([
-                    f"<span class='tag-pill' style='background:#f1f5f9; font-weight:800;'>🏷️ {mod}: <b>{qtd} un.</b></span>"
-                    for mod, qtd in contagem_modelos.items()
-                ])
-                st.markdown(
-                    f"""
-                    <div class="hud-detalhe {cor_borda}">
-                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:8px;">
-                            <span style="font-size:0.95rem; font-weight:800; color:#0f172a;">📊 {titulo_balao} &nbsp;({len(lista_alvo)} correias no total)</span>
-                        </div>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            {html_modelos}
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.info(f"Nenhuma correia registrada na categoria: {titulo_balao}")
-        with c_close:
-            st.write("")
-            if st.button("✖ Fechar", key="btn_fechar_balao_kpi"):
-                st.session_state.kpi_filtro_ativo = None
-                st.rerun()
-
     # Balão HUD ao Clicar numa Máquina
-    elif st.session_state.maq_clicada_cor is not None:
+    if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
             "badge-verde" if maq_sel["status_label"] == "Nova"
@@ -908,7 +762,7 @@ if tela == "Painel Correias":
             """
             <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
                 <span>💡</span>
-                <span><b>Visualizador Operacional:</b> Clique em qualquer card de resumo para discriminar por modelo de correia ou selecione um ativo para consultar o histórico da máquina.</span>
+                <span><b>Visualizador Operacional:</b> Passe o rato pelos cards acima para ver o detalhe por modelo de correia ou clique numa máquina abaixo para consultar o histórico do equipamento.</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -935,7 +789,6 @@ if tela == "Painel Correias":
                         "tag": maq_tag,
                         **info,
                     }
-                    st.session_state.kpi_filtro_ativo = None
                     st.rerun()
 
 # ------------------------------------------
