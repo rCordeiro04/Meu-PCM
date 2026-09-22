@@ -295,8 +295,9 @@ st.markdown(
             margin: 0px !important;
         }}
         div[data-testid="stHorizontalBlock"] {{
-            gap: 4px !important;
+            gap: 6px !important;
             margin-bottom: 4px !important;
+            align-items: center !important;
         }}
 
         div[data-testid="stVegaLiteChart"] summary,
@@ -573,13 +574,13 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho limpo com título maior em destaque e legendas alinhadas
-    col_t1, col_leg = st.columns([3.5, 6.5])
+    # Linha Superior Única: Título, Filtros de Setor, Tipo e Legendas integradas perfeitamente
+    col_t, col_f1, col_f2, col_leg = st.columns([2.6, 1.4, 1.4, 4.6])
 
-    with col_t1:
+    with col_t:
         st.markdown(
             """
-            <div style="font-size: 1.45rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; padding-top: 4px;">
                 <span>🔄</span>
                 <span>Dashboard Correias</span>
             </div>
@@ -587,10 +588,22 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
+    with col_f1:
+        lista_setores_filtro = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
+        filtro_setor = st.selectbox("Setor", lista_setores_filtro, key="filtro_setor_painel", label_visibility="collapsed")
+
+    with col_f2:
+        modelos_unicos = set()
+        for r in lista_correias_todas:
+            if r["modelo"] and r["modelo"] != "Não informada":
+                modelos_unicos.add(r["modelo"])
+        lista_modelos_filtro = ["Todos os Tipos"] + sorted(list(modelos_unicos))
+        filtro_modelo = st.selectbox("Tipo", lista_modelos_filtro, key="filtro_modelo_painel", label_visibility="collapsed")
+
     with col_leg:
         st.markdown(
             """
-            <div style="text-align: right; padding-top: 6px;">
+            <div style="text-align: right; padding-top: 4px;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
@@ -599,20 +612,6 @@ if tela == "Painel Correias":
             """,
             unsafe_allow_html=True,
         )
-
-    # Filtros de Setor e Tipo de Correia logo abaixo do título
-    col_f1, col_f2, _ = st.columns([2, 2, 6])
-    with col_f1:
-        lista_setores_filtro = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
-        filtro_setor = st.selectbox("🏭 Filtrar Setor:", lista_setores_filtro, key="filtro_setor_painel")
-
-    with col_f2:
-        modelos_unicos = set()
-        for r in lista_correias_todas:
-            if r["modelo"] and r["modelo"] != "Não informada":
-                modelos_unicos.add(r["modelo"])
-        lista_modelos_filtro = ["Todos os Tipos"] + sorted(list(modelos_unicos))
-        filtro_modelo = st.selectbox("🏷️ Filtrar Tipo:", lista_modelos_filtro, key="filtro_modelo_painel")
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
