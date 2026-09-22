@@ -44,9 +44,8 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias (com suporte a 2 correias e migração transparente)
+# Base de Correias
 if not os.path.exists(ARQUIVO_CORREIAS):
-    # Se existir a versão v3, migra automaticamente
     if os.path.exists("lancamentos_correias_v3.xlsx"):
         df_antigo = pd.read_excel("lancamentos_correias_v3.xlsx")
         df_migrado = pd.DataFrame(columns=colunas_correias)
@@ -100,6 +99,30 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
+# Carga inicial segura para máquinas do Setor Menegatto se estiverem vazias[cite: 5]
+dados_iniciais_menegatto = [
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-93", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2025-04-16"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-94", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2025-05-01"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-95", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2025-04-17"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-96", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2026-06-25"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-97", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2025-05-05"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-98", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2024-12-11"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-99", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2024-12-06"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-100", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2025-12-04"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-101", "Tipo_Correia_1": "38.740", "Data_Instalacao_1": "2026-04-03"},
+]
+
+houve_ajuste = False
+for reg in dados_iniciais_menegatto:
+    cond = (df_correias["Setor"] == reg["Setor"]) & (df_correias["Maquina_TAG"] == reg["Maquina_TAG"])
+    if df_correias[cond].empty:
+        reg_completo = {**reg, "Tipo_Correia_2": "", "Data_Instalacao_2": ""}
+        df_correias = pd.concat([df_correias, pd.DataFrame([reg_completo])], ignore_index=True)
+        houve_ajuste = True
+
+if houve_ajuste:
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
 
@@ -112,7 +135,7 @@ def navegar(nome_pagina):
 
 
 # ==========================================
-# CÁLCULO E ANÁLISE DE CORREIAS (REGRA DO PIOR CASO)
+# CÁLCULO E ANÁLISE DE CORREIAS
 # ==========================================
 todas_as_maquinas = []
 mapa_setor_maquina = {}
@@ -139,7 +162,7 @@ def avaliar_correia(dt_val):
         dt_fmt = dt_inst.strftime("%d/%m/%Y")
         dias = (data_hoje - dt_inst).days
         meses = round(dias / 30.4, 1)
-        tempo_str = f"{meses} meses ({dias} dias)"
+        tempo_str = f"{meses}m ({dias}d)"
 
         if dias <= 365:
             return 1, dt_fmt, tempo_str  # Verde
@@ -172,33 +195,32 @@ for maq_tag in todas_as_maquinas:
             t2 = v2
         c2_score, d2_str, t2_uso = avaliar_correia(str(ultimo.get("Data_Instalacao_2", "")))
 
-    # Determina o nível mais crítico entre as correias existentes
     scores = [s for s in [c1_score, c2_score] if s is not None]
     if scores:
         pior_score = max(scores)
         if pior_score == 1:
             classe_card = "status-verde"
-            cor_fundo = "#10b981"
-            cor_borda = "#059669"
+            cor_grad = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+            cor_borda = "#047857"
             status_label = "Nova"
             qtd_novas += 1
         elif pior_score == 2:
             classe_card = "status-amarelo"
-            cor_fundo = "#f59e0b"
-            cor_borda = "#d97706"
+            cor_grad = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+            cor_borda = "#b45309"
             status_label = "Meia-Vida"
             qtd_meia_vida += 1
         else:
             classe_card = "status-vermelho"
-            cor_fundo = "#ef4444"
-            cor_borda = "#dc2626"
-            status_label = "Troca Urgente"
+            cor_grad = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+            cor_borda = "#b91c1c"
+            status_label = "Troca Necessária"
             qtd_criticas += 1
     else:
         classe_card = "status-cinza"
-        cor_fundo = "#94a3b8"
-        cor_borda = "#64748b"
-        status_label = "Pendente"
+        cor_grad = "linear-gradient(135deg, #64748b 0%, #475569 100%)"
+        cor_borda = "#334155"
+        status_label = "Sem Dados"
         qtd_sem_dado += 1
 
     dados_maquinas[maq_tag] = {
@@ -219,22 +241,22 @@ for maq_tag in todas_as_maquinas:
         f"""
         button[key="{chave_btn}"],
         div.st-key-{chave_btn} button {{
-            background: {cor_fundo} !important;
+            background: {cor_grad} !important;
             color: #ffffff !important;
             border: 1px solid {cor_borda} !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
         }}
         button[key="{chave_btn}"]:hover,
         div.st-key-{chave_btn} button:hover {{
-            filter: brightness(1.1) !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+            filter: brightness(1.15) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.22) !important;
         }}
         button[key="{chave_btn}"] p,
         div.st-key-{chave_btn} button p {{
             color: #ffffff !important;
             font-weight: 800 !important;
-            letter-spacing: 0.3px !important;
+            letter-spacing: 0.4px !important;
         }}
         """
     )
@@ -244,9 +266,10 @@ regras_css_botoes = "\n".join(css_botoes)
 st.markdown(
     f"""
     <style>
+        /* Deslocamento seguro contra barra nativa do Streamlit */
         .block-container {{
-            padding-top: 4.2rem !important;
-            padding-bottom: 0.8rem !important;
+            padding-top: 4.4rem !important;
+            padding-bottom: 1rem !important;
             padding-left: 2rem !important;
             padding-right: 2rem !important;
         }}
@@ -271,51 +294,90 @@ st.markdown(
             resize: none !important;
         }}
 
+        /* Botões do Mosaico */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
-            height: 32px !important;
-            min-height: 32px !important;
-            line-height: 30px !important;
-            border-radius: 6px !important;
-            transition: all 0.15s ease !important;
-        }}
-        div[data-testid="stButton"] button:hover {{
-            transform: translateY(-2px) !important;
+            height: 33px !important;
+            min-height: 33px !important;
+            line-height: 31px !important;
+            border-radius: 7px !important;
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
 
         {regras_css_botoes}
 
-        .mini-stat-card {{
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 8px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        }}
-        .mini-stat-val {{
-            font-size: 1.25rem;
-            font-weight: 800;
-            line-height: 1;
-        }}
-        .mini-stat-lbl {{
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-        }}
-
-        .hud-detalhe {{
+        /* Barra de Título e Ferramentas */
+        .header-bar {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 12px 18px;
-            margin: 8px 0 12px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            border-left: 6px solid #94a3b8;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            margin-bottom: 10px;
+        }}
+        .header-title {{
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+
+        /* Mini Cards KPI */
+        .kpi-card {{
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }}
+        .kpi-card::after {{
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }}
+        .kpi-card.c-total::after {{ background: #475569; }}
+        .kpi-card.c-ok::after {{ background: #10b981; }}
+        .kpi-card.c-warn::after {{ background: #f59e0b; }}
+        .kpi-card.c-crit::after {{ background: #ef4444; }}
+
+        .kpi-val {{
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1;
+            font-family: ui-monospace, monospace;
+        }}
+        .kpi-lbl {{
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }}
+
+        /* HUD da Máquina Ativa */
+        .hud-detalhe {{
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 6px 0 12px 0;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            border-left: 6px solid #64748b;
             animation: fadeIn 0.15s ease-in;
         }}
         @keyframes fadeIn {{
@@ -325,18 +387,18 @@ st.markdown(
         .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
         .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
         .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
+        .hud-detalhe.status-cinza {{ border-left-color: #64748b; }}
 
         .tag-pill {{
-            background: #f1f5f9;
-            padding: 3px 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px 10px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
             font-weight: 700;
             color: #334155;
             display: inline-block;
             margin-right: 6px;
-            margin-bottom: 3px;
         }}
         .badge-status {{
             padding: 4px 10px;
@@ -344,29 +406,29 @@ st.markdown(
             font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.5px;
         }}
         .badge-verde {{ background: #d1fae5; color: #065f46; }}
         .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
         .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
+        .badge-cinza {{ background: #f1f5f9; color: #475569; }}
 
+        /* Legenda em Cápsulas */
         .pill-legenda {{
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.76rem;
+            gap: 6px;
+            font-size: 0.78rem;
             font-weight: 700;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 20px;
             margin-left: 4px;
-            white-space: nowrap;
         }}
         .dot-legenda {{
-            width: 8px;
-            height: 8px;
+            width: 9px;
+            height: 9px;
             border-radius: 50%;
             display: inline-block;
         }}
@@ -485,38 +547,39 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (COM SUPORTE A 2 CORREIAS)
+# 1. PAINEL GERENCIAL DE CORREIAS (INTERFACE PREMIUM)
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_head1, c_head2 = st.columns([1.2, 2.8])
-    with c_head1:
-        st.markdown("<h3 style='margin:0; padding:0; font-weight:800; color:#0f172a;'>🔄 Controle de correias</h3>", unsafe_allow_html=True)
-    with c_head2:
-        st.markdown(
-            """
-            <div style='text-align:right; padding-top:4px;'>
+    # Header Principal Integrado
+    st.markdown(
+        """
+        <div class="header-bar">
+            <div class="header-title">
+                <span>🔄</span>
+                <span>Controle de correias</span>
+            </div>
+            <div>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#64748b;'></span> Sem Dados</span>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
-
-    # Mini Cards KPI
+    # Mini Cards KPI Executivos
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
             f"""
-            <div class='mini-stat-card' style='border-left: 4px solid #64748b;'>
+            <div class='kpi-card c-total'>
                 <div>
-                    <div class='mini-stat-lbl'>Total de Ativos</div>
-                    <div class='mini-stat-val' style='color:#0f172a;'>{len(todas_as_maquinas)}</div>
+                    <div class='kpi-lbl'>Total de Ativos</div>
+                    <div class='kpi-val' style='color:#0f172a;'>{len(todas_as_maquinas)}</div>
                 </div>
-                <div style='font-size:1.4rem;'>🏭</div>
+                <div style='font-size:1.5rem; opacity:0.8;'>🏭</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -524,12 +587,12 @@ if tela == "Painel Correias":
     with k2:
         st.markdown(
             f"""
-            <div class='mini-stat-card' style='border-left: 4px solid #10b981;'>
+            <div class='kpi-card c-ok'>
                 <div>
-                    <div class='mini-stat-lbl'>Operação Normal</div>
-                    <div class='mini-stat-val' style='color:#059669;'>{qtd_novas}</div>
+                    <div class='kpi-lbl'>Operação Normal</div>
+                    <div class='kpi-val' style='color:#059669;'>{qtd_novas}</div>
                 </div>
-                <div style='font-size:1.4rem;'>🟢</div>
+                <div style='font-size:1.5rem; opacity:0.8;'>🟢</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -537,12 +600,12 @@ if tela == "Painel Correias":
     with k3:
         st.markdown(
             f"""
-            <div class='mini-stat-card' style='border-left: 4px solid #f59e0b;'>
+            <div class='kpi-card c-warn'>
                 <div>
-                    <div class='mini-stat-lbl'>Atenção (Meia-Vida)</div>
-                    <div class='mini-stat-val' style='color:#d97706;'>{qtd_meia_vida}</div>
+                    <div class='kpi-lbl'>Atenção (Meia-Vida)</div>
+                    <div class='kpi-val' style='color:#d97706;'>{qtd_meia_vida}</div>
                 </div>
-                <div style='font-size:1.4rem;'>🟡</div>
+                <div style='font-size:1.5rem; opacity:0.8;'>🟡</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -550,12 +613,12 @@ if tela == "Painel Correias":
     with k4:
         st.markdown(
             f"""
-            <div class='mini-stat-card' style='border-left: 4px solid #ef4444;'>
+            <div class='kpi-card c-crit'>
                 <div>
-                    <div class='mini-stat-lbl'>Troca Necessária</div>
-                    <div class='mini-stat-val' style='color:#dc2626;'>{qtd_criticas}</div>
+                    <div class='kpi-lbl'>Troca Necessária</div>
+                    <div class='kpi-val' style='color:#dc2626;'>{qtd_criticas}</div>
                 </div>
-                <div style='font-size:1.4rem;'>🔴</div>
+                <div style='font-size:1.5rem; opacity:0.8;'>🔴</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -563,25 +626,25 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Balão HUD ao Clicar numa Máquina
+    # HUD de Detalhes da Máquina Clicada
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
             "badge-verde" if maq_sel["status_label"] == "Nova"
             else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
-            else "badge-vermelho" if maq_sel["status_label"] == "Troca Urgente"
+            else "badge-vermelho" if maq_sel["status_label"] == "Troca Necessária"
             else "badge-cinza"
         )
 
         c_box, c_close = st.columns([6.2, 0.8])
         with c_box:
             html_correias = f"""
-            <div style="margin-top:4px;">
-                <span class="tag-pill">🔄 <b>Correia 1:</b> {maq_sel['t1']} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ {maq_sel['uso1']}</span>
+            <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="tag-pill">🔄 <b>Correia 1:</b> {maq_sel['t1']} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
             """
             if maq_sel["tem_duas"]:
                 html_correias += f"""
-                <span class="tag-pill">🔄 <b>Correia 2:</b> {maq_sel['t2']} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ {maq_sel['uso2']}</span>
+                <span class="tag-pill">🔄 <b>Correia 2:</b> {maq_sel['t2']} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
                 """
             html_correias += "</div>"
 
@@ -590,8 +653,8 @@ if tela == "Painel Correias":
                 <div class="hud-detalhe {maq_sel['classe_card']}">
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                         <div>
-                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff;">⚙️ {maq_sel['tag']}</span>
-                            <span class="tag-pill">🏭 {maq_sel['setor']}</span>
+                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff; border-color:#0f172a;">⚙️ {maq_sel['tag']}</span>
+                            <span class="tag-pill" style="background:#e2e8f0;">🏭 {maq_sel['setor']}</span>
                         </div>
                         <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
                     </div>
@@ -608,8 +671,9 @@ if tela == "Painel Correias":
     else:
         st.markdown(
             """
-            <div style='background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:6px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600;'>
-                💡 <b>Painel Interativo:</b> Clique em qualquer máquina para visualizar os detalhes (inclusive para equipamentos com 2 correias). A cor do quadrado reflete a correia mais antiga.
+            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
+                <span>💡</span>
+                <span><b>Visualizador Operacional:</b> Selecione qualquer ativo abaixo para consultar o ciclo de vida e histórico da(s) correia(s).</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -617,6 +681,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
+    # Grelha de Máquinas em Mosaico Refinado (12 Colunas)
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
@@ -638,7 +703,7 @@ if tela == "Painel Correias":
                     st.rerun()
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (SUPORTE A 2 CORREIAS)
+# 2. LANÇAMENTOS: CORREIAS (INTACTO)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
