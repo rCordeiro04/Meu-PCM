@@ -985,23 +985,23 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) COM BOTÕES LADO A LADO
+# BARRA LATERAL (SIDEBAR) OTIMIZADA
 # ==========================================
 with st.sidebar:
     st.markdown(
         """
-        <div style="margin-top: -1.5rem; margin-bottom: 0.2rem;">
-            <h1 style="font-size: 1.8rem; margin-bottom: 0px; color: #0f172a;">⚙️ Portal PCM</h1>
-            <p style="font-size: 0.9rem; font-weight: 700; color: #64748b; margin-top: 2px;">Controle MEC</p>
+        <div style="margin-top: -2rem; margin-bottom: -0.5rem;">
+            <h1 style="font-size: 1.6rem; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                <span>⚙️</span> Portal PCM
+            </h1>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown("---")
 
     is_lancamento = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
 
-    # Dois botões lado a lado para alternar o modo principal
+    # Dois botões lado a lado logo abaixo do título
     col_b1, col_b2 = st.columns(2)
     with col_b1:
         if st.button("📊 Painéis", use_container_width=True, type="primary" if not is_lancamento else "secondary"):
