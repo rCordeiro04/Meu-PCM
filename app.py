@@ -104,144 +104,14 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
     for m in lista_m:
         mapa_setor_maquina[m] = setor_nome
 
-# ==========================================
-# ATUALIZAÇÃO SEGURA DOS APONTAMENTOS DE CORREIAS
-# ==========================================
-correias_36100 = [
-    {"Maquina_TAG": "L-01", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-21"},
-    {"Maquina_TAG": "L-03", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-04"},
-    {"Maquina_TAG": "L-04", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-01-07"},
-    {"Maquina_TAG": "L-05", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-27"},
-    {"Maquina_TAG": "L-06", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2024-11-19"},
-    {"Maquina_TAG": "L-07", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-25"},
-    {"Maquina_TAG": "L-08", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-05-20"},
-    {"Maquina_TAG": "L-09", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-13"},
-    {"Maquina_TAG": "L-10", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-08"},
-    {"Maquina_TAG": "L-15", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-07"},
-    {"Maquina_TAG": "L-16", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-02-12"},
-    {"Maquina_TAG": "L-17", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-08-20"},
-    {"Maquina_TAG": "L-18", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
-    {"Maquina_TAG": "L-19", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-04-12"},
-    {"Maquina_TAG": "L-20", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-07-01"},
-    {"Maquina_TAG": "L-21", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-20"},
-    {"Maquina_TAG": "L-22", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-19"},
-    {"Maquina_TAG": "L-23", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-09-01"},
-    {"Maquina_TAG": "L-24", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-27"},
-    {"Maquina_TAG": "L-25", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-29"},
-    {"Maquina_TAG": "L-29", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-13"},
-    {"Maquina_TAG": "L-30", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-09-10"},
-    {"Maquina_TAG": "L-31", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
-    {"Maquina_TAG": "L-33", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-20"},
-    {"Maquina_TAG": "L-34", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-06"},
-    {"Maquina_TAG": "L-36", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-02-26"},
-    {"Maquina_TAG": "L-38", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-02"},
-    {"Maquina_TAG": "L-39", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-21"},
-    {"Maquina_TAG": "L-40", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-11"},
-    {"Maquina_TAG": "L-51", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-30"},
-]
-
-cabeceira_19500 = [
-    {"Maquina_TAG": "L-11", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-08-21"},
-    {"Maquina_TAG": "L-12", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-01-17"},
-    {"Maquina_TAG": "L-13", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-08-11"},
-    {"Maquina_TAG": "L-14", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-26"},
-    {"Maquina_TAG": "L-26", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-09-14"},
-    {"Maquina_TAG": "L-27", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-03-13"},
-    {"Maquina_TAG": "L-50", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-05"},
-]
-
-superior_33990 = [
-    {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
-    {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
-    {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
-]
-
-novos_dados_superior = correias_36100 + cabeceira_19500 + superior_33990
-
-traseira_18050 = [
-    {"Maquina_TAG": "L-11", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-01-27"},
-    {"Maquina_TAG": "L-12", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-01-17"},
-    {"Maquina_TAG": "L-14", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-02-02"},
-    {"Maquina_TAG": "L-28", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-03-22"},
-    {"Maquina_TAG": "L-50", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-07-28"},
-]
-
-novos_dados_inferior = [
-    {"Maquina_TAG": "L-42", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-10-02"},
-    {"Maquina_TAG": "L-43", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-08-05"},
-    {"Maquina_TAG": "L-44", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-08-08"},
-    {"Maquina_TAG": "B-73", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2026-06-13"},
-    {"Maquina_TAG": "B-74", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-02-15"},
-    {"Maquina_TAG": "B-78", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-12-29"},
-    {"Maquina_TAG": "B-79", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2024-11-30"},
-] + traseira_18050
-
-houve_modificacao = False
-
-# Aplica dados Superior / Cabeceira
-for item in novos_dados_superior:
-    tag = item["Maquina_TAG"]
-    setor_alvo = mapa_setor_maquina.get(tag, "")
-    cond = (df_correias["Setor"] == setor_alvo) & (df_correias["Maquina_TAG"] == tag)
-    if not df_correias[cond].empty:
-        idx = df_correias[cond].index[-1]
-        if (
-            str(df_correias.at[idx, "Tipo_Correia_1"]) != item["Tipo_Correia_1"]
-            or str(df_correias.at[idx, "Data_Instalacao_1"]) != item["Data_Instalacao_1"]
-        ):
-            df_correias.at[idx, "Tipo_Correia_1"] = item["Tipo_Correia_1"]
-            df_correias.at[idx, "Data_Instalacao_1"] = item["Data_Instalacao_1"]
-            houve_modificacao = True
-    else:
-        novo_reg = {
-            "Setor": setor_alvo,
-            "Maquina_TAG": tag,
-            "Tipo_Correia_1": item["Tipo_Correia_1"],
-            "Data_Instalacao_1": item["Data_Instalacao_1"],
-            "Tipo_Correia_2": "",
-            "Data_Instalacao_2": "",
-        }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
-        houve_modificacao = True
-
-# Aplica dados Inferior / Traseira
-for item in novos_dados_inferior:
-    tag = item["Maquina_TAG"]
-    setor_alvo = mapa_setor_maquina.get(tag, "")
-    cond = (df_correias["Setor"] == setor_alvo) & (df_correias["Maquina_TAG"] == tag)
-    if not df_correias[cond].empty:
-        idx = df_correias[cond].index[-1]
-        if (
-            str(df_correias.at[idx, "Tipo_Correia_2"]) != item["Tipo_Correia_2"]
-            or str(df_correias.at[idx, "Data_Instalacao_2"]) != item["Data_Instalacao_2"]
-        ):
-            df_correias.at[idx, "Tipo_Correia_2"] = item["Tipo_Correia_2"]
-            df_correias.at[idx, "Data_Instalacao_2"] = item["Data_Instalacao_2"]
-            houve_modificacao = True
-    else:
-        novo_reg = {
-            "Setor": setor_alvo,
-            "Maquina_TAG": tag,
-            "Tipo_Correia_1": "",
-            "Data_Instalacao_1": "",
-            "Tipo_Correia_2": item["Tipo_Correia_2"],
-            "Data_Instalacao_2": item["Data_Instalacao_2"],
-        }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
-        houve_modificacao = True
-
-if houve_modificacao:
-    df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].astype(str)
-    df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
-    df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
-    df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
 
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
+
+if "kpi_filtro_ativo" not in st.session_state:
+    st.session_state.kpi_filtro_ativo = None
 
 
 def navegar(nome_pagina):
@@ -249,7 +119,7 @@ def navegar(nome_pagina):
 
 
 # ==========================================
-# CÁLCULO E ANÁLISE DE CORREIAS (REGRA DO PIOR CASO)
+# CÁLCULO E ANÁLISE DE CORREIAS
 # ==========================================
 todas_as_maquinas = []
 for setor_nome, lista_m in DICIONARIO_SETORES.items():
@@ -260,10 +130,11 @@ data_hoje = date.today()
 dados_maquinas = {}
 css_botoes = []
 
-qtd_novas = 0
-qtd_meia_vida = 0
-qtd_criticas = 0
-qtd_sem_dado = 0
+# Listas para rastreio analítico de correias por modelo
+lista_correias_todas = []
+lista_correias_novas = []
+lista_correias_meia = []
+lista_correias_criticas = []
 
 
 def avaliar_correia(dt_val):
@@ -306,6 +177,14 @@ for maq_tag in todas_as_maquinas:
             t1 = v1 if (v1 and v1 != "nan") else "Não informada"
             c1_score, d1_str, t1_uso = avaliar_correia(dt1_raw)
             tem_c1 = True
+            reg_c1 = {"tag": maq_tag, "pos": "Superior", "modelo": t1, "data": d1_str, "uso": t1_uso, "setor": setor_m}
+            lista_correias_todas.append(reg_c1)
+            if c1_score == 1:
+                lista_correias_novas.append(reg_c1)
+            elif c1_score == 2:
+                lista_correias_meia.append(reg_c1)
+            elif c1_score == 3:
+                lista_correias_criticas.append(reg_c1)
 
         v2 = str(ultimo.get("Tipo_Correia_2", "")).strip()
         dt2_raw = str(ultimo.get("Data_Instalacao_2", "")).strip()
@@ -313,6 +192,14 @@ for maq_tag in todas_as_maquinas:
             t2 = v2 if (v2 and v2 != "nan") else "Não informada"
             c2_score, d2_str, t2_uso = avaliar_correia(dt2_raw)
             tem_c2 = True
+            reg_c2 = {"tag": maq_tag, "pos": "Inferior", "modelo": t2, "data": d2_str, "uso": t2_uso, "setor": setor_m}
+            lista_correias_todas.append(reg_c2)
+            if c2_score == 1:
+                lista_correias_novas.append(reg_c2)
+            elif c2_score == 2:
+                lista_correias_meia.append(reg_c2)
+            elif c2_score == 3:
+                lista_correias_criticas.append(reg_c2)
 
     scores = [s for s in [c1_score, c2_score] if s is not None]
     if scores:
@@ -322,25 +209,21 @@ for maq_tag in todas_as_maquinas:
             cor_grad = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
             cor_borda = "#047857"
             status_label = "Nova"
-            qtd_novas += 1
         elif pior_score == 2:
             classe_card = "status-amarelo"
             cor_grad = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
             cor_borda = "#b45309"
             status_label = "Meia-Vida"
-            qtd_meia_vida += 1
         else:
             classe_card = "status-vermelho"
             cor_grad = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
             cor_borda = "#b91c1c"
             status_label = "Troca Necessária"
-            qtd_criticas += 1
     else:
         classe_card = "status-cinza"
         cor_grad = "linear-gradient(135deg, #64748b 0%, #475569 100%)"
         cor_borda = "#334155"
         status_label = "Sem Dados"
-        qtd_sem_dado += 1
 
     dados_maquinas[maq_tag] = {
         "setor": setor_m,
@@ -434,7 +317,7 @@ st.markdown(
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }}
         .header-title {{
             font-size: 1.15rem;
@@ -445,52 +328,37 @@ st.markdown(
             gap: 8px;
         }}
 
-        .kpi-card {{
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            position: relative;
-            overflow: hidden;
+        /* Estilo dos Cards KPI Clicáveis */
+        .btn-kpi-wrapper button {{
+            height: 58px !important;
+            min-height: 58px !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 9px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
+            padding: 4px 10px !important;
+            text-align: left !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
         }}
-        .kpi-card::after {{
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
+        .btn-kpi-wrapper button:hover {{
+            filter: brightness(0.97) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08) !important;
         }}
-        .kpi-card.c-total::after {{ background: #475569; }}
-        .kpi-card.c-ok::after {{ background: #10b981; }}
-        .kpi-card.c-warn::after {{ background: #f59e0b; }}
-        .kpi-card.c-crit::after {{ background: #ef4444; }}
-
-        .kpi-val {{
-            font-size: 1.45rem;
-            font-weight: 800;
-            line-height: 1;
-            font-family: ui-monospace, monospace;
-        }}
-        .kpi-lbl {{
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
+        .btn-kpi-wrapper button p {{
+            color: #0f172a !important;
+            font-weight: 700 !important;
         }}
 
+        /* Balão HUD */
         .hud-detalhe {{
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: 10px;
-            padding: 14px 18px;
-            margin: 6px 0 12px 0;
+            padding: 12px 18px;
+            margin: 6px 0 10px 0;
             box-shadow: 0 6px 18px rgba(0,0,0,0.06);
             border-left: 6px solid #64748b;
             animation: fadeIn 0.15s ease-in;
@@ -507,21 +375,21 @@ st.markdown(
         .tag-pill {{
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 6px;
             font-size: 0.82rem;
             font-weight: 700;
             color: #334155;
             display: inline-block;
-            margin-right: 8px;
+            margin-right: 6px;
         }}
         .badge-status {{
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 6px;
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
         }}
         .badge-verde {{ background: #d1fae5; color: #065f46; }}
         .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
@@ -682,63 +550,94 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
+    # 4 Cards KPI Clicáveis
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        st.markdown(
-            f"""
-            <div class='kpi-card c-total'>
-                <div>
-                    <div class='kpi-lbl'>Total de Ativos</div>
-                    <div class='kpi-val' style='color:#0f172a;'>{len(todas_as_maquinas)}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🏭</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown("<div class='btn-kpi-wrapper'>", unsafe_allow_html=True)
+        if st.button(f"📦 Total de Correias: {len(lista_correias_todas)}", key="btn_kpi_total", use_container_width=True):
+            st.session_state.kpi_filtro_ativo = "TODAS" if st.session_state.kpi_filtro_ativo != "TODAS" else None
+            st.session_state.maq_clicada_cor = None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with k2:
-        st.markdown(
-            f"""
-            <div class='kpi-card c-ok'>
-                <div>
-                    <div class='kpi-lbl'>Operação Normal</div>
-                    <div class='kpi-val' style='color:#059669;'>{qtd_novas}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🟢</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown("<div class='btn-kpi-wrapper'>", unsafe_allow_html=True)
+        if st.button(f"🟢 Operação Normal: {len(lista_correias_novas)}", key="btn_kpi_novas", use_container_width=True):
+            st.session_state.kpi_filtro_ativo = "NOVAS" if st.session_state.kpi_filtro_ativo != "NOVAS" else None
+            st.session_state.maq_clicada_cor = None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with k3:
-        st.markdown(
-            f"""
-            <div class='kpi-card c-warn'>
-                <div>
-                    <div class='kpi-lbl'>Atenção (Meia-Vida)</div>
-                    <div class='kpi-val' style='color:#d97706;'>{qtd_meia_vida}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🟡</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown("<div class='btn-kpi-wrapper'>", unsafe_allow_html=True)
+        if st.button(f"🟡 Meia-Vida: {len(lista_correias_meia)}", key="btn_kpi_meia", use_container_width=True):
+            st.session_state.kpi_filtro_ativo = "MEIA" if st.session_state.kpi_filtro_ativo != "MEIA" else None
+            st.session_state.maq_clicada_cor = None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
     with k4:
-        st.markdown(
-            f"""
-            <div class='kpi-card c-crit'>
-                <div>
-                    <div class='kpi-lbl'>Troca Necessária</div>
-                    <div class='kpi-val' style='color:#dc2626;'>{qtd_criticas}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🔴</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown("<div class='btn-kpi-wrapper'>", unsafe_allow_html=True)
+        if st.button(f"🔴 Troca Necessária: {len(lista_correias_criticas)}", key="btn_kpi_criticas", use_container_width=True):
+            st.session_state.kpi_filtro_ativo = "CRITICAS" if st.session_state.kpi_filtro_ativo != "CRITICAS" else None
+            st.session_state.maq_clicada_cor = None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    if st.session_state.maq_clicada_cor is not None:
+    # Balão HUD de Detalhes dos Cards KPI (Discriminação por Modelo de Correia)
+    if st.session_state.kpi_filtro_ativo is not None:
+        tipo_kpi = st.session_state.kpi_filtro_ativo
+        if tipo_kpi == "TODAS":
+            lista_alvo = lista_correias_todas
+            titulo_balao = "Total de Correias Instaladas na Fábrica"
+            cor_borda = "status-cinza"
+        elif tipo_kpi == "NOVAS":
+            lista_alvo = lista_correias_novas
+            titulo_balao = "Correias em Operação Normal (≤ 1 ano)"
+            cor_borda = "status-verde"
+        elif tipo_kpi == "MEIA":
+            lista_alvo = lista_correias_meia
+            titulo_balao = "Correias em Meia-Vida (1 a 1,5 anos)"
+            cor_borda = "status-amarelo"
+        else:
+            lista_alvo = lista_correias_criticas
+            titulo_balao = "Correias com Troca Necessária (> 1,5 anos)"
+            cor_borda = "status-vermelho"
+
+        c_box, c_close = st.columns([6.2, 0.8])
+        with c_box:
+            df_kpi_view = pd.DataFrame(lista_alvo)
+            if not df_kpi_view.empty:
+                contagem_modelos = df_kpi_view["modelo"].value_counts().to_dict()
+                html_modelos = " ".join([
+                    f"<span class='tag-pill' style='background:#f1f5f9; font-weight:800;'>🏷️ {mod}: <b>{qtd} un.</b></span>"
+                    for mod, qtd in contagem_modelos.items()
+                ])
+                st.markdown(
+                    f"""
+                    <div class="hud-detalhe {cor_borda}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
+                            <span style="font-size:0.95rem; font-weight:800; color:#0f172a;">📊 {titulo_balao} &nbsp;({len(lista_alvo)} correias)</span>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            {html_modelos}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info(f"Nenhuma correia registrada na categoria: {titulo_balao}")
+        with c_close:
+            st.write("")
+            if st.button("✖ Fechar", key="btn_fechar_balao_kpi"):
+                st.session_state.kpi_filtro_ativo = None
+                st.rerun()
+
+    # Balão HUD ao Clicar numa Máquina
+    elif st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
             "badge-verde" if maq_sel["status_label"] == "Nova"
@@ -795,7 +694,7 @@ if tela == "Painel Correias":
             """
             <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
                 <span>💡</span>
-                <span><b>Visualizador Operacional:</b> Selecione qualquer máquina para ver os dados das correias (Superior / Cabeceira e Inferior / Traseira). A cor do botão reflete a correia mais antiga.</span>
+                <span><b>Visualizador Operacional:</b> Clique nos cards superiores para discriminar por modelo de correia ou clique em qualquer máquina para consultar o histórico individual.</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -821,6 +720,7 @@ if tela == "Painel Correias":
                         "tag": maq_tag,
                         **info,
                     }
+                    st.session_state.kpi_filtro_ativo = None
                     st.rerun()
 
 # ------------------------------------------
