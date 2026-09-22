@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Arquivos de dados blindados e separados
+# Ficheiros de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 
@@ -72,7 +72,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -107,11 +107,30 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
 # ==========================================
 # ATUALIZAÇÃO SEGURA DOS APONTAMENTOS DE CORREIAS
 # ==========================================
+# Carga das correias Cabeceira (19.500) e Traseira (18.050)[cite: 8]
+cabeceira_19500 = [
+    {"Maquina_TAG": "L-11", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-08-21"},
+    {"Maquina_TAG": "L-12", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-01-17"},
+    {"Maquina_TAG": "L-13", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-08-11"},
+    {"Maquina_TAG": "L-14", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-26"},
+    {"Maquina_TAG": "L-26", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-09-14"},
+    {"Maquina_TAG": "L-27", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2025-03-13"},
+    {"Maquina_TAG": "L-50", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-05"},
+]
+
+traseira_18050 = [
+    {"Maquina_TAG": "L-11", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-01-27"},
+    {"Maquina_TAG": "L-12", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-01-17"},
+    {"Maquina_TAG": "L-14", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-02-02"},
+    {"Maquina_TAG": "L-28", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-03-22"},
+    {"Maquina_TAG": "L-50", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-07-28"},
+]
+
 novos_dados_superior = [
     {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
     {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
     {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
-]
+] + cabeceira_19500
 
 novos_dados_inferior = [
     {"Maquina_TAG": "L-42", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-10-02"},
@@ -121,11 +140,11 @@ novos_dados_inferior = [
     {"Maquina_TAG": "B-74", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-02-15"},
     {"Maquina_TAG": "B-78", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-12-29"},
     {"Maquina_TAG": "B-79", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2024-11-30"},
-]
+] + traseira_18050
 
 houve_modificacao = False
 
-# Aplica dados Superior / Cabeceira
+# Gravação dos dados Superior / Cabeceira
 for item in novos_dados_superior:
     tag = item["Maquina_TAG"]
     setor_alvo = mapa_setor_maquina.get(tag, "")
@@ -151,7 +170,7 @@ for item in novos_dados_superior:
         df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
         houve_modificacao = True
 
-# Aplica dados Inferior / Traseira
+# Gravação dos dados Inferior / Traseira
 for item in novos_dados_inferior:
     tag = item["Maquina_TAG"]
     setor_alvo = mapa_setor_maquina.get(tag, "")
