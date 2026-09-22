@@ -72,7 +72,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -328,73 +328,46 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* Cards KPI com o Design Original Bonito */
-        .card-kpi-bonito {{
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            position: relative;
-            overflow: hidden;
-            height: 64px;
-            box-sizing: border-box;
-            transition: all 0.15s ease;
-        }}
-        .card-kpi-bonito:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-            border-color: #cbd5e1;
-        }}
-        .card-kpi-bonito::after {{
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-        }}
-        .card-kpi-bonito.c-total::after {{ background: #475569; }}
-        .card-kpi-bonito.c-ok::after {{ background: #10b981; }}
-        .card-kpi-bonito.c-warn::after {{ background: #f59e0b; }}
-        .card-kpi-bonito.c-crit::after {{ background: #ef4444; }}
-
-        .kpi-val {{
-            font-size: 1.45rem;
-            font-weight: 800;
-            line-height: 1;
-            font-family: ui-monospace, monospace;
-        }}
-        .kpi-lbl {{
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }}
-
-        /* Botão invisível que cobre o card perfeitamente sem deformá-lo */
-        .col-kpi-wrapper {{
-            position: relative;
-            height: 64px;
-        }}
-        .btn-kpi-invisivel div[data-testid="stButton"] button {{
-            position: absolute !important;
-            top: 0px !important;
-            left: 0px !important;
-            width: 100% !important;
+        /* ESTILO DOS BOTÕES KPI SUPERIORES (DESIGN PREMIUM) */
+        div.kpi-btn-box div[data-testid="stButton"] button {{
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 10px !important;
             height: 64px !important;
             min-height: 64px !important;
-            opacity: 0 !important;
-            z-index: 10 !important;
-            cursor: pointer !important;
-            border: none !important;
-            background: transparent !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+            padding: 8px 14px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            transition: all 0.15s ease !important;
         }}
+        div.kpi-btn-box div[data-testid="stButton"] button:hover {{
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+            border-color: #cbd5e1 !important;
+            filter: none !important;
+        }}
+        div.kpi-btn-box div[data-testid="stButton"] button p {{
+            font-size: 0.92rem !important;
+            font-weight: 800 !important;
+            margin: 0 !important;
+            line-height: 1.25 !important;
+            text-align: left !important;
+            letter-spacing: 0.3px !important;
+        }}
+
+        div.kpi-total div[data-testid="stButton"] button {{ border-left: 5px solid #475569 !important; }}
+        div.kpi-total div[data-testid="stButton"] button p {{ color: #0f172a !important; }}
+
+        div.kpi-ok div[data-testid="stButton"] button {{ border-left: 5px solid #10b981 !important; }}
+        div.kpi-ok div[data-testid="stButton"] button p {{ color: #059669 !important; }}
+
+        div.kpi-warn div[data-testid="stButton"] button {{ border-left: 5px solid #f59e0b !important; }}
+        div.kpi-warn div[data-testid="stButton"] button p {{ color: #d97706 !important; }}
+
+        div.kpi-crit div[data-testid="stButton"] button {{ border-left: 5px solid #ef4444 !important; }}
+        div.kpi-crit div[data-testid="stButton"] button p {{ color: #dc2626 !important; }}
 
         /* Faixa do Visualizador Operacional */
         .faixa-visualizador {{
@@ -627,98 +600,34 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cartões KPI com Design Original Bonito e Botão Invisível de Clique
+    # 4 Cards KPI em formato de Botão Nativo com Estilo Premium Aplicado via CSS
     k1, k2, k3, k4 = st.columns(4)
 
     with k1:
-        st.markdown(
-            f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-total">
-                    <div>
-                        <div class="kpi-lbl">Total de Correias</div>
-                        <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">📦</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_total", key="btn_inv_total", use_container_width=True):
-            st.session_state.card_selecionado_kpi = (
-                "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
-            )
+        st.markdown("<div class='kpi-btn-box kpi-total'>", unsafe_allow_html=True)
+        if st.button(f"TOTAL DE CORREIAS\n{len(lista_correias_todas)} &nbsp; 📦", key="btn_kpi_total", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k2:
-        st.markdown(
-            f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-ok">
-                    <div>
-                        <div class="kpi-lbl">Operação Normal</div>
-                        <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_novas", key="btn_inv_novas", use_container_width=True):
-            st.session_state.card_selecionado_kpi = (
-                "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
-            )
+        st.markdown("<div class='kpi-btn-box kpi-ok'>", unsafe_allow_html=True)
+        if st.button(f"OPERAÇÃO NORMAL\n{len(lista_correias_novas)} &nbsp; 🟢", key="btn_kpi_novas", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k3:
-        st.markdown(
-            f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-warn">
-                    <div>
-                        <div class="kpi-lbl">Atenção (Meia-Vida)</div>
-                        <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_meia", key="btn_inv_meia", use_container_width=True):
-            st.session_state.card_selecionado_kpi = (
-                "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
-            )
+        st.markdown("<div class='kpi-btn-box kpi-warn'>", unsafe_allow_html=True)
+        if st.button(f"ATENÇÃO (MEIA-VIDA)\n{len(lista_correias_meia)} &nbsp; 🟡", key="btn_kpi_meia", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k4:
-        st.markdown(
-            f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-crit">
-                    <div>
-                        <div class="kpi-lbl">Troca Necessária</div>
-                        <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_criticas", key="btn_inv_crit", use_container_width=True):
-            st.session_state.card_selecionado_kpi = (
-                "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
-            )
+        st.markdown("<div class='kpi-btn-box kpi-crit'>", unsafe_allow_html=True)
+        if st.button(f"TROCA NECESSÁRIA\n{len(lista_correias_criticas)} &nbsp; 🔴", key="btn_kpi_crit", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
