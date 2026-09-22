@@ -1427,14 +1427,15 @@ elif tela == "Painel Fusos":
                     qtd_top_ultimo_mes = int(agrup_ult_m.iloc[0]["Quantidade_Quebras"])
                     break
 
-        # Cálculo da Média de Fusos: Quantidade total de máquinas do setor ativo / Quebras no último mês no setor ativo
-        if quebras_ultimo_mes_setor > 0:
-            media_fusos_calc = round(qtd_maquinas_setor / quebras_ultimo_mes_setor, 2)
+        # Cálculo da Média de Quebras por Máquina no último mês para o setor ativo
+        # Fórmula: Quebras no Setor Selecionado (Último Mês) / Quantidade de Máquinas do Setor Selecionado
+        if qtd_maquinas_setor > 0 and quebras_ultimo_mes_setor > 0:
+            quebras_por_maquina_calc = round(quebras_ultimo_mes_setor / qtd_maquinas_setor, 1)
         else:
-            media_fusos_calc = 0.0
+            quebras_por_maquina_calc = 0.0
 
-        lbl_media_fusos = f"Média M/Q ({setor_ativo} - {ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else f"Média M/Q ({setor_ativo})"
-        lbl_maior_quebra = f"Maior Quebra ({setor_ativo} - {ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else f"Maior Quebra ({setor_ativo})"
+        lbl_quebras_maq = f"Quebras / Máquina ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Quebras / Máquina"
+        lbl_maior_quebra = f"Maior Quebra ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Maior Quebra"
 
         # Cards KPI do Setor
         ks1, ks2, ks3, ks4 = st.columns(4)
@@ -1469,8 +1470,8 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-warn">
                     <div>
-                        <div class="kpi-lbl">{lbl_media_fusos}</div>
-                        <div class="kpi-val" style="color:#d97706;">{media_fusos_calc}</div>
+                        <div class="kpi-lbl">{lbl_quebras_maq}</div>
+                        <div class="kpi-val" style="color:#d97706;">{quebras_por_maquina_calc}</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">⚙️</div>
                 </div>
