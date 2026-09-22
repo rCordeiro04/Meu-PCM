@@ -295,9 +295,8 @@ st.markdown(
             margin: 0px !important;
         }}
         div[data-testid="stHorizontalBlock"] {{
-            gap: 6px !important;
+            gap: 4px !important;
             margin-bottom: 4px !important;
-            align-items: center !important;
         }}
 
         div[data-testid="stVegaLiteChart"] summary,
@@ -574,14 +573,14 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Linha Superior Única: Título, Filtros de Setor, Tipo e Legendas integradas perfeitamente
-    col_t, col_f1, col_f2, col_leg = st.columns([2.6, 1.4, 1.4, 4.6])
+    # Linha Superior Única: Título com ícone quadrado premium, Filtros de Setor, Tipo e Legendas integradas com altura cravada.
+    col_t, col_f1, col_f2, col_leg = st.columns([2.6, 1.8, 1.8, 5.8])
 
     with col_t:
         st.markdown(
             """
-            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; padding-top: 4px;">
-                <span>🔄</span>
+            <div style="height: 43px; display: flex; align-items: center; font-size: 1.4rem; font-weight: 800; color: #0f172a; gap: 10px;">
+                <div style="background: #3b82f6; color: white; border-radius: 6px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(59,130,246,0.3);">🔄</div>
                 <span>Dashboard Correias</span>
             </div>
             """,
@@ -603,7 +602,7 @@ if tela == "Painel Correias":
     with col_leg:
         st.markdown(
             """
-            <div style="text-align: right; padding-top: 4px;">
+            <div style="height: 43px; display: flex; align-items: center; justify-content: flex-end;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
@@ -638,59 +637,128 @@ if tela == "Painel Correias":
     with k1:
         st.markdown(
             f"""
-            <div class="card-kpi-bonito c-total">
-                <div>
-                    <div class="kpi-lbl">Correias Totais</div>
-                    <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
+            <div class="col-kpi-wrapper">
+                <div class="card-kpi-bonito c-total">
+                    <div>
+                        <div class="kpi-lbl">Correias Totais</div>
+                        <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
+                    </div>
+                    <div style="font-size:1.5rem; opacity:0.8;">📦</div>
                 </div>
-                <div style="font-size:1.5rem; opacity:0.8;">📦</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
+        if st.button("kpi_click_total", key="btn_inv_total", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with k2:
         st.markdown(
             f"""
-            <div class="card-kpi-bonito c-ok">
-                <div>
-                    <div class="kpi-lbl">Correias Novas</div>
-                    <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
+            <div class="col-kpi-wrapper">
+                <div class="card-kpi-bonito c-ok">
+                    <div>
+                        <div class="kpi-lbl">Correias Novas</div>
+                        <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
+                    </div>
+                    <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
                 </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
+        if st.button("kpi_click_novas", key="btn_inv_novas", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with k3:
         st.markdown(
             f"""
-            <div class="card-kpi-bonito c-warn">
-                <div>
-                    <div class="kpi-lbl">Correias Meia Vida</div>
-                    <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
+            <div class="col-kpi-wrapper">
+                <div class="card-kpi-bonito c-warn">
+                    <div>
+                        <div class="kpi-lbl">Correias Meia Vida</div>
+                        <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
+                    </div>
+                    <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
                 </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
+        if st.button("kpi_click_meia", key="btn_inv_meia", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with k4:
         st.markdown(
             f"""
-            <div class="card-kpi-bonito c-crit">
-                <div>
-                    <div class="kpi-lbl">Correias Críticas</div>
-                    <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
+            <div class="col-kpi-wrapper">
+                <div class="card-kpi-bonito c-crit">
+                    <div>
+                        <div class="kpi-lbl">Correias Críticas</div>
+                        <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
+                    </div>
+                    <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
                 </div>
-                <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
+        if st.button("kpi_click_criticas", key="btn_inv_crit", use_container_width=True):
+            st.session_state.card_selecionado_kpi = "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
+    # Faixa do Visualizador Operacional
+    if st.session_state.card_selecionado_kpi is not None:
+        sel = st.session_state.card_selecionado_kpi
+        if sel == "TODAS":
+            lista_alvo = lista_correias_todas
+            titulo_faixa = "📦 Correias Totais Instaladas"
+        elif sel == "NOVAS":
+            lista_alvo = lista_correias_novas
+            titulo_faixa = "🟢 Correias Novas (≤ 1 ano)"
+        elif sel == "MEIA":
+            lista_alvo = lista_correias_meia
+            titulo_faixa = "🟡 Correias Meia Vida (1 a 1,5 anos)"
+        else:
+            lista_alvo = lista_correias_criticas
+            titulo_faixa = "🔴 Correias Críticas (> 1,5 anos)"
+
+        df_kpi_sel = pd.DataFrame(lista_alvo)
+        if not df_kpi_sel.empty:
+            contagem = df_kpi_sel["modelo"].value_counts().to_dict()
+            chips_html = " ".join([
+                f"<span class='chip-tt'>🏷️ {formatar_modelo(mod)}: <b>{qtd} un.</b></span>"
+                for mod, qtd in contagem.items()
+            ])
+        else:
+            chips_html = "<i>Nenhum registo encontrado</i>"
+
+        c_fx, c_fechar = st.columns([6.2, 0.8])
+        with c_fx:
+            st.markdown(
+                f"""
+                <div class="faixa-visualizador ativa">
+                    <span><b>{titulo_faixa} ({len(lista_alvo)} un.):</b> &nbsp; {chips_html}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with c_fechar:
+            if st.button("✖ Fechar", key="btn_fechar_faixa_kpi"):
+                st.session_state.card_selecionado_kpi = None
+                st.rerun()
+                
     # Alerta de Manutenção discriminando as correias críticas por modelo
     if lista_correias_criticas:
         df_crit = pd.DataFrame(lista_correias_criticas)
