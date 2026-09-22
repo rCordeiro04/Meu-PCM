@@ -1528,6 +1528,215 @@ elif tela == "Painel Fusos":
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
         # =========================================================
+        # NOVO: DIAGNÓSTICO E DESEMPENHO POR TIPO DE FUSO NO SETOR
+        # =========================================================
+        tipos_disponiveis_setor = sorted(df_setor["Tipo_Fuso"].dropna().unique().tolist()) if not df_setor.empty else []
+        if not tipos_disponiveis_setor:
+            tipos_disponiveis_setor = OPCOES_TIPO_FUSO
+
+        with st.container(border=True):
+            col_diag_t, col_diag_sel = st.columns([2.5, 1.5])
+            with col_diag_t:
+                st.markdown(
+                    f"""
+                    <div style="font-size:1.05rem; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px;">
+                        <span>🔬 Desempenho Operacional por Tipo de Fuso — {setor_ativo}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#64748b; font-weight:600; margin-top:2px;">
+                        Acompanhe o comportamento mensal, severidade e máquinas atreladas a cada marca/modelo de fuso.
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with col_diag_sel:
+                fuso_selecionado_analise = st.selectbox(
+                    "Tipo de Fuso para Análise Detalhada:",
+                    tipos_disponiveis_setor,
+                    key=f"sel_tipo_fuso_detalhe_{setor_ativo}",
+                )
+
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+
+            # Filtra o setor pelo tipo de fuso escolhido
+            df_tipo_especifico = df_setor[df_setor["Tipo_Fuso"] == fuso_selecionado_analise].copy()
+
+            tot_fuso_sel = int(df_tipo_especifico["Quantidade_Quebras"].sum()) if not df_tipo_especifico.empty else 0
+            media_fuso_sel = round(tot_fuso_sel / 12, 1)
+            
+            maqs_vinculadas = df_tipo_especifico["Maquina_TAG"].unique().tolist()
+            qtd_maqs_vinculadas = len(maqs_vinculadas)
+            
+            df_tipo_falhas = df_tipo_especifico[df_tipo_especifico["Quantidade_Quebras"] > 0]
+            maqs_com_quebra_tipo = df_tipo_falhas["Maquina_TAG"].nunique()
+
+            if not df_tipo_falhas.empty:
+                agrup_top_fuso = df_tipo_falhas.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index().sort_values(by="Quantidade_Quebras", ascending=False)
+                top_maq_fuso = agrup_top_fuso.iloc[0]["Maquina_TAG"]
+                qtd_top_fuso = int(agrup_top_fuso.iloc[0]["Quantidade_Quebras"])
+            else:
+                top_maq_fuso = "Nenhuma"
+                qtd_top_fuso = 0
+
+            # Mini-cards analíticos do tipo de fuso
+            c_f1, c_f2, c_f3, c_f4 = st.columns(4)
+            with c_f1:
+                st.markdown(
+                    f"""
+                    <div class="card-kpi-bonito c-total" style="height:58px;">
+                        <div>
+                            <div class="kpi-lbl">Total Quebras ({fuso_selecionado_analise})</div>
+                            <div class="kpi-val" style="color:#0f172a; font-size:1.2rem;">{tot_fuso_sel} un.</div>
+                        </div>
+                        <div style="font-size:1.3rem;">🏷️</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c_f2:
+                st.markdown(
+                    f"""
+                    <div class="card-kpi-bonito c-ok" style="height:58px;">
+                        <div>
+                            <div class="kpi-lbl">Média Mensal ({fuso_selecionado_analise})</div>
+                            <div class="kpi-val" style="color:#059669; font-size:1.2rem;">{media_fuso_sel} /mês</div>
+                        </div>
+                        <div style="font-size:1.3rem;">📉</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c_f3:
+                st.markdown(
+                    f"""
+                    <div class="card-kpi-bonito c-warn" style="height:58px;">
+                        <div>
+                            <div class="kpi-lbl">Máquinas Atreladas</div>
+                            <div class="kpi-val" style="color:#d97706; font-size:1.2rem;">{maqs_com_quebra_tipo} falharam / {qtd_maqs_vinculadas}</div>
+                        </div>
+                        <div style="font-size:1.3rem;">⚙️</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with c_f4:
+                st.markdown(
+                    f"""
+                    <div class="card-kpi-bonito c-crit" style="height:58px;">
+                        <div>
+                            <div class="kpi-lbl">Maior Ofensor ({fuso_selecionado_analise})</div>
+                            <div class="kpi-val" style="color:#dc2626; font-size:1.05rem;">{top_maq_fuso} ({qtd_top_fuso})</div>
+                        </div>
+                        <div style="font-size:1.3rem;">🚨</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+            col_sub_g, col_sub_tab = st.columns([1.3, 1.7])
+
+            # Gráfico de barras do tipo selecionado
+            with col_sub_g:
+                st.markdown(
+                    f"""
+                    <div style="font-size:0.86rem; font-weight:800; color:#1e293b; margin-bottom:4px;">
+                        📅 Ritmo de Quebras Mensais ({fuso_selecionado_analise})
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                df_base_meses_f = pd.DataFrame({"Mes": lista_meses_puros})
+                agrup_mes_tipo = df_tipo_especifico.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
+                df_evol_tipo = pd.merge(df_base_meses_f, agrup_mes_tipo, on="Mes", how="left").fillna(0)
+                df_evol_tipo["Quantidade_Quebras"] = df_evol_tipo["Quantidade_Quebras"].astype(int)
+                df_evol_tipo["Mes_Abrev"] = df_evol_tipo["Mes"].map(MAPA_MES_ABREV)
+
+                barras_tipo_f = (
+                    alt.Chart(df_evol_tipo)
+                    .mark_bar(color="#4f46e5", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+                    .encode(
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                        y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                        tooltip=[
+                            alt.Tooltip("Mes:N", title="Mês"),
+                            alt.Tooltip("Quantidade_Quebras:Q", title="Quebras"),
+                        ],
+                    )
+                )
+
+                rotulos_tipo_f = (
+                    alt.Chart(df_evol_tipo)
+                    .mark_text(dy=-6, fontSize=11, fontWeight=700, color="#1e293b")
+                    .encode(
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV),
+                        y=alt.Y("Quantidade_Quebras:Q"),
+                        text=alt.condition(
+                            alt.datum.Quantidade_Quebras > 0,
+                            alt.Text("Quantidade_Quebras:Q"),
+                            alt.value("")
+                        ),
+                    )
+                )
+
+                chart_tipo_final = (barras_tipo_f + rotulos_tipo_f).properties(height=260)
+                st.altair_chart(chart_tipo_final, use_container_width=True)
+
+            # Tabela de máquinas que possuem esse tipo de fuso
+            with col_sub_tab:
+                st.markdown(
+                    f"""
+                    <div style="font-size:0.86rem; font-weight:800; color:#1e293b; margin-bottom:4px;">
+                        🏭 Máquinas com {fuso_selecionado_analise} — Histórico Mensal e Acumulado
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                if not maqs_vinculadas:
+                    st.info(f"Nenhuma máquina apontada com o fuso {fuso_selecionado_analise} em {ano_painel}.")
+                else:
+                    matriz_maquinas_tipo = []
+                    for maq in maqs_vinculadas:
+                        sub_maq = df_tipo_especifico[df_tipo_especifico["Maquina_TAG"] == maq]
+                        linha_m = {"Máquina": maq}
+                        tot_maq = 0
+                        for m_nome in lista_meses_puros:
+                            m_abrev = MAPA_MES_ABREV[m_nome]
+                            reg = sub_maq[sub_maq["Mes"] == m_nome]
+                            val = int(reg.iloc[0]["Quantidade_Quebras"]) if not reg.empty else 0
+                            linha_m[m_abrev] = val
+                            tot_maq += val
+                        linha_m["Total Acumulado"] = tot_maq
+                        matriz_maquinas_tipo.append(linha_m)
+
+                    df_tabela_maqs_tipo = pd.DataFrame(matriz_maquinas_tipo)
+                    df_tabela_maqs_tipo = df_tabela_maqs_tipo.sort_values(by="Total Acumulado", ascending=False)
+
+                    # Configuração para formatar com barra de progresso no Total
+                    cfg_tab = {
+                        "Máquina": st.column_config.TextColumn("Máquina"),
+                        "Total Acumulado": st.column_config.ProgressColumn(
+                            "Total Acumulado",
+                            format="%d un.",
+                            min_value=0,
+                            max_value=int(df_tabela_maqs_tipo["Total Acumulado"].max()) if not df_tabela_maqs_tipo.empty and df_tabela_maqs_tipo["Total Acumulado"].max() > 0 else 10,
+                        ),
+                    }
+                    for m_abrev in ORDEM_MESES_ABREV:
+                        cfg_tab[m_abrev] = st.column_config.NumberColumn(m_abrev, format="%d", width="small")
+
+                    st.dataframe(
+                        df_tabela_maqs_tipo,
+                        column_config=cfg_tab,
+                        hide_index=True,
+                        use_container_width=True,
+                        height=260,
+                    )
+
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+        # =========================================================
         # MAPA DE CALOR: QUEBRAS POR MÁQUINA X MÊS (JAN A DEZ)
         # =========================================================
         with st.container(border=True):
