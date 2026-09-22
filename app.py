@@ -1398,11 +1398,13 @@ elif tela == "Painel Fusos":
         df_setor = df_fuso_ano[df_fuso_ano["Setor"] == setor_ativo].copy()
 
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
+        
+        # Pega estritamente a lista de máquinas do setor ativo
         maquinas_setor_lista = DICIONARIO_SETORES[setor_ativo]
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
-        # Identificação do último mês com apontamentos e maior máquina ofensor desse mês
+        # Identificação do último mês com apontamentos APENAS no setor ativo
         ultimo_mes_nome = "Nenhum"
         top_maq_ultimo_mes = "Nenhuma"
         qtd_top_ultimo_mes = 0
@@ -1410,26 +1412,31 @@ elif tela == "Painel Fusos":
 
         if not df_setor.empty and total_setor_quebras > 0:
             df_reais_setor = df_setor[df_setor["Quantidade_Quebras"] > 0]
-            # Percorre a lista cronológica reversa de meses para pegar o último com dados apontados
             for m_teste in reversed(lista_meses_puros):
                 df_sub_m = df_reais_setor[df_reais_setor["Mes"] == m_teste]
                 if not df_sub_m.empty and df_sub_m["Quantidade_Quebras"].sum() > 0:
                     ultimo_mes_nome = m_teste
                     quebras_ultimo_mes_setor = int(df_sub_m["Quantidade_Quebras"].sum())
-                    agrup_ult_m = df_sub_m.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index().sort_values(by="Quantidade_Quebras", ascending=False)
+                    agrup_ult_m = (
+                        df_sub_m.groupby("Maquina_TAG")["Quantidade_Quebras"]
+                        .sum()
+                        .reset_index()
+                        .sort_values(by="Quantidade_Quebras", ascending=False)
+                    )
                     top_maq_ultimo_mes = agrup_ult_m.iloc[0]["Maquina_TAG"]
                     qtd_top_ultimo_mes = int(agrup_ult_m.iloc[0]["Quantidade_Quebras"])
                     break
 
-        # Cálculo da Média de Fusos: Quantidade total de máquinas / Quantidade de quebras do último mês
+        # Cálculo da Média de Fusos: Quantidade total de máquinas do setor ativo / Quebras no último mês no setor ativo
         if quebras_ultimo_mes_setor > 0:
             media_fusos_calc = round(qtd_maquinas_setor / quebras_ultimo_mes_setor, 2)
         else:
             media_fusos_calc = 0.0
 
-        lbl_media_fusos = f"Máquinas / Quebra ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Máquinas / Quebra"
+        lbl_media_fusos = f"Média M/Q ({setor_ativo} - {ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else f"Média M/Q ({setor_ativo})"
+        lbl_maior_quebra = f"Maior Quebra ({setor_ativo} - {ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else f"Maior Quebra ({setor_ativo})"
 
-        # Cards KPI do Setor Atualizados
+        # Cards KPI do Setor
         ks1, ks2, ks3, ks4 = st.columns(4)
         with ks1:
             st.markdown(
@@ -1475,7 +1482,7 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-crit">
                     <div>
-                        <div class="kpi-lbl">Maior Quebra ({ultimo_mes_nome})</div>
+                        <div class="kpi-lbl">{lbl_maior_quebra}</div>
                         <div class="kpi-val" style="color:#dc2626; font-size:1.1rem;">{top_maq_ultimo_mes} ({qtd_top_ultimo_mes})</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">⚠️</div>
@@ -1591,7 +1598,6 @@ elif tela == "Painel Fusos":
                 unsafe_allow_html=True,
             )
 
-            # Construção da grade completa Máquinas do Setor x 12 Meses
             linhas_grade_calor = []
             for maq in maquinas_setor_lista:
                 for mes_completo in lista_meses_puros:
@@ -1613,10 +1619,8 @@ elif tela == "Painel Fusos":
             else:
                 df_calor_mesclado = df_calor_base
 
-            # Altura dinâmica proporcional à quantidade de máquinas do setor
             altura_calor = max(380, len(maquinas_setor_lista) * 24)
 
-            # Camada 1: Células térmicas coloridas
             rect_heatmap = (
                 alt.Chart(df_calor_mesclado)
                 .mark_rect(stroke="#ffffff", strokeWidth=1)
@@ -1639,7 +1643,6 @@ elif tela == "Painel Fusos":
                 )
             )
 
-            # Camada 2: Rótulos numéricos centralizados
             text_heatmap = (
                 alt.Chart(df_calor_mesclado)
                 .mark_text(baseline="middle", fontSize=11, fontWeight=700)
@@ -1698,7 +1701,6 @@ elif tela == "Painel Fusos":
 
             st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
-            # Filtra o setor pelo tipo de fuso escolhido
             df_tipo_especifico = df_setor[df_setor["Tipo_Fuso"] == fuso_selecionado_analise].copy()
 
             tot_fuso_sel = int(df_tipo_especifico["Quantidade_Quebras"].sum()) if not df_tipo_especifico.empty else 0
@@ -1718,7 +1720,6 @@ elif tela == "Painel Fusos":
                 top_maq_fuso = "Nenhuma"
                 qtd_top_fuso = 0
 
-            # Mini-cards analíticos do tipo de fuso
             c_f1, c_f2, c_f3, c_f4 = st.columns(4)
             with c_f1:
                 st.markdown(
@@ -1777,7 +1778,6 @@ elif tela == "Painel Fusos":
 
             col_sub_g, col_sub_tab = st.columns([1.3, 1.7])
 
-            # Gráfico de barras do tipo selecionado
             with col_sub_g:
                 st.markdown(
                     f"""
@@ -1823,7 +1823,6 @@ elif tela == "Painel Fusos":
                 chart_tipo_final = (barras_tipo_f + rotulos_tipo_f).properties(height=260)
                 st.altair_chart(chart_tipo_final, use_container_width=True)
 
-            # Tabela de máquinas que possuem esse tipo de fuso
             with col_sub_tab:
                 st.markdown(
                     f"""
@@ -1854,7 +1853,6 @@ elif tela == "Painel Fusos":
                     df_tabela_maqs_tipo = pd.DataFrame(matriz_maquinas_tipo)
                     df_tabela_maqs_tipo = df_tabela_maqs_tipo.sort_values(by="Total Acumulado", ascending=False)
 
-                    # Configuração para formatar com barra de progresso no Total
                     cfg_tab = {
                         "Máquina": st.column_config.TextColumn("Máquina"),
                         "Total Acumulado": st.column_config.ProgressColumn(
