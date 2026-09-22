@@ -1227,7 +1227,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart(chart_men, use_container_width=True)
 
     # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (GRÁFICO ROSCA NO TIPO DE FUSO)
+    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (APENAS OS DOIS GRÁFICOS SUPERIORES)
     # ==========================================
     else:
         setor_ativo = st.session_state.aba_setor_fuso
@@ -1307,7 +1307,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
+        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso (Exclusivos da Aba)
         c_linha_s, c_tipo_s = st.columns([1.55, 1.45])
 
         with c_linha_s:
@@ -1359,7 +1359,6 @@ elif tela == "Painel Fusos":
                         .reset_index()
                     )
                     
-                    # Gráfico de Rosca (Donut Chart) elegante e informativo
                     chart_rosca = (
                         alt.Chart(df_tipo_agrup)
                         .mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
@@ -1381,46 +1380,6 @@ elif tela == "Painel Fusos":
                     st.altair_chart(chart_rosca, use_container_width=True)
                 else:
                     st.info(f"Sem registos de tipos de fuso para {setor_ativo} em {ano_painel}.")
-
-        # Ranking e Tabela Detalhada do Setor
-        if not agrup_maq_setor.empty:
-            c_rk, c_tb = st.columns([1.5, 1.5])
-            with c_rk:
-                with st.container(border=True):
-                    st.markdown(
-                        f"""
-                        <div class="chart-header-row">
-                            <span class="chart-header-title">📊 Ranking de Máquinas com Falhas ({setor_ativo})</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    chart_ranking_s = (
-                        alt.Chart(agrup_maq_setor)
-                        .mark_bar(color="#ef4444", cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-                        .encode(
-                            x=alt.X("Maquina_TAG:N", sort="-y", title="Máquina"),
-                            y=alt.Y("Quantidade_Quebras:Q", title="Total de Quebras"),
-                            tooltip=["Maquina_TAG", "Quantidade_Quebras"],
-                        )
-                        .properties(height=280)
-                    )
-                    st.altair_chart(chart_ranking_s, use_container_width=True)
-
-            with c_tb:
-                with st.container(border=True):
-                    st.markdown(
-                        f"""
-                        <div class="chart-header-row">
-                            <span class="chart-header-title">📋 Consolidado de Ocorrências</span>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    df_tabela_s = agrup_maq_setor.rename(
-                        columns={"Maquina_TAG": "Equipamento", "Quantidade_Quebras": "Total Quebras"}
-                    )
-                    st.dataframe(df_tabela_s, use_container_width=True, hide_index=True, height=280)
 
 # ------------------------------------------
 # 4. LANÇAMENTOS: FUSOS (INTACTO)
