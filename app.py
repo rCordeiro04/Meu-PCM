@@ -90,7 +90,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -593,56 +593,54 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    st.markdown(
-        """
-        <div class="header-bar">
-            <div class="header-title">
+    # Barra Superior Integrada com Título e os Filtros (Setor e Tipo)
+    col_t1, col_f1, col_f2, col_leg = st.columns([2.4, 1.4, 1.4, 3.8])
+
+    with col_t1:
+        st.markdown(
+            """
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; padding-top: 6px;">
                 <span>🔄</span>
                 <span>Controle de correias</span>
             </div>
-            <div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_f1:
+        lista_setores_filtro = ["Setor"] + list(DICIONARIO_SETORES.keys())
+        filtro_setor = st.selectbox("", lista_setores_filtro, key="filtro_setor_painel", label_visibility="collapsed")
+
+    with col_f2:
+        modelos_unicos = set()
+        for r in lista_correias_todas:
+            if r["modelo"] and r["modelo"] != "Não informada":
+                modelos_unicos.add(r["modelo"])
+        lista_modelos_filtro = ["Tipo"] + sorted(list(modelos_unicos))
+        filtro_modelo = st.selectbox("", lista_modelos_filtro, key="filtro_modelo_painel", label_visibility="collapsed")
+
+    with col_leg:
+        st.markdown(
+            """
+            <div style="text-align: right; padding-top: 4px;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # Filtros superiores por Setor e por Tipo de Correia
-    with st.container(border=True):
-        c_filt1, c_filt2, c_filt3 = st.columns([1.5, 1.5, 3])
-        with c_filt1:
-            lista_setores_filtro = ["Todos"] + list(DICIONARIO_SETORES.keys())
-            filtro_setor = st.selectbox("🏭 Filtrar Setor:", lista_setores_filtro, key="filtro_setor_painel")
-
-        with c_filt2:
-            # Extrai modelos únicos cadastrados para o filtro
-            modelos_unicos = set()
-            for r in lista_correias_todas:
-                if r["modelo"] and r["modelo"] != "Não informada":
-                    modelos_unicos.add(r["modelo"])
-            lista_modelos_filtro = ["Todos"] + sorted(list(modelos_unicos))
-            filtro_modelo = st.selectbox("🏷️ Filtrar Modelo:", lista_modelos_filtro, key="filtro_modelo_painel")
-
-        with c_filt3:
-            st.write("")
-            if filtro_setor != "Todos" or filtro_modelo != "Todos":
-                if st.button("🧹 Limpar Filtros", key="btn_limpar_filtros_painel"):
-                    st.session_state.filtro_setor_painel = "Todos"
-                    st.session_state.filtro_modelo_painel = "Todos"
-                    st.rerun()
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
     # Aplicação dos filtros às máquinas
     todas_as_maquinas = []
     for setor_nome, lista_m in DICIONARIO_SETORES.items():
-        if filtro_setor != "Todos" and setor_nome != filtro_setor:
+        if filtro_setor != "Setor" and setor_nome != filtro_setor:
             continue
         for m in lista_m:
-            if filtro_modelo != "Todos":
-                # Verifica se a máquina possui o modelo selecionado na correia 1 ou 2
+            if filtro_modelo != "Tipo":
                 reg_m = df_correias[(df_correias["Setor"] == setor_nome) & (df_correias["Maquina_TAG"] == m)]
                 tem_mod = False
                 if not reg_m.empty:
