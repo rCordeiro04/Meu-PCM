@@ -1166,6 +1166,24 @@ elif tela == "Painel Fusos":
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
         ano_painel = st.selectbox("Ano", lista_anos_painel, index=2, key="filtro_ano_fusos_dash", label_visibility="collapsed")
 
+    # ==========================================
+    # CÁLCULO DINÂMICO DE MESES TRANSCORRIDOS
+    # ==========================================
+    data_hoje_ref = date.today()
+    ano_atual_ref = data_hoje_ref.year
+    mes_atual_num_ref = data_hoje_ref.month
+
+    if int(ano_painel) < ano_atual_ref:
+        meses_divisor = 12
+        desc_meses_divisor = "12 meses"
+    elif int(ano_painel) == ano_atual_ref:
+        meses_divisor = max(1, mes_atual_num_ref)
+        nome_mes_vigente_abrev = ORDEM_MESES_ABREV[meses_divisor - 1]
+        desc_meses_divisor = f"Jan a {nome_mes_vigente_abrev}"
+    else:
+        meses_divisor = 1
+        desc_meses_divisor = "Previsto"
+
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
     col_b_geral, col_b_sa, col_b_sb, col_b_latex, col_b_men = st.columns(5)
@@ -1210,7 +1228,7 @@ elif tela == "Painel Fusos":
     # ==========================================
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
-        media_mensal_fabrica = round(total_geral_quebras / 12, 1)
+        media_mensal_fabrica = round(total_geral_quebras / meses_divisor, 1)
 
         if not df_fuso_ano.empty and total_geral_quebras > 0:
             setor_ofensor = df_fuso_ano.groupby("Setor")["Quantidade_Quebras"].sum().sort_values(ascending=False).index[0]
@@ -1240,7 +1258,7 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-ok">
                     <div>
-                        <div class="kpi-lbl">Média Mensal Fábrica</div>
+                        <div class="kpi-lbl">Média Mensal ({desc_meses_divisor})</div>
                         <div class="kpi-val" style="color:#059669;">{media_mensal_fabrica}</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">📈</div>
@@ -1382,7 +1400,7 @@ elif tela == "Painel Fusos":
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
         maquinas_setor_lista = DICIONARIO_SETORES[setor_ativo]
         qtd_maquinas_setor = len(maquinas_setor_lista)
-        media_mensal_setor = round(total_setor_quebras / 12, 1)
+        media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
         if not df_setor.empty and total_setor_quebras > 0:
             df_reais = df_setor[df_setor["Quantidade_Quebras"] > 0]
@@ -1416,7 +1434,7 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-ok">
                     <div>
-                        <div class="kpi-lbl">Média Mensal do Setor</div>
+                        <div class="kpi-lbl">Média Mensal ({desc_meses_divisor})</div>
                         <div class="kpi-val" style="color:#059669;">{media_mensal_setor}</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">📅</div>
@@ -1669,7 +1687,7 @@ elif tela == "Painel Fusos":
             df_tipo_especifico = df_setor[df_setor["Tipo_Fuso"] == fuso_selecionado_analise].copy()
 
             tot_fuso_sel = int(df_tipo_especifico["Quantidade_Quebras"].sum()) if not df_tipo_especifico.empty else 0
-            media_fuso_sel = round(tot_fuso_sel / 12, 1)
+            media_fuso_sel = round(tot_fuso_sel / meses_divisor, 1)
             
             maqs_vinculadas = df_tipo_especifico["Maquina_TAG"].unique().tolist()
             qtd_maqs_vinculadas = len(maqs_vinculadas)
@@ -1705,7 +1723,7 @@ elif tela == "Painel Fusos":
                     f"""
                     <div class="card-kpi-bonito c-ok" style="height:58px;">
                         <div>
-                            <div class="kpi-lbl">Média Mensal ({fuso_selecionado_analise})</div>
+                            <div class="kpi-lbl">Média Mensal ({desc_meses_divisor})</div>
                             <div class="kpi-val" style="color:#059669; font-size:1.2rem;">{media_fuso_sel} /mês</div>
                         </div>
                         <div style="font-size:1.3rem;">📉</div>
