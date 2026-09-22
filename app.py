@@ -90,7 +90,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -127,9 +127,6 @@ if "pagina_atual" not in st.session_state:
 
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
-
-if "card_selecionado_kpi" not in st.session_state:
-    st.session_state.card_selecionado_kpi = None
 
 
 def navegar(nome_pagina):
@@ -264,19 +261,19 @@ for maq_tag in todas_as_maquinas:
             background: {cor_grad} !important;
             color: #ffffff !important;
             border: 1px solid {cor_borda} !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
         }}
         button[key="{chave_btn}"]:hover,
         div.st-key-{chave_btn} button:hover {{
-            filter: brightness(1.1) !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+            filter: brightness(1.15) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.22) !important;
         }}
         button[key="{chave_btn}"] p,
         div.st-key-{chave_btn} button p {{
             color: #ffffff !important;
             font-weight: 800 !important;
-            letter-spacing: 0.3px !important;
+            letter-spacing: 0.4px !important;
         }}
         """
     )
@@ -317,11 +314,11 @@ st.markdown(
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
-            height: 32px !important;
-            min-height: 32px !important;
-            line-height: 30px !important;
-            border-radius: 6px !important;
-            transition: all 0.15s ease !important;
+            height: 33px !important;
+            min-height: 33px !important;
+            line-height: 31px !important;
+            border-radius: 7px !important;
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
 
         {regras_css_botoes}
@@ -346,102 +343,47 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* DESIGN COMPACTO PREMIUM PARA OS CARDS KPI SUPERIORES */
-        div.kpi-btn-box div[data-testid="stButton"] button {{
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 10px !important;
-            height: 64px !important;
-            min-height: 64px !important;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
-            padding: 8px 12px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }}
-        div.kpi-btn-box div[data-testid="stButton"] button:hover {{
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
-            border-color: #cbd5e1 !important;
-            filter: none !important;
-        }}
-        div.kpi-btn-box div[data-testid="stButton"] button p {{
-            margin: 0 !important;
-            text-align: left !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            width: 100% !important;
-        }}
-
-        /* Linha 1: Rótulo técnico padronizado */
-        div.kpi-btn-box div[data-testid="stButton"] button p span.kpi-titulo {{
-            font-size: 0.65rem !important;
-            font-weight: 700 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-            color: #64748b !important;
-            display: block !important;
-            margin-bottom: 2px !important;
-        }}
-
-        /* Linha 2: Valor KPI em destaque monoespaçado + ícone */
-        div.kpi-btn-box div[data-testid="stButton"] button p span.kpi-valor-container {{
-            font-size: 1.3rem !important;
-            font-weight: 800 !important;
-            font-family: ui-monospace, monospace !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            width: 100% !important;
-            line-height: 1 !important;
-        }}
-
-        div.kpi-total div[data-testid="stButton"] button {{ border-left: 5px solid #475569 !important; }}
-        div.kpi-total span.kpi-val-txt {{ color: #0f172a !important; }}
-
-        div.kpi-ok div[data-testid="stButton"] button {{ border-left: 5px solid #10b981 !important; }}
-        div.kpi-ok span.kpi-val-txt {{ color: #059669 !important; }}
-
-        div.kpi-warn div[data-testid="stButton"] button {{ border-left: 5px solid #f59e0b !important; }}
-        div.kpi-warn span.kpi-val-txt {{ color: #d97706 !important; }}
-
-        div.kpi-crit div[data-testid="stButton"] button {{ border-left: 5px solid #ef4444 !important; }}
-        div.kpi-crit span.kpi-val-txt {{ color: #dc2626 !important; }}
-
-        /* Faixa do Visualizador Operacional */
-        .faixa-visualizador {{
+        /* Cards KPI Estilizados */
+        .card-kpi-bonito {{
             background: #ffffff;
-            border: 1px dashed #cbd5e1;
-            border-radius: 9px;
-            padding: 8px 16px;
-            margin: 4px 0 6px 0;
-            font-size: 0.84rem;
-            font-weight: 600;
-            color: #475569;
-            min-height: 42px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+            height: 64px;
+            box-sizing: border-box;
         }}
-        .faixa-visualizador.ativa {{
-            border-style: solid;
-            border-color: #94a3b8;
-            background: #f8fafc;
+        .card-kpi-bonito::after {{
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
         }}
-        
-        .chip-tt {{
-            background: #e2e8f0;
-            border: 1px solid #cbd5e1;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: #0f172a;
+        .card-kpi-bonito.c-total::after {{ background: #475569; }}
+        .card-kpi-bonito.c-ok::after {{ background: #10b981; }}
+        .card-kpi-bonito.c-warn::after {{ background: #f59e0b; }}
+        .card-kpi-bonito.c-crit::after {{ background: #ef4444; }}
+
+        .kpi-val {{
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1;
+            font-family: ui-monospace, monospace;
+        }}
+        .kpi-lbl {{
+            font-size: 0.68rem;
             font-weight: 700;
-            margin-right: 4px;
-            display: inline-block;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
         }}
 
         .hud-detalhe {{
@@ -461,7 +403,7 @@ st.markdown(
         .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
         .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
         .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #64748b; }}
+        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
 
         .tag-pill {{
             background: #f8fafc;
@@ -485,7 +427,7 @@ st.markdown(
         .badge-verde {{ background: #d1fae5; color: #065f46; }}
         .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
         .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #f1f5f9; color: #475569; }}
+        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
 
         .pill-legenda {{
             display: inline-flex;
@@ -634,93 +576,73 @@ if tela == "Painel Correias":
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#64748b;'></span> Sem Dados</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # 4 Cartões KPI atualizados com os novos rótulos solicitados
+    # 4 Cartões KPI Estilizados
     k1, k2, k3, k4 = st.columns(4)
 
     with k1:
-        st.markdown("<div class='kpi-btn-box kpi-total'>", unsafe_allow_html=True)
-        if st.button(f'<span class="kpi-titulo">Correias Totais</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_todas)}</span><span>📦</span></span>', key="btn_kpi_total", use_container_width=True):
-            st.session_state.card_selecionado_kpi = "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with k2:
-        st.markdown("<div class='kpi-btn-box kpi-ok'>", unsafe_allow_html=True)
-        if st.button(f'<span class="kpi-titulo">Correias Novas</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_novas)}</span><span>🟢</span></span>', key="btn_kpi_novas", use_container_width=True):
-            st.session_state.card_selecionado_kpi = "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with k3:
-        st.markdown("<div class='kpi-btn-box kpi-warn'>", unsafe_allow_html=True)
-        if st.button(f'<span class="kpi-titulo">Correias Meia Vida</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_meia)}</span><span>🟡</span></span>', key="btn_kpi_meia", use_container_width=True):
-            st.session_state.card_selecionado_kpi = "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with k4:
-        st.markdown("<div class='kpi-btn-box kpi-crit'>", unsafe_allow_html=True)
-        if st.button(f'<span class="kpi-titulo">Correias Críticas</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_criticas)}</span><span>🔴</span></span>', key="btn_kpi_crit", use_container_width=True):
-            st.session_state.card_selecionado_kpi = "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # Faixa do Visualizador Operacional
-    if st.session_state.card_selecionado_kpi is not None:
-        sel = st.session_state.card_selecionado_kpi
-        if sel == "TODAS":
-            lista_alvo = lista_correias_todas
-            titulo_faixa = "📦 Correias Totais Instaladas"
-        elif sel == "NOVAS":
-            lista_alvo = lista_correias_novas
-            titulo_faixa = "🟢 Correias Novas (≤ 1 ano)"
-        elif sel == "MEIA":
-            lista_alvo = lista_correias_meia
-            titulo_faixa = "🟡 Correias Meia Vida (1 a 1,5 anos)"
-        else:
-            lista_alvo = lista_correias_criticas
-            titulo_faixa = "🔴 Correias Críticas (> 1,5 anos)"
-
-        df_kpi_sel = pd.DataFrame(lista_alvo)
-        if not df_kpi_sel.empty:
-            contagem = df_kpi_sel["modelo"].value_counts().to_dict()
-            chips_html = " ".join([
-                f"<span class='chip-tt'>🏷️ {formatar_modelo(mod)}: <b>{qtd} un.</b></span>"
-                for mod, qtd in contagem.items()
-            ])
-        else:
-            chips_html = "<i>Nenhum registo encontrado</i>"
-
-        c_fx, c_fechar = st.columns([6.2, 0.8])
-        with c_fx:
-            st.markdown(
-                f"""
-                <div class="faixa-visualizador ativa">
-                    <span><b>{titulo_faixa} ({len(lista_alvo)} un.):</b> &nbsp; {chips_html}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with c_fechar:
-            if st.button("✖ Fechar", key="btn_fechar_faixa_kpi"):
-                st.session_state.card_selecionado_kpi = None
-                st.rerun()
-    else:
         st.markdown(
-            """
-            <div class="faixa-visualizador">
-                <span>💡 <b>Visualizador Operacional:</b> Clique em qualquer um dos cards acima para exibir as quantidades por modelo de correia ou clique numa máquina abaixo para ver o histórico.</span>
+            f"""
+            <div class="card-kpi-bonito c-total">
+                <div>
+                    <div class="kpi-lbl">Correias Totais</div>
+                    <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
+                </div>
+                <div style="font-size:1.5rem; opacity:0.8;">📦</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    with k2:
+        st.markdown(
+            f"""
+            <div class="card-kpi-bonito c-ok">
+                <div>
+                    <div class="kpi-lbl">Correias Novas</div>
+                    <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
+                </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with k3:
+        st.markdown(
+            f"""
+            <div class="card-kpi-bonito c-warn">
+                <div>
+                    <div class="kpi-lbl">Correias Meia Vida</div>
+                    <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
+                </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with k4:
+        st.markdown(
+            f"""
+            <div class="card-kpi-bonito c-crit">
+                <div>
+                    <div class="kpi-lbl">Correias Críticas</div>
+                    <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
+                </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
     # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
@@ -775,6 +697,16 @@ if tela == "Painel Correias":
             if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
+    else:
+        st.markdown(
+            """
+            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 4px 0 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
+                <span>💡</span>
+                <span><b>Painel Operacional:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de instalação e tempo de operação.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
