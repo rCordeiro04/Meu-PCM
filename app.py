@@ -346,14 +346,14 @@ st.markdown(
             gap: 8px;
         }}
 
-        /* ESTILO PREMIUM REFINADO DOS BOTÕES KPI SUPERIORES */
+        /* ESTILO DOS BOTÕES KPI SUPERIORES (DASHBOARD CORPORATIVO) */
         div.kpi-btn-box div[data-testid="stButton"] button {{
-            background: #ffffff !important;
+            background: #f8fafc !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 10px !important;
-            height: 64px !important;
-            min-height: 64px !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03) !important;
+            height: 68px !important;
+            min-height: 68px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
             padding: 8px 14px !important;
             display: flex !important;
             align-items: center !important;
@@ -361,32 +361,55 @@ st.markdown(
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
         div.kpi-btn-box div[data-testid="stButton"] button:hover {{
+            background: #ffffff !important;
             transform: translateY(-2px) !important;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.09) !important;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
             border-color: #cbd5e1 !important;
             filter: none !important;
         }}
         div.kpi-btn-box div[data-testid="stButton"] button p {{
-            font-size: 0.95rem !important;
-            font-weight: 800 !important;
             margin: 0 !important;
-            line-height: 1.35 !important;
             text-align: left !important;
-            letter-spacing: 0.3px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }}
+
+        /* Linha 1: Rótulo técnico menor */
+        div.kpi-btn-box div[data-testid="stButton"] button p span.kpi-titulo {{
+            font-size: 0.68rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            color: #64748b !important;
+            display: block !important;
+            margin-bottom: 2px !important;
+        }}
+
+        /* Linha 2: Valor KPI grande em monoespaçado + ícone */
+        div.kpi-btn-box div[data-testid="stButton"] button p span.kpi-valor-container {{
+            font-size: 1.35rem !important;
+            font-weight: 800 !important;
             font-family: ui-monospace, monospace !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            line-height: 1 !important;
         }}
 
         div.kpi-total div[data-testid="stButton"] button {{ border-left: 5px solid #475569 !important; }}
-        div.kpi-total div[data-testid="stButton"] button p {{ color: #0f172a !important; }}
+        div.kpi-total span.kpi-val-txt {{ color: #0f172a !important; }}
 
         div.kpi-ok div[data-testid="stButton"] button {{ border-left: 5px solid #10b981 !important; }}
-        div.kpi-ok div[data-testid="stButton"] button p {{ color: #059669 !important; }}
+        div.kpi-ok span.kpi-val-txt {{ color: #059669 !important; }}
 
         div.kpi-warn div[data-testid="stButton"] button {{ border-left: 5px solid #f59e0b !important; }}
-        div.kpi-warn div[data-testid="stButton"] button p {{ color: #d97706 !important; }}
+        div.kpi-warn span.kpi-val-txt {{ color: #d97706 !important; }}
 
         div.kpi-crit div[data-testid="stButton"] button {{ border-left: 5px solid #ef4444 !important; }}
-        div.kpi-crit div[data-testid="stButton"] button p {{ color: #dc2626 !important; }}
+        div.kpi-crit span.kpi-val-txt {{ color: #dc2626 !important; }}
 
         /* Faixa do Visualizador Operacional */
         .faixa-visualizador {{
@@ -619,33 +642,33 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cartões KPI formatados com duas linhas (Rótulo em cima, Valor + Ícone embaixo)
+    # 4 Cartões KPI em formato de Botão com Layout Profissional de Duas Linhas
     k1, k2, k3, k4 = st.columns(4)
 
     with k1:
         st.markdown("<div class='kpi-btn-box kpi-total'>", unsafe_allow_html=True)
-        if st.button(f"TOTAL DE CORREIAS\n{len(lista_correias_todas)} &nbsp; 📦", key="btn_kpi_total", use_container_width=True):
+        if st.button(f'<span class="kpi-titulo">Total de Correias</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_todas)}</span><span>📦</span></span>', key="btn_kpi_total", use_container_width=True):
             st.session_state.card_selecionado_kpi = "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k2:
         st.markdown("<div class='kpi-btn-box kpi-ok'>", unsafe_allow_html=True)
-        if st.button(f"OPERAÇÃO NORMAL\n{len(lista_correias_novas)} &nbsp; 🟢", key="btn_kpi_novas", use_container_width=True):
+        if st.button(f'<span class="kpi-titulo">Operação Normal</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_novas)}</span><span>🟢</span></span>', key="btn_kpi_novas", use_container_width=True):
             st.session_state.card_selecionado_kpi = "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k3:
         st.markdown("<div class='kpi-btn-box kpi-warn'>", unsafe_allow_html=True)
-        if st.button(f"ATENÇÃO (MEIA-VIDA)\n{len(lista_correias_meia)} &nbsp; 🟡", key="btn_kpi_meia", use_container_width=True):
+        if st.button(f'<span class="kpi-titulo">Atenção (Meia-Vida)</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_meia)}</span><span>🟡</span></span>', key="btn_kpi_meia", use_container_width=True):
             st.session_state.card_selecionado_kpi = "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with k4:
         st.markdown("<div class='kpi-btn-box kpi-crit'>", unsafe_allow_html=True)
-        if st.button(f"TROCA NECESSÁRIA\n{len(lista_correias_criticas)} &nbsp; 🔴", key="btn_kpi_crit", use_container_width=True):
+        if st.button(f'<span class="kpi-titulo">Troca Necessária</span><span class="kpi-valor-container"><span class="kpi-val-txt">{len(lista_correias_criticas)}</span><span>🔴</span></span>', key="btn_kpi_crit", use_container_width=True):
             st.session_state.card_selecionado_kpi = "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
