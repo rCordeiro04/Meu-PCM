@@ -90,7 +90,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -323,6 +323,24 @@ st.markdown(
 
         {regras_css_botoes}
 
+        /* Overlay Invisível Aperfeiçoado (Sem botões extras vazando) */
+        div.st-key-btn_inv_total,
+        div.st-key-btn_inv_novas,
+        div.st-key-btn_inv_meia,
+        div.st-key-btn_inv_crit {{
+            margin-top: -68px !important;
+            opacity: 0 !important;
+            z-index: 999 !important;
+        }}
+        div.st-key-btn_inv_total button,
+        div.st-key-btn_inv_novas button,
+        div.st-key-btn_inv_meia button,
+        div.st-key-btn_inv_crit button {{
+            height: 64px !important;
+            width: 100% !important;
+            cursor: pointer !important;
+        }}
+
         /* Cards KPI Estilizados */
         .card-kpi-bonito {{
             background: #ffffff;
@@ -337,6 +355,12 @@ st.markdown(
             overflow: hidden;
             height: 64px;
             box-sizing: border-box;
+            transition: all 0.15s ease;
+        }}
+        .card-kpi-bonito:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            border-color: #cbd5e1;
         }}
         .card-kpi-bonito::after {{
             content: "";
@@ -573,15 +597,14 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Linha Superior Única: Título com ícone quadrado premium, Filtros de Setor, Tipo e Legendas integradas com altura cravada.
-    col_t, col_f1, col_f2, col_leg = st.columns([2.6, 1.8, 1.8, 5.8])
+    # Linha Superior Única: Título Grande (Sem emoji azul), Filtros e Legenda alinhados perfeitamente
+    col_t, col_f1, col_f2, col_leg = st.columns([3.2, 1.4, 1.4, 5.0])
 
     with col_t:
         st.markdown(
             """
-            <div style="height: 43px; display: flex; align-items: center; font-size: 1.4rem; font-weight: 800; color: #0f172a; gap: 10px;">
-                <div style="background: #3b82f6; color: white; border-radius: 6px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(59,130,246,0.3);">🔄</div>
-                <span>Dashboard Correias</span>
+            <div style="height: 43px; display: flex; align-items: center; font-size: 2rem; font-weight: 900; color: #0f172a; padding-top: 5px;">
+                Dashboard Correias
             </div>
             """,
             unsafe_allow_html=True,
@@ -602,7 +625,7 @@ if tela == "Painel Correias":
     with col_leg:
         st.markdown(
             """
-            <div style="height: 43px; display: flex; align-items: center; justify-content: flex-end;">
+            <div style="height: 43px; display: flex; align-items: center; justify-content: flex-end; padding-top: 5px;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
@@ -637,86 +660,70 @@ if tela == "Painel Correias":
     with k1:
         st.markdown(
             f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-total">
-                    <div>
-                        <div class="kpi-lbl">Correias Totais</div>
-                        <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">📦</div>
+            <div class="card-kpi-bonito c-total">
+                <div>
+                    <div class="kpi-lbl">Correias Totais</div>
+                    <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
                 </div>
+                <div style="font-size:1.5rem; opacity:0.8;">📦</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_total", key="btn_inv_total", use_container_width=True):
+        if st.button(" ", key="btn_inv_total", use_container_width=True):
             st.session_state.card_selecionado_kpi = "TODAS" if st.session_state.card_selecionado_kpi != "TODAS" else None
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k2:
         st.markdown(
             f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-ok">
-                    <div>
-                        <div class="kpi-lbl">Correias Novas</div>
-                        <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
+            <div class="card-kpi-bonito c-ok">
+                <div>
+                    <div class="kpi-lbl">Correias Novas</div>
+                    <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
                 </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_novas", key="btn_inv_novas", use_container_width=True):
+        if st.button("  ", key="btn_inv_novas", use_container_width=True):
             st.session_state.card_selecionado_kpi = "NOVAS" if st.session_state.card_selecionado_kpi != "NOVAS" else None
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k3:
         st.markdown(
             f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-warn">
-                    <div>
-                        <div class="kpi-lbl">Correias Meia Vida</div>
-                        <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
+            <div class="card-kpi-bonito c-warn">
+                <div>
+                    <div class="kpi-lbl">Correias Meia Vida</div>
+                    <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
                 </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_meia", key="btn_inv_meia", use_container_width=True):
+        if st.button("   ", key="btn_inv_meia", use_container_width=True):
             st.session_state.card_selecionado_kpi = "MEIA" if st.session_state.card_selecionado_kpi != "MEIA" else None
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with k4:
         st.markdown(
             f"""
-            <div class="col-kpi-wrapper">
-                <div class="card-kpi-bonito c-crit">
-                    <div>
-                        <div class="kpi-lbl">Correias Críticas</div>
-                        <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
-                    </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
+            <div class="card-kpi-bonito c-crit">
+                <div>
+                    <div class="kpi-lbl">Correias Críticas</div>
+                    <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
                 </div>
+                <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("<div class='btn-kpi-invisivel'>", unsafe_allow_html=True)
-        if st.button("kpi_click_criticas", key="btn_inv_crit", use_container_width=True):
+        if st.button("    ", key="btn_inv_crit", use_container_width=True):
             st.session_state.card_selecionado_kpi = "CRITICAS" if st.session_state.card_selecionado_kpi != "CRITICAS" else None
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # Faixa do Visualizador Operacional
     if st.session_state.card_selecionado_kpi is not None:
