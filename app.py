@@ -90,7 +90,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -323,25 +323,17 @@ st.markdown(
 
         {regras_css_botoes}
 
-        /* Moldura bonita estilo card para o cabeçalho superior */
-        .header-bar {{
+        /* Moldura de cartão elegante para o cabeçalho superior alinhado */
+        .header-bar-clean {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 10px 16px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            margin-bottom: 8px;
-        }}
-        .header-title {{
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: #0f172a;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom: 10px;
         }}
 
         /* Cards KPI Estilizados */
@@ -594,13 +586,14 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho integrado dentro da moldura bonita com Título, Filtro Setor, Filtro Tipo e Legenda
+    # Cabeçalho unificado dentro de uma moldura de cartão elegante com alinhamento perfeito
+    st.markdown("<div class='header-bar-clean'>", unsafe_allow_html=True)
     col_t1, col_f1, col_f2, col_leg = st.columns([2.4, 1.4, 1.4, 3.8])
 
     with col_t1:
         st.markdown(
             """
-            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; padding-top: 6px;">
+            <div style="font-size: 1.12rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
                 <span>🔄</span>
                 <span>Controle de correias</span>
             </div>
@@ -623,7 +616,7 @@ if tela == "Painel Correias":
     with col_leg:
         st.markdown(
             """
-            <div style="text-align: right; padding-top: 4px;">
+            <div style="text-align: right;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
@@ -632,8 +625,7 @@ if tela == "Painel Correias":
             """,
             unsafe_allow_html=True,
         )
-
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Aplicação dos filtros às máquinas
     todas_as_maquinas = []
