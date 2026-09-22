@@ -107,7 +107,39 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
 # ==========================================
 # ATUALIZAÇÃO SEGURA DOS APONTAMENTOS DE CORREIAS
 # ==========================================
-# Carga das correias Cabeceira (19.500) e Traseira (18.050)[cite: 8]
+correias_36100 = [
+    {"Maquina_TAG": "L-01", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-21"},
+    {"Maquina_TAG": "L-03", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-04"},
+    {"Maquina_TAG": "L-04", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-01-07"},
+    {"Maquina_TAG": "L-05", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-27"},
+    {"Maquina_TAG": "L-06", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2024-11-19"},
+    {"Maquina_TAG": "L-07", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-25"},
+    {"Maquina_TAG": "L-08", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-05-20"},
+    {"Maquina_TAG": "L-09", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-13"},
+    {"Maquina_TAG": "L-10", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-08"},
+    {"Maquina_TAG": "L-15", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-07"},
+    {"Maquina_TAG": "L-16", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-02-12"},
+    {"Maquina_TAG": "L-17", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-08-20"},
+    {"Maquina_TAG": "L-18", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
+    {"Maquina_TAG": "L-19", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-04-12"},
+    {"Maquina_TAG": "L-20", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-07-01"},
+    {"Maquina_TAG": "L-21", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-20"},
+    {"Maquina_TAG": "L-22", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-05-19"},
+    {"Maquina_TAG": "L-23", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-09-01"},
+    {"Maquina_TAG": "L-24", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-27"},
+    {"Maquina_TAG": "L-25", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-29"},
+    {"Maquina_TAG": "L-29", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-11-13"},
+    {"Maquina_TAG": "L-30", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-09-10"},
+    {"Maquina_TAG": "L-31", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-24"},
+    {"Maquina_TAG": "L-33", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-20"},
+    {"Maquina_TAG": "L-34", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-08-06"},
+    {"Maquina_TAG": "L-36", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-02-26"},
+    {"Maquina_TAG": "L-38", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-10-02"},
+    {"Maquina_TAG": "L-39", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2025-03-21"},
+    {"Maquina_TAG": "L-40", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-03-11"},
+    {"Maquina_TAG": "L-51", "Tipo_Correia_1": "36.100", "Data_Instalacao_1": "2026-06-30"},
+]
+
 cabeceira_19500 = [
     {"Maquina_TAG": "L-11", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-08-21"},
     {"Maquina_TAG": "L-12", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-01-17"},
@@ -118,6 +150,14 @@ cabeceira_19500 = [
     {"Maquina_TAG": "L-50", "Tipo_Correia_1": "19.500", "Data_Instalacao_1": "2026-03-05"},
 ]
 
+superior_33990 = [
+    {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
+    {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
+    {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
+]
+
+novos_dados_superior = correias_36100 + cabeceira_19500 + superior_33990
+
 traseira_18050 = [
     {"Maquina_TAG": "L-11", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-01-27"},
     {"Maquina_TAG": "L-12", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-01-17"},
@@ -125,12 +165,6 @@ traseira_18050 = [
     {"Maquina_TAG": "L-28", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2025-03-22"},
     {"Maquina_TAG": "L-50", "Tipo_Correia_2": "18.050", "Data_Instalacao_2": "2026-07-28"},
 ]
-
-novos_dados_superior = [
-    {"Maquina_TAG": "B-72", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-01-02"},
-    {"Maquina_TAG": "B-73", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-06-13"},
-    {"Maquina_TAG": "B-74", "Tipo_Correia_1": "33.990", "Data_Instalacao_1": "2026-03-10"},
-] + cabeceira_19500
 
 novos_dados_inferior = [
     {"Maquina_TAG": "L-42", "Tipo_Correia_2": "34.870", "Data_Instalacao_2": "2025-10-02"},
@@ -144,7 +178,7 @@ novos_dados_inferior = [
 
 houve_modificacao = False
 
-# Gravação dos dados Superior / Cabeceira
+# Aplica dados Superior / Cabeceira
 for item in novos_dados_superior:
     tag = item["Maquina_TAG"]
     setor_alvo = mapa_setor_maquina.get(tag, "")
@@ -170,7 +204,7 @@ for item in novos_dados_superior:
         df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
         houve_modificacao = True
 
-# Gravação dos dados Inferior / Traseira
+# Aplica dados Inferior / Traseira
 for item in novos_dados_inferior:
     tag = item["Maquina_TAG"]
     setor_alvo = mapa_setor_maquina.get(tag, "")
