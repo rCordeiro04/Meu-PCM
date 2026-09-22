@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Ficheiros de dados blindados e separados
+# Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 
@@ -262,27 +262,21 @@ for maq_tag in todas_as_maquinas:
 
 regras_css_botoes = "\n".join(css_botoes)
 
-# Função auxiliar para gerar o HTML do tooltip por modelo
-def gerar_html_tooltip(lista_alvo, titulo):
+def montar_linhas_tooltip(lista_alvo, titulo):
     if not lista_alvo:
-        return f"<div class='kpi-tooltip'><div class='tt-title'>{titulo}</div><div class='tt-empty'>Sem correias registadas</div></div>"
+        return f"<div class='tt-title'>{titulo}</div><div class='tt-empty'>Nenhuma correia</div>"
     df_temp = pd.DataFrame(lista_alvo)
     contagem = df_temp["modelo"].value_counts().to_dict()
-    linhas_tt = "".join([
+    itens = "".join([
         f"<div class='tt-row'><span>🏷️ {mod}</span><b>{qtd} un.</b></div>"
         for mod, qtd in contagem.items()
     ])
-    return f"""
-    <div class='kpi-tooltip'>
-        <div class='tt-title'>{titulo} ({len(lista_alvo)} un.)</div>
-        {linhas_tt}
-    </div>
-    """
+    return f"<div class='tt-title'>{titulo} ({len(lista_alvo)} un.)</div>{itens}"
 
-tt_total = gerar_html_tooltip(lista_correias_todas, "Total por Modelo")
-tt_novas = gerar_html_tooltip(lista_correias_novas, "Normais por Modelo")
-tt_meia = gerar_html_tooltip(lista_correias_meia, "Meia-Vida por Modelo")
-tt_crit = gerar_html_tooltip(lista_correias_criticas, "Troca Necessária")
+tt_total_conteudo = montar_linhas_tooltip(lista_correias_todas, "Total por Modelo")
+tt_novas_conteudo = montar_linhas_tooltip(lista_correias_novas, "Normais por Modelo")
+tt_meia_conteudo = montar_linhas_tooltip(lista_correias_meia, "Meia-Vida por Modelo")
+tt_crit_conteudo = montar_linhas_tooltip(lista_correias_criticas, "Troca Necessária")
 
 st.markdown(
     f"""
@@ -393,48 +387,44 @@ st.markdown(
             margin-bottom: 3px;
         }}
 
-        /* Caixa Flutuante do Tooltip */
+        /* Tooltip Flutuante Puro em Z-Index Superior */
         .kpi-tooltip {{
-            visibility: hidden;
-            opacity: 0;
+            display: none;
             position: absolute;
-            top: 105%;
+            top: 100%;
             left: 50%;
             transform: translateX(-50%);
             background: #0f172a;
-            color: #f8fafc;
+            color: #ffffff;
             padding: 10px 14px;
             border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-            width: 220px;
-            z-index: 9999;
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+            width: 210px;
+            z-index: 99999 !important;
+            border: 1px solid rgba(255,255,255,0.15);
             pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.1);
         }}
         .card-kpi-container:hover .kpi-tooltip {{
-            visibility: visible;
-            opacity: 1;
-            transform: translateX(-50%) translateY(4px);
+            display: block !important;
         }}
         .tt-title {{
             font-size: 0.76rem;
             font-weight: 800;
             color: #94a3b8;
             text-transform: uppercase;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            padding-bottom: 5px;
-            margin-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 4px;
+            margin-bottom: 5px;
         }}
         .tt-row {{
             display: flex;
             justify-content: space-between;
             font-size: 0.8rem;
             padding: 2px 0;
-            color: #e2e8f0;
+            color: #f1f5f9;
         }}
         .tt-row b {{
-            color: #ffffff;
+            color: #38bdf8;
             font-family: ui-monospace, monospace;
         }}
         .tt-empty {{
@@ -619,7 +609,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (DESIGN INDUSTRIAL COM TOOLTIP NO HOVER)
+# 1. PAINEL GERENCIAL DE CORREIAS (SEM </div> E COM TOOLTIP ELEGANTE)
 # ------------------------------------------
 if tela == "Painel Correias":
     st.markdown(
@@ -640,69 +630,44 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
-    # 4 Cards KPI Executivos com Tooltip Inteligente no Hover
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.markdown(
-            f"""
-            <div class='card-kpi-container c-total'>
-                <div>
-                    <div class='kpi-lbl'>Total de Correias</div>
-                    <div class='kpi-val' style='color:#0f172a;'>{len(lista_correias_todas)}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>📦</div>
-                {tt_total}
+    # 4 Cards KPI em Bloco HTML Único (Garante zero quebras de tags)
+    html_grid_kpis = f"""
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px;">
+        <div class="card-kpi-container c-total">
+            <div>
+                <div class="kpi-lbl">Total de Correias</div>
+                <div class="kpi-val" style="color:#0f172a;">{len(lista_correias_todas)}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with k2:
-        st.markdown(
-            f"""
-            <div class='card-kpi-container c-ok'>
-                <div>
-                    <div class='kpi-lbl'>Operação Normal</div>
-                    <div class='kpi-val' style='color:#059669;'>{len(lista_correias_novas)}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🟢</div>
-                {tt_novas}
+            <div style="font-size:1.5rem; opacity:0.8;">📦</div>
+            <div class="kpi-tooltip">{tt_total_conteudo}</div>
+        </div>
+        <div class="card-kpi-container c-ok">
+            <div>
+                <div class="kpi-lbl">Operação Normal</div>
+                <div class="kpi-val" style="color:#059669;">{len(lista_correias_novas)}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with k3:
-        st.markdown(
-            f"""
-            <div class='card-kpi-container c-warn'>
-                <div>
-                    <div class='kpi-lbl'>Atenção (Meia-Vida)</div>
-                    <div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🟡</div>
-                {tt_meia}
+            <div style="font-size:1.5rem; opacity:0.8;">🟢</div>
+            <div class="kpi-tooltip">{tt_novas_conteudo}</div>
+        </div>
+        <div class="card-kpi-container c-warn">
+            <div>
+                <div class="kpi-lbl">Atenção (Meia-Vida)</div>
+                <div class="kpi-val" style="color:#d97706;">{len(lista_correias_meia)}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with k4:
-        st.markdown(
-            f"""
-            <div class='card-kpi-container c-crit'>
-                <div>
-                    <div class='kpi-lbl'>Troca Necessária</div>
-                    <div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div>
-                </div>
-                <div style='font-size:1.5rem; opacity:0.8;'>🔴</div>
-                {tt_crit}
+            <div style="font-size:1.5rem; opacity:0.8;">🟡</div>
+            <div class="kpi-tooltip">{tt_meia_conteudo}</div>
+        </div>
+        <div class="card-kpi-container c-crit">
+            <div>
+                <div class="kpi-lbl">Troca Necessária</div>
+                <div class="kpi-val" style="color:#dc2626;">{len(lista_correias_criticas)}</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+            <div style="font-size:1.5rem; opacity:0.8;">🔴</div>
+            <div class="kpi-tooltip">{tt_crit_conteudo}</div>
+        </div>
+    </div>
+    """
+    st.markdown(html_grid_kpis, unsafe_allow_html=True)
 
     # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
@@ -760,9 +725,9 @@ if tela == "Painel Correias":
     else:
         st.markdown(
             """
-            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
+            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 4px 0 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
                 <span>💡</span>
-                <span><b>Visualizador Operacional:</b> Passe o rato pelos cards acima para ver o detalhe por modelo de correia ou clique numa máquina abaixo para consultar o histórico do equipamento.</span>
+                <span><b>Visualizador Operacional:</b> Passe o mouse pelos cards de resumo para ver o total por modelo de correia ou selecione qualquer máquina para ver o histórico individual.</span>
             </div>
             """,
             unsafe_allow_html=True,
