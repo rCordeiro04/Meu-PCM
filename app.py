@@ -294,6 +294,76 @@ mapa_cargas_setor_latex = [
     ("Agosto", dados_agosto_setor_latex),
 ]
 
+# =========================================================================
+# DADOS HISTÓRICOS: SETOR MENEGATTO (JAN A AGO/2026)
+# =========================================================================
+dados_janeiro_setor_menegatto = [
+    ("B-47", 4), ("B-48", 3), ("B-49", 5), ("B-81", 3), ("B-82", 3),
+    ("B-93", 10), ("B-94", 9), ("B-95", 4), ("B-96", 6), ("B-97", 4),
+    ("B-98", 1), ("B-99", 6), ("B-100", 6), ("B-101", 5), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_fevereiro_setor_menegatto = [
+    ("B-47", 4), ("B-48", 3), ("B-49", 2), ("B-81", 2), ("B-82", 0),
+    ("B-93", 1), ("B-94", 0), ("B-95", 3), ("B-96", 4), ("B-97", 6),
+    ("B-98", 1), ("B-99", 6), ("B-100", 16), ("B-101", 1), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_marco_setor_menegatto = [
+    ("B-47", 0), ("B-48", 5), ("B-49", 2), ("B-81", 3), ("B-82", 3),
+    ("B-93", 3), ("B-94", 7), ("B-95", 12), ("B-96", 2), ("B-97", 5),
+    ("B-98", 1), ("B-99", 9), ("B-100", 0), ("B-101", 3), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_abril_setor_menegatto = [
+    ("B-47", 9), ("B-48", 8), ("B-49", 3), ("B-81", 8), ("B-82", 5),
+    ("B-93", 3), ("B-94", 2), ("B-95", 25), ("B-96", 5), ("B-97", 3),
+    ("B-98", 2), ("B-99", 14), ("B-100", 2), ("B-101", 4), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_maio_setor_menegatto = [
+    ("B-47", 5), ("B-48", 9), ("B-49", 1), ("B-81", 7), ("B-82", 1),
+    ("B-93", 1), ("B-94", 0), ("B-95", 4), ("B-96", 0), ("B-97", 9),
+    ("B-98", 0), ("B-99", 1), ("B-100", 4), ("B-101", 3), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_junho_setor_menegatto = [
+    ("B-47", 4), ("B-48", 6), ("B-49", 1), ("B-81", 1), ("B-82", 3),
+    ("B-93", 5), ("B-94", 7), ("B-95", 15), ("B-96", 5), ("B-97", 9),
+    ("B-98", 0), ("B-99", 6), ("B-100", 3), ("B-101", 1), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+dados_julho_setor_menegatto = [
+    ("B-47", 11), ("B-48", 5), ("B-49", 7), ("B-81", 6), ("B-82", 5),
+    ("B-93", 1), ("B-94", 0), ("B-95", 1), ("B-96", 3), ("B-97", 1),
+    ("B-98", 1), ("B-99", 3), ("B-100", 2), ("B-101", 5), ("B-107", 1),
+    ("B-108", 0)
+][cite: 5]
+
+dados_agosto_setor_menegatto = [
+    ("B-47", 7), ("B-48", 1), ("B-49", 4), ("B-81", 0), ("B-82", 3),
+    ("B-93", 2), ("B-94", 0), ("B-95", 1), ("B-96", 2), ("B-97", 3),
+    ("B-98", 0), ("B-99", 0), ("B-100", 1), ("B-101", 2), ("B-107", 0),
+    ("B-108", 0)
+][cite: 5]
+
+mapa_cargas_setor_menegatto = [
+    ("Janeiro", dados_janeiro_setor_menegatto),
+    ("Fevereiro", dados_fevereiro_setor_menegatto),
+    ("Março", dados_marco_setor_menegatto),
+    ("Abril", dados_abril_setor_menegatto),
+    ("Maio", dados_maio_setor_menegatto),
+    ("Junho", dados_junho_setor_menegatto),
+    ("Julho", dados_julho_setor_menegatto),
+    ("Agosto", dados_agosto_setor_menegatto),
+][cite: 5]
+
 precisa_salvar_fusos = False
 
 # Injeção Setor B
@@ -354,14 +424,13 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
         df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
         precisa_salvar_fusos = True
 
-# Injeção Setor Látex (substitui caso esteja vazio ou se a soma for zero)
+# Injeção Setor Látex
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
         & (df_fusos["Mes"] == nome_mes_carga)
         & (df_fusos["Setor"] == "Setor Látex")
     ]
-    # Atualiza também se a carga anterior estava parcial (ex: tinha menos de 10 máquinas cadastradas)
     if linhas_mes.empty or len(linhas_mes) < 20:
         df_fusos = df_fusos[
             ~(
@@ -378,6 +447,35 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
                 "Tipo_Fuso": "M4BA",
+            }
+            for maq, qtd in lista_dados_carga
+        ]
+        df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
+        precisa_salvar_fusos = True
+
+# Injeção Setor Menegatto
+for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_menegatto:
+    linhas_mes = df_fusos[
+        (df_fusos["Ano"] == 2026)
+        & (df_fusos["Mes"] == nome_mes_carga)
+        & (df_fusos["Setor"] == "Setor Menegatto")
+    ]
+    if linhas_mes.empty or linhas_mes["Quantidade_Quebras"].sum() == 0:
+        df_fusos = df_fusos[
+            ~(
+                (df_fusos["Ano"] == 2026)
+                & (df_fusos["Mes"] == nome_mes_carga)
+                & (df_fusos["Setor"] == "Setor Menegatto")
+            )
+        ]
+        novos_reg = [
+            {
+                "Ano": 2026,
+                "Mes": nome_mes_carga,
+                "Setor": "Setor Menegatto",
+                "Maquina_TAG": maq,
+                "Quantidade_Quebras": int(qtd),
+                "Tipo_Fuso": "MENEGATTO",
             }
             for maq, qtd in lista_dados_carga
         ]
@@ -442,7 +540,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor (atualizado com novas tags do Menegatto)
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -459,8 +557,8 @@ maquinas_setor_latex = [
 
 maquinas_setor_menegatto = [
     "B-47", "B-48", "B-49", "B-81", "B-82", "B-90", "B-91", "B-92", "B-93",
-    "B-94", "B-95", "B-96", "B-97", "B-98", "B-99", "B-100", "B-101"
-]
+    "B-94", "B-95", "B-96", "B-97", "B-98", "B-99", "B-100", "B-101", "B-107", "B-108"
+][cite: 5]
 
 DICIONARIO_SETORES = {
     "Setor A": maquinas_setor_a,
@@ -484,7 +582,7 @@ if "card_selecionado_kpi" not in st.session_state:
     st.session_state.card_selecionado_kpi = None
 
 if "aba_setor_fuso" not in st.session_state:
-    st.session_state.aba_setor_fuso = "Setor Látex"
+    st.session_state.aba_setor_fuso = "Setor Menegatto"
 
 
 def navegar(nome_pagina):
