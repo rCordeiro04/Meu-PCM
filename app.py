@@ -323,6 +323,7 @@ st.markdown(
 
         {regras_css_botoes}
 
+        /* Moldura bonita estilo card para o cabeçalho superior */
         .header-bar {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -593,7 +594,7 @@ lista_meses_puros = [
 # 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Barra Superior Integrada com Título e os Filtros (Setor e Tipo)
+    # Cabeçalho integrado dentro da moldura bonita com Título, Filtro Setor, Filtro Tipo e Legenda
     col_t1, col_f1, col_f2, col_leg = st.columns([2.4, 1.4, 1.4, 3.8])
 
     with col_t1:
@@ -782,16 +783,6 @@ if tela == "Painel Correias":
             if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
-    else:
-        st.markdown(
-            """
-            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 4px 0 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
-                <span>💡</span>
-                <span><b>Painel Operacional:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de instalação e tempo de operação.</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
