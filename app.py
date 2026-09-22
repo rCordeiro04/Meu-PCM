@@ -1402,13 +1402,11 @@ elif tela == "Painel Fusos":
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
-        # Média de fusos quebrados por máquina no setor
-        media_fusos_por_maquina = round(total_setor_quebras / qtd_maquinas_setor, 1) if qtd_maquinas_setor > 0 else 0.0
-
-        # Identificação da máquina que mais quebrou no último mês com apontamentos
+        # Identificação do último mês com apontamentos e maior máquina ofensor desse mês
         ultimo_mes_nome = "Nenhum"
         top_maq_ultimo_mes = "Nenhuma"
         qtd_top_ultimo_mes = 0
+        quebras_ultimo_mes_setor = 0
 
         if not df_setor.empty and total_setor_quebras > 0:
             df_reais_setor = df_setor[df_setor["Quantidade_Quebras"] > 0]
@@ -1417,10 +1415,19 @@ elif tela == "Painel Fusos":
                 df_sub_m = df_reais_setor[df_reais_setor["Mes"] == m_teste]
                 if not df_sub_m.empty and df_sub_m["Quantidade_Quebras"].sum() > 0:
                     ultimo_mes_nome = m_teste
+                    quebras_ultimo_mes_setor = int(df_sub_m["Quantidade_Quebras"].sum())
                     agrup_ult_m = df_sub_m.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index().sort_values(by="Quantidade_Quebras", ascending=False)
                     top_maq_ultimo_mes = agrup_ult_m.iloc[0]["Maquina_TAG"]
                     qtd_top_ultimo_mes = int(agrup_ult_m.iloc[0]["Quantidade_Quebras"])
                     break
+
+        # Cálculo da Média de Fusos: Quantidade total de máquinas / Quantidade de quebras do último mês
+        if quebras_ultimo_mes_setor > 0:
+            media_fusos_calc = round(qtd_maquinas_setor / quebras_ultimo_mes_setor, 2)
+        else:
+            media_fusos_calc = 0.0
+
+        lbl_media_fusos = f"Máquinas / Quebra ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Máquinas / Quebra"
 
         # Cards KPI do Setor Atualizados
         ks1, ks2, ks3, ks4 = st.columns(4)
@@ -1455,8 +1462,8 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-warn">
                     <div>
-                        <div class="kpi-lbl">Média / Máquina ({setor_ativo})</div>
-                        <div class="kpi-val" style="color:#d97706;">{media_fusos_por_maquina}</div>
+                        <div class="kpi-lbl">{lbl_media_fusos}</div>
+                        <div class="kpi-val" style="color:#d97706;">{media_fusos_calc}</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">⚙️</div>
                 </div>
