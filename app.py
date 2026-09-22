@@ -1402,19 +1402,27 @@ elif tela == "Painel Fusos":
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
-        if not df_setor.empty and total_setor_quebras > 0:
-            df_reais = df_setor[df_setor["Quantidade_Quebras"] > 0]
-            maquinas_falharam_setor = df_reais["Maquina_TAG"].nunique()
-            agrup_maq_setor = df_reais.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index().sort_values(by="Quantidade_Quebras", ascending=False)
-            top_maq_setor = agrup_maq_setor.iloc[0]["Maquina_TAG"]
-            qtd_top_setor = int(agrup_maq_setor.iloc[0]["Quantidade_Quebras"])
-        else:
-            maquinas_falharam_setor = 0
-            agrup_maq_setor = pd.DataFrame(columns=["Maquina_TAG", "Quantidade_Quebras"])
-            top_maq_setor = "Nenhuma"
-            qtd_top_setor = 0
+        # Média de fusos quebrados por máquina no setor
+        media_fusos_por_maquina = round(total_setor_quebras / qtd_maquinas_setor, 1) if qtd_maquinas_setor > 0 else 0.0
 
-        # Cards KPI do Setor
+        # Identificação da máquina que mais quebrou no último mês com apontamentos
+        ultimo_mes_nome = "Nenhum"
+        top_maq_ultimo_mes = "Nenhuma"
+        qtd_top_ultimo_mes = 0
+
+        if not df_setor.empty and total_setor_quebras > 0:
+            df_reais_setor = df_setor[df_setor["Quantidade_Quebras"] > 0]
+            # Percorre a lista cronológica reversa de meses para pegar o último com dados apontados
+            for m_teste in reversed(lista_meses_puros):
+                df_sub_m = df_reais_setor[df_reais_setor["Mes"] == m_teste]
+                if not df_sub_m.empty and df_sub_m["Quantidade_Quebras"].sum() > 0:
+                    ultimo_mes_nome = m_teste
+                    agrup_ult_m = df_sub_m.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index().sort_values(by="Quantidade_Quebras", ascending=False)
+                    top_maq_ultimo_mes = agrup_ult_m.iloc[0]["Maquina_TAG"]
+                    qtd_top_ultimo_mes = int(agrup_ult_m.iloc[0]["Quantidade_Quebras"])
+                    break
+
+        # Cards KPI do Setor Atualizados
         ks1, ks2, ks3, ks4 = st.columns(4)
         with ks1:
             st.markdown(
@@ -1447,10 +1455,10 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-warn">
                     <div>
-                        <div class="kpi-lbl">Ativos com Quebra</div>
-                        <div class="kpi-val" style="color:#d97706;">{maquinas_falharam_setor} / {qtd_maquinas_setor}</div>
+                        <div class="kpi-lbl">Média / Máquina ({setor_ativo})</div>
+                        <div class="kpi-val" style="color:#d97706;">{media_fusos_por_maquina}</div>
                     </div>
-                    <div style="font-size:1.5rem; opacity:0.8;">🏭</div>
+                    <div style="font-size:1.5rem; opacity:0.8;">⚙️</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1460,8 +1468,8 @@ elif tela == "Painel Fusos":
                 f"""
                 <div class="card-kpi-bonito c-crit">
                     <div>
-                        <div class="kpi-lbl">Maior Gargalo ({setor_ativo})</div>
-                        <div class="kpi-val" style="color:#dc2626; font-size:1.1rem;">{top_maq_setor} ({qtd_top_setor})</div>
+                        <div class="kpi-lbl">Maior Quebra ({ultimo_mes_nome})</div>
+                        <div class="kpi-val" style="color:#dc2626; font-size:1.1rem;">{top_maq_ultimo_mes} ({qtd_top_ultimo_mes})</div>
                     </div>
                     <div style="font-size:1.5rem; opacity:0.8;">⚠️</div>
                 </div>
