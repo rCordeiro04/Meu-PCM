@@ -13,7 +13,7 @@ st.set_page_config(
 
 # Arquivos de dados blindados e separados
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
-ARQUIVO_CORREIAS = "lancamentos_correias_v3.xlsx"
+ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 
 colunas_fusos = [
     "Ano",
@@ -27,13 +27,15 @@ colunas_fusos = [
 colunas_correias = [
     "Setor",
     "Maquina_TAG",
-    "Tipo_Correia",
-    "Data_Instalacao",
+    "Tipo_Correia_1",
+    "Data_Instalacao_1",
+    "Tipo_Correia_2",
+    "Data_Instalacao_2",
 ]
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
-# Base de Fusos (congelada)
+# Base de Fusos
 if not os.path.exists(ARQUIVO_FUSOS):
     pd.DataFrame(columns=colunas_fusos).to_excel(ARQUIVO_FUSOS, index=False)
 
@@ -42,20 +44,36 @@ if not all(col in df_fusos.columns for col in colunas_fusos):
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias
+# Base de Correias (com suporte a 2 correias e migração transparente)
 if not os.path.exists(ARQUIVO_CORREIAS):
-    pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+    # Se existir a versão v3, migra automaticamente
+    if os.path.exists("lancamentos_correias_v3.xlsx"):
+        df_antigo = pd.read_excel("lancamentos_correias_v3.xlsx")
+        df_migrado = pd.DataFrame(columns=colunas_correias)
+        df_migrado["Setor"] = df_antigo.get("Setor", "")
+        df_migrado["Maquina_TAG"] = df_antigo.get("Maquina_TAG", "")
+        df_migrado["Tipo_Correia_1"] = df_antigo.get("Tipo_Correia", "")
+        df_migrado["Data_Instalacao_1"] = df_antigo.get("Data_Instalacao", "")
+        df_migrado["Tipo_Correia_2"] = ""
+        df_migrado["Data_Instalacao_2"] = ""
+        df_migrado.to_excel(ARQUIVO_CORREIAS, index=False)
+        df_correias = df_migrado
+    else:
+        pd.DataFrame(columns=colunas_correias).to_excel(ARQUIVO_CORREIAS, index=False)
+        df_correias = pd.DataFrame(columns=colunas_correias)
+else:
+    df_correias = pd.read_excel(ARQUIVO_CORREIAS)
 
-df_correias = pd.read_excel(ARQUIVO_CORREIAS)
-if not all(col in df_correias.columns for col in colunas_correias):
-    df_correias = pd.DataFrame(columns=colunas_correias)
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+for col in colunas_correias:
+    if col not in df_correias.columns:
+        df_correias[col] = ""
 
-# Garantir tipos de texto estritos para evitar erros de tipo no Pandas
-df_correias["Tipo_Correia"] = df_correias["Tipo_Correia"].astype(str)
-df_correias["Data_Instalacao"] = df_correias["Data_Instalacao"].astype(str)
+df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].astype(str)
+df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
+df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].astype(str)
+df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor
+# Mapeamento oficial de ativos por setor[cite: 4, 5]
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -82,31 +100,6 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
-# ==========================================
-# ATUALIZAÇÃO SEGURA DAS MÁQUINAS DO SETOR MENEGATTO
-# ==========================================
-dados_importados = pd.DataFrame([
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-93", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-16"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-94", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-05-01"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-95", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-17"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-96", "Tipo_Correia": "38.740", "Data_Instalacao": "2026-06-25"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-97", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-05-05"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-98", "Tipo_Correia": "38.740", "Data_Instalacao": "2024-12-11"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-99", "Tipo_Correia": "38.740", "Data_Instalacao": "2024-12-06"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-100", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-12-04"},
-    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-101", "Tipo_Correia": "38.740", "Data_Instalacao": "2026-04-03"},
-])
-
-tags_atualizadas = dados_importados["Maquina_TAG"].tolist()
-# Remove versões desatualizadas dessas tags e anexa as novas com tipos consistentes
-df_sem_essas = df_correias[
-    ~((df_correias["Setor"] == "Setor Menegatto") & (df_correias["Maquina_TAG"].isin(tags_atualizadas)))
-]
-df_correias = pd.concat([df_sem_essas, dados_importados], ignore_index=True)
-df_correias["Tipo_Correia"] = df_correias["Tipo_Correia"].astype(str)
-df_correias["Data_Instalacao"] = df_correias["Data_Instalacao"].astype(str)
-df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
 
@@ -119,7 +112,7 @@ def navegar(nome_pagina):
 
 
 # ==========================================
-# CÁLCULO DAS CORES E DADOS DAS MÁQUINAS
+# CÁLCULO E ANÁLISE DE CORREIAS (REGRA DO PIOR CASO)
 # ==========================================
 todas_as_maquinas = []
 mapa_setor_maquina = {}
@@ -137,75 +130,86 @@ qtd_meia_vida = 0
 qtd_criticas = 0
 qtd_sem_dado = 0
 
+
+def avaliar_correia(dt_val):
+    if not dt_val or dt_val == "nan" or dt_val.strip() == "":
+        return None, "Sem registro", "Sem histórico"
+    try:
+        dt_inst = pd.to_datetime(dt_val).date()
+        dt_fmt = dt_inst.strftime("%d/%m/%Y")
+        dias = (data_hoje - dt_inst).days
+        meses = round(dias / 30.4, 1)
+        tempo_str = f"{meses} meses ({dias} dias)"
+
+        if dias <= 365:
+            return 1, dt_fmt, tempo_str  # Verde
+        elif 365 < dias <= 547:
+            return 2, dt_fmt, tempo_str  # Amarelo
+        else:
+            return 3, dt_fmt, tempo_str  # Vermelho
+    except Exception:
+        return None, dt_val, "Data inválida"
+
+
 for maq_tag in todas_as_maquinas:
     setor_m = mapa_setor_maquina[maq_tag]
     reg_maq = df_correias[
         (df_correias["Setor"] == setor_m) & (df_correias["Maquina_TAG"] == maq_tag)
     ]
 
-    tipo_txt = "Não informada"
-    data_txt = "Sem registro"
-    tempo_txt = "Sem histórico"
-    classe_card = "status-cinza"
-    
-    cor_fundo = "#94a3b8"
-    cor_texto = "#ffffff"
-    cor_borda = "#64748b"
-    status_label = "Pendente"
+    t1, d1_str, t1_uso, c1_score = "Não informada", "Sem registro", "Sem histórico", None
+    t2, d2_str, t2_uso, c2_score = "", "", "", None
 
     if not reg_maq.empty:
         ultimo = reg_maq.iloc[-1]
-        tipo_val = str(ultimo["Tipo_Correia"]).strip()
-        if tipo_val and tipo_val != "nan":
-            tipo_txt = tipo_val
+        v1 = str(ultimo.get("Tipo_Correia_1", "")).strip()
+        if v1 and v1 != "nan":
+            t1 = v1
+        c1_score, d1_str, t1_uso = avaliar_correia(str(ultimo.get("Data_Instalacao_1", "")))
 
-        dt_val = str(ultimo["Data_Instalacao"]).strip()
-        if dt_val and dt_val != "nan":
-            try:
-                dt_inst = pd.to_datetime(dt_val).date()
-                dt_fmt = dt_inst.strftime("%d/%m/%Y")
-                data_txt = f"{dt_fmt}"
+        v2 = str(ultimo.get("Tipo_Correia_2", "")).strip()
+        if v2 and v2 != "nan":
+            t2 = v2
+        c2_score, d2_str, t2_uso = avaliar_correia(str(ultimo.get("Data_Instalacao_2", "")))
 
-                dias = (data_hoje - dt_inst).days
-                meses = round(dias / 30.4, 1)
-
-                if dias <= 365:
-                    classe_card = "status-verde"
-                    cor_fundo = "#10b981"
-                    cor_texto = "#ffffff"
-                    cor_borda = "#059669"
-                    status_label = "Nova"
-                    tempo_txt = f"{meses} meses ({dias} dias)"
-                    qtd_novas += 1
-                elif 365 < dias <= 547:
-                    classe_card = "status-amarelo"
-                    cor_fundo = "#f59e0b"
-                    cor_texto = "#ffffff"
-                    cor_borda = "#d97706"
-                    status_label = "Meia-Vida"
-                    tempo_txt = f"{meses} meses ({dias} dias)"
-                    qtd_meia_vida += 1
-                else:
-                    classe_card = "status-vermelho"
-                    cor_fundo = "#ef4444"
-                    cor_texto = "#ffffff"
-                    cor_borda = "#dc2626"
-                    status_label = "Fim de Vida"
-                    tempo_txt = f"{meses} meses ({dias} dias)"
-                    qtd_criticas += 1
-            except Exception:
-                data_txt = f"{dt_val}"
-                qtd_sem_dado += 1
+    # Determina o nível mais crítico entre as correias existentes
+    scores = [s for s in [c1_score, c2_score] if s is not None]
+    if scores:
+        pior_score = max(scores)
+        if pior_score == 1:
+            classe_card = "status-verde"
+            cor_fundo = "#10b981"
+            cor_borda = "#059669"
+            status_label = "Nova"
+            qtd_novas += 1
+        elif pior_score == 2:
+            classe_card = "status-amarelo"
+            cor_fundo = "#f59e0b"
+            cor_borda = "#d97706"
+            status_label = "Meia-Vida"
+            qtd_meia_vida += 1
         else:
-            qtd_sem_dado += 1
+            classe_card = "status-vermelho"
+            cor_fundo = "#ef4444"
+            cor_borda = "#dc2626"
+            status_label = "Troca Urgente"
+            qtd_criticas += 1
     else:
+        classe_card = "status-cinza"
+        cor_fundo = "#94a3b8"
+        cor_borda = "#64748b"
+        status_label = "Pendente"
         qtd_sem_dado += 1
 
     dados_maquinas[maq_tag] = {
         "setor": setor_m,
-        "tipo": tipo_txt,
-        "data": data_txt,
-        "tempo": tempo_txt,
+        "t1": t1,
+        "d1": d1_str,
+        "uso1": t1_uso,
+        "t2": t2,
+        "d2": d2_str,
+        "uso2": t2_uso,
+        "tem_duas": bool(t2 or (c2_score is not None)),
         "status_label": status_label,
         "classe_card": classe_card,
     }
@@ -216,19 +220,19 @@ for maq_tag in todas_as_maquinas:
         button[key="{chave_btn}"],
         div.st-key-{chave_btn} button {{
             background: {cor_fundo} !important;
-            color: {cor_texto} !important;
+            color: #ffffff !important;
             border: 1px solid {cor_borda} !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important;
         }}
         button[key="{chave_btn}"]:hover,
         div.st-key-{chave_btn} button:hover {{
             filter: brightness(1.1) !important;
-            color: {cor_texto} !important;
+            color: #ffffff !important;
             box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
         }}
         button[key="{chave_btn}"] p,
         div.st-key-{chave_btn} button p {{
-            color: {cor_texto} !important;
+            color: #ffffff !important;
             font-weight: 800 !important;
             letter-spacing: 0.3px !important;
         }}
@@ -310,9 +314,6 @@ st.markdown(
             border-radius: 10px;
             padding: 12px 18px;
             margin: 8px 0 12px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             border-left: 6px solid #94a3b8;
             animation: fadeIn 0.15s ease-in;
@@ -328,13 +329,14 @@ st.markdown(
 
         .tag-pill {{
             background: #f1f5f9;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 6px;
             font-size: 0.8rem;
             font-weight: 700;
             color: #334155;
             display: inline-block;
-            margin-right: 8px;
+            margin-right: 6px;
+            margin-bottom: 3px;
         }}
         .badge-status {{
             padding: 4px 10px;
@@ -483,7 +485,7 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS
+# 1. PAINEL GERENCIAL DE CORREIAS (COM SUPORTE A 2 CORREIAS)
 # ------------------------------------------
 if tela == "Painel Correias":
     c_head1, c_head2 = st.columns([1.2, 2.8])
@@ -495,7 +497,7 @@ if tela == "Painel Correias":
             <div style='text-align:right; padding-top:4px;'>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia-Vida (1-1,5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Necessária (&gt; 1,5a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Troca Urgente (&gt; 1,5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
             """,
@@ -504,6 +506,7 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
+    # Mini Cards KPI
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
@@ -560,30 +563,39 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
+    # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
             "badge-verde" if maq_sel["status_label"] == "Nova"
             else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
-            else "badge-vermelho" if maq_sel["status_label"] == "Fim de Vida"
+            else "badge-vermelho" if maq_sel["status_label"] == "Troca Urgente"
             else "badge-cinza"
         )
 
         c_box, c_close = st.columns([6.2, 0.8])
         with c_box:
+            html_correias = f"""
+            <div style="margin-top:4px;">
+                <span class="tag-pill">🔄 <b>Correia 1:</b> {maq_sel['t1']} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ {maq_sel['uso1']}</span>
+            """
+            if maq_sel["tem_duas"]:
+                html_correias += f"""
+                <span class="tag-pill">🔄 <b>Correia 2:</b> {maq_sel['t2']} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ {maq_sel['uso2']}</span>
+                """
+            html_correias += "</div>"
+
             st.markdown(
                 f"""
                 <div class="hud-detalhe {maq_sel['classe_card']}">
-                    <div>
-                        <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff;">⚙️ {maq_sel['tag']}</span>
-                        <span class="tag-pill">🏭 {maq_sel['setor']}</span>
-                        <span class="tag-pill">🏷️ Modelo: <b>{maq_sel['tipo']}</b></span>
-                        <span class="tag-pill">📅 Montagem: <b>{maq_sel['data']}</b></span>
-                    </div>
-                    <div>
-                        <span style="font-size:0.85rem; font-weight:700; color:#334155; margin-right:10px;">⏱️ {maq_sel['tempo']}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <div>
+                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff;">⚙️ {maq_sel['tag']}</span>
+                            <span class="tag-pill">🏭 {maq_sel['setor']}</span>
+                        </div>
                         <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
                     </div>
+                    {html_correias}
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -597,7 +609,7 @@ if tela == "Painel Correias":
         st.markdown(
             """
             <div style='background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:6px 14px; margin: 6px 0; color:#64748b; font-size:0.82rem; font-weight:600;'>
-                💡 <b>Painel Interativo:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de troca e tempo de operação.
+                💡 <b>Painel Interativo:</b> Clique em qualquer máquina para visualizar os detalhes (inclusive para equipamentos com 2 correias). A cor do quadrado reflete a correia mais antiga.
             </div>
             """,
             unsafe_allow_html=True,
@@ -626,11 +638,11 @@ if tela == "Painel Correias":
                     st.rerun()
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (INTACTO)
+# 2. LANÇAMENTOS: CORREIAS (SUPORTE A 2 CORREIAS)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
-    st.caption("Cadastro contínuo de tipos de correias e datas de instalação por máquina")
+    st.caption("Cadastro contínuo de modelos e datas de instalação por máquina (permite 1 ou 2 correias)")
 
     with st.container(border=True):
         col_setor, _ = st.columns([2, 3])
@@ -649,44 +661,49 @@ elif tela == "Correias":
     dados_grade_cor = []
     for maq in maquinas_do_setor:
         reg_existente = df_filtrado_cor[df_filtrado_cor["Maquina_TAG"] == maq]
+        
+        t1, dt1 = "", None
+        t2, dt2 = "", None
+
         if not reg_existente.empty:
-            tipo_c = str(reg_existente.iloc[-1]["Tipo_Correia"])
-            if tipo_c == "nan":
-                tipo_c = ""
-            dt_val = reg_existente.iloc[-1]["Data_Instalacao"]
+            ultimo = reg_existente.iloc[-1]
+            
+            c1 = str(ultimo.get("Tipo_Correia_1", ""))
+            t1 = c1 if c1 != "nan" else ""
+            d1_val = ultimo.get("Data_Instalacao_1", "")
             try:
-                if pd.notna(dt_val) and str(dt_val).strip() != "":
-                    dt_inst = pd.to_datetime(dt_val).date()
-                else:
-                    dt_inst = None
+                if pd.notna(d1_val) and str(d1_val).strip() not in ["", "nan"]:
+                    dt1 = pd.to_datetime(d1_val).date()
             except Exception:
-                dt_inst = None
-        else:
-            tipo_c = ""
-            dt_inst = None
+                dt1 = None
+
+            c2 = str(ultimo.get("Tipo_Correia_2", ""))
+            t2 = c2 if c2 != "nan" else ""
+            d2_val = ultimo.get("Data_Instalacao_2", "")
+            try:
+                if pd.notna(d2_val) and str(d2_val).strip() not in ["", "nan"]:
+                    dt2 = pd.to_datetime(d2_val).date()
+            except Exception:
+                dt2 = None
 
         dados_grade_cor.append(
             {
                 "Máquina": maq,
-                "Tipo / Modelo da Correia": tipo_c,
-                "Data de Instalação": dt_inst,
+                "Modelo Correia 1": t1,
+                "Data Correia 1": dt1,
+                "Modelo Correia 2 (Opcional)": t2,
+                "Data Correia 2 (Opcional)": dt2,
             }
         )
 
     df_grade_cor = pd.DataFrame(dados_grade_cor)
 
     configuracao_colunas_cor = {
-        "Máquina": st.column_config.TextColumn(
-            "Máquina",
-            disabled=True,
-        ),
-        "Tipo / Modelo da Correia": st.column_config.TextColumn(
-            "Tipo / Modelo da Correia",
-        ),
-        "Data de Instalação": st.column_config.DateColumn(
-            "Data de Instalação",
-            format="DD/MM/YYYY",
-        ),
+        "Máquina": st.column_config.TextColumn("Máquina", disabled=True),
+        "Modelo Correia 1": st.column_config.TextColumn("Modelo Correia 1"),
+        "Data Correia 1": st.column_config.DateColumn("Data Correia 1", format="DD/MM/YYYY"),
+        "Modelo Correia 2 (Opcional)": st.column_config.TextColumn("Modelo Correia 2 (Opcional)"),
+        "Data Correia 2 (Opcional)": st.column_config.DateColumn("Data Correia 2 (Opcional)", format="DD/MM/YYYY"),
     }
 
     tabela_editada_cor = st.data_editor(
@@ -695,7 +712,7 @@ elif tela == "Correias":
         hide_index=True,
         use_container_width=True,
         height=440,
-        key=f"editor_cor_direto_{setor_selecionado}",
+        key=f"editor_cor_duas_{setor_selecionado}",
     )
 
     col_btn, _ = st.columns([2, 4])
@@ -711,21 +728,33 @@ elif tela == "Correias":
 
         novos_registros_cor = []
         for _, linha in tabela_editada_cor.iterrows():
-            d_inst = linha["Data de Instalação"]
-            
-            dt_str = ""
-            if pd.notna(d_inst) and d_inst is not None and str(d_inst).strip() != "":
+            d1 = linha["Data Correia 1"]
+            dt1_str = ""
+            if pd.notna(d1) and d1 is not None and str(d1).strip() != "":
                 try:
-                    dt_str = pd.to_datetime(d_inst).strftime("%Y-%m-%d")
+                    dt1_str = pd.to_datetime(d1).strftime("%Y-%m-%d")
                 except Exception:
-                    dt_str = ""
+                    dt1_str = ""
+
+            d2 = linha["Data Correia 2 (Opcional)"]
+            dt2_str = ""
+            if pd.notna(d2) and d2 is not None and str(d2).strip() != "":
+                try:
+                    dt2_str = pd.to_datetime(d2).strftime("%Y-%m-%d")
+                except Exception:
+                    dt2_str = ""
+
+            m1 = str(linha["Modelo Correia 1"]).strip() if pd.notna(linha["Modelo Correia 1"]) and str(linha["Modelo Correia 1"]).strip() != "None" else ""
+            m2 = str(linha["Modelo Correia 2 (Opcional)"]).strip() if pd.notna(linha["Modelo Correia 2 (Opcional)"]) and str(linha["Modelo Correia 2 (Opcional)"]).strip() != "None" else ""
 
             novos_registros_cor.append(
                 {
                     "Setor": setor_selecionado,
                     "Maquina_TAG": linha["Máquina"],
-                    "Tipo_Correia": str(linha["Tipo / Modelo da Correia"]).strip() if pd.notna(linha["Tipo / Modelo da Correia"]) and str(linha["Tipo / Modelo da Correia"]).strip() != "None" else "",
-                    "Data_Instalacao": dt_str,
+                    "Tipo_Correia_1": m1,
+                    "Data_Instalacao_1": dt1_str,
+                    "Tipo_Correia_2": m2,
+                    "Data_Instalacao_2": dt2_str,
                 }
             )
 
