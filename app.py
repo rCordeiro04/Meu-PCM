@@ -51,7 +51,7 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-# Mapeamento oficial de ativos por setor[cite: 4, 5]
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -77,6 +77,40 @@ DICIONARIO_SETORES = {
     "Setor Látex": maquinas_setor_latex,
     "Setor Menegatto": maquinas_setor_menegatto,
 }
+
+# ==========================================
+# CARGA AUTOMÁTICA DOS DADOS DA TABELA (SETOR MENEGATTO)
+# ==========================================
+dados_importados_imagem = [
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-93", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-16"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-94", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-05-01"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-95", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-17"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-96", "Tipo_Correia": "38.740", "Data_Instalacao": "2026-06-25"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-97", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-05-05"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-98", "Tipo_Correia": "38.740", "Data_Instalacao": "2024-12-11"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-99", "Tipo_Correia": "38.740", "Data_Instalacao": "2024-12-06"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-100", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-12-04"},
+    {"Setor": "Setor Menegatto", "Maquina_TAG": "B-101", "Tipo_Correia": "38.740", "Data_Instalacao": "2026-04-03"},
+]
+
+houve_atualizacao = False
+for reg in dados_importados_imagem:
+    cond = (df_correias["Setor"] == reg["Setor"]) & (df_correias["Maquina_TAG"] == reg["Maquina_TAG"])
+    if not df_correias[cond].empty:
+        idx_existente = df_correias[cond].index[-1]
+        if (
+            str(df_correias.at[idx_existente, "Tipo_Correia"]) != reg["Tipo_Correia"]
+            or str(df_correias.at[idx_existente, "Data_Instalacao"]) != reg["Data_Instalacao"]
+        ):
+            df_correias.at[idx_existente, "Tipo_Correia"] = reg["Tipo_Correia"]
+            df_correias.at[idx_existente, "Data_Instalacao"] = reg["Data_Instalacao"]
+            houve_atualizacao = True
+    else:
+        df_correias = pd.concat([df_correias, pd.DataFrame([reg])], ignore_index=True)
+        houve_atualizacao = True
+
+if houve_atualizacao:
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
@@ -211,7 +245,6 @@ regras_css_botoes = "\n".join(css_botoes)
 st.markdown(
     f"""
     <style>
-        /* Deslocamento seguro para não cortar sob a barra superior do Streamlit */
         .block-container {{
             padding-top: 4.2rem !important;
             padding-bottom: 0.8rem !important;
@@ -219,7 +252,6 @@ st.markdown(
             padding-right: 2rem !important;
         }}
         
-        /* Grelha de botões com espaçamento refinado */
         div[data-testid="column"] {{
             padding: 1px !important;
             margin: 0px !important;
@@ -229,7 +261,6 @@ st.markdown(
             margin-bottom: 4px !important;
         }}
 
-        /* Trava contra scroll e zoom acidental em gráficos e tabelas */
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {{
             display: none !important;
@@ -241,7 +272,6 @@ st.markdown(
             resize: none !important;
         }}
 
-        /* Formato dos botões das máquinas */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -255,10 +285,8 @@ st.markdown(
             transform: translateY(-2px) !important;
         }}
 
-        /* REGRAS DINÂMICAS DE CORES INJETADAS */
         {regras_css_botoes}
 
-        /* Mini Cards KPI de Topo */
         .mini-stat-card {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -281,7 +309,6 @@ st.markdown(
             text-transform: uppercase;
         }}
 
-        /* Balão de Detalhes - HUD Industrial */
         .hud-detalhe {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -327,7 +354,6 @@ st.markdown(
         .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
         .badge-cinza {{ background: #e2e8f0; color: #475569; }}
 
-        /* Legenda em pílulas */
         .pill-legenda {{
             display: inline-flex;
             align-items: center;
@@ -462,10 +488,9 @@ lista_meses_puros = [
 ]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (SEM CORTES NO TOPO)
+# 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    # Cabeçalho limpo com espaçamento seguro
     c_head1, c_head2 = st.columns([1.2, 2.8])
     with c_head1:
         st.markdown("<h3 style='margin:0; padding:0; font-weight:800; color:#0f172a;'>🔄 Controle de correias</h3>", unsafe_allow_html=True)
@@ -484,7 +509,6 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # Mini Cards KPI
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         st.markdown(
@@ -541,7 +565,6 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Balão HUD ao Clicar numa Máquina
     if st.session_state.maq_clicada_cor is not None:
         maq_sel = st.session_state.maq_clicada_cor
         classe_badge = (
@@ -587,7 +610,6 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Mosaico de Máquinas Ultra-Compacto (12 colunas)
     COLS_GRELHA = 12
     linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
