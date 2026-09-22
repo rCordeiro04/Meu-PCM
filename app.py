@@ -1016,10 +1016,9 @@ elif tela == "Correias":
         st.rerun()
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS (COM BORDAS CLARAS NOS GRÁFICOS)
+# 3. PAINEL GERENCIAL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
-    # Cabeçalho Superior Alinhado
     col_tf, col_ano_f = st.columns([3.8, 1.4])
 
     with col_tf:
@@ -1038,7 +1037,6 @@ elif tela == "Painel Fusos":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # Botões de Setor para Exibir Informações Diferentes (Primeira opção: Geral)
     col_b_geral, col_b_sa, col_b_sb, col_b_latex, col_b_men = st.columns(5)
     
     with col_b_geral:
@@ -1073,18 +1071,16 @@ elif tela == "Painel Fusos":
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # Carregamento e Filtro da Base de Fusos
     df_dados_fusos = pd.read_excel(ARQUIVO_FUSOS)
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
     # ==========================================
-    # CASO 1: ABA GERAL (FÁBRICA COMPLETA COM 4 GRÁFICOS EM CONTAINERS COM BORDA)
+    # CASO 1: ABA GERAL (FÁBRICA COMPLETA)
     # ==========================================
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
         media_mensal_fabrica = round(total_geral_quebras / 12, 1)
 
-        # Determinar Setor Mais Crítico e Máquina Mais Ofensora
         if not df_fuso_ano.empty and total_geral_quebras > 0:
             setor_ofensor = df_fuso_ano.groupby("Setor")["Quantidade_Quebras"].sum().sort_values(ascending=False).index[0]
             maq_ofensora = df_fuso_ano.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().sort_values(ascending=False).index[0]
@@ -1094,7 +1090,6 @@ elif tela == "Painel Fusos":
             maq_ofensora = "Nenhuma"
             qtd_maq_ofensora = 0
 
-        # Cards KPI Consolidados da Fábrica
         kf1, kf2, kf3, kf4 = st.columns(4)
         with kf1:
             st.markdown(
@@ -1151,7 +1146,6 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Função geradora de gráfico por setor (Jan - Dez)
         def gerar_grafico_setor(nome_setor, cor_primaria):
             df_s = df_fuso_ano[df_fuso_ano["Setor"] == nome_setor]
             agrup_s = df_s.groupby("Mes")["Quantidade_Quebras"].sum().reset_index()
@@ -1176,7 +1170,6 @@ elif tela == "Painel Fusos":
             )
             return chart, total_setor
 
-        # Grelha 2x2 com BORDAS NÍTIDAS para cada gráfico
         col_g1, col_g2 = st.columns(2)
 
         with col_g1:
@@ -1234,7 +1227,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart(chart_men, use_container_width=True)
 
     # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (COM CONTAINERS COM BORDA)
+    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR (GRÁFICO ROSCA NO TIPO DE FUSO)
     # ==========================================
     else:
         setor_ativo = st.session_state.aba_setor_fuso
@@ -1314,8 +1307,8 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Linha Mensal do Setor + Gráfico por Tipo de Fuso (Em Containers com Borda)
-        c_linha_s, c_tipo_s = st.columns([1.6, 1.0])
+        # Gráfico de Linha Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
+        c_linha_s, c_tipo_s = st.columns([1.55, 1.45])
 
         with c_linha_s:
             with st.container(border=True):
@@ -1353,28 +1346,43 @@ elif tela == "Painel Fusos":
                 st.markdown(
                     f"""
                     <div class="chart-header-row">
-                        <span class="chart-header-title">🔩 Distribuição por Tipo de Fuso</span>
+                        <span class="chart-header-title">🍩 Distribuição por Tipo de Fuso</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
                 if not df_setor.empty and total_setor_quebras > 0:
-                    df_tipo_agrup = df_setor[df_setor["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
-                    chart_tipos = (
+                    df_tipo_agrup = (
+                        df_setor[df_setor["Quantidade_Quebras"] > 0]
+                        .groupby("Tipo_Fuso")["Quantidade_Quebras"]
+                        .sum()
+                        .reset_index()
+                    )
+                    
+                    # Gráfico de Rosca (Donut Chart) elegante e informativo
+                    chart_rosca = (
                         alt.Chart(df_tipo_agrup)
-                        .mark_bar(color="#0f172a", cornerRadiusTopRight=4, cornerRadiusBottomRight=4)
+                        .mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
                         .encode(
-                            x=alt.X("Quantidade_Quebras:Q", title="Total"),
-                            y=alt.Y("Tipo_Fuso:N", sort="-x", title=None),
-                            tooltip=["Tipo_Fuso", "Quantidade_Quebras"],
+                            theta=alt.Theta("Quantidade_Quebras:Q", stack=True),
+                            color=alt.Color(
+                                "Tipo_Fuso:N",
+                                title="Marca / Tipo",
+                                scale=alt.Scale(scheme="category10"),
+                                legend=alt.Legend(orient="right", labelFontSize=11, titleFontSize=12)
+                            ),
+                            tooltip=[
+                                alt.Tooltip("Tipo_Fuso:N", title="Tipo de Fuso"),
+                                alt.Tooltip("Quantidade_Quebras:Q", title="Total de Quebras"),
+                            ],
                         )
                         .properties(height=280)
                     )
-                    st.altair_chart(chart_tipos, use_container_width=True)
+                    st.altair_chart(chart_rosca, use_container_width=True)
                 else:
                     st.info(f"Sem registos de tipos de fuso para {setor_ativo} em {ano_painel}.")
 
-        # Ranking e Tabela Detalhada do Setor (Em Containers com Borda)
+        # Ranking e Tabela Detalhada do Setor
         if not agrup_maq_setor.empty:
             c_rk, c_tb = st.columns([1.5, 1.5])
             with c_rk:
