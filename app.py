@@ -985,12 +985,12 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) CUSTOMIZADA
+# BARRA LATERAL (SIDEBAR) COM CHAVE SELETORA
 # ==========================================
 with st.sidebar:
     st.markdown(
         """
-        <div style="margin-top: -1.5rem; margin-bottom: 0.5rem;">
+        <div style="margin-top: -1.5rem; margin-bottom: 0.2rem;">
             <h1 style="font-size: 1.8rem; margin-bottom: 0px; color: #0f172a;">⚙️ Portal PCM</h1>
             <p style="font-size: 0.9rem; font-weight: 700; color: #64748b; margin-top: 2px;">Controle MEC</p>
         </div>
@@ -999,93 +999,114 @@ with st.sidebar:
     )
     st.markdown("---")
 
-    st.subheader("📊 Painéis")
-    tipo_painel_fusos = (
-        "primary"
-        if st.session_state.pagina_atual == "Painel Fusos"
-        else "secondary"
-    )
-    st.button(
-        "🔩 Fusos",
-        key="btn_nav_painel_fusos",
-        use_container_width=True,
-        type=tipo_painel_fusos,
-        on_click=navegar,
-        args=("Painel Fusos",),
-    )
-
-    tipo_painel_correias = (
-        "primary"
-        if st.session_state.pagina_atual == "Painel Correias"
-        else "secondary"
-    )
-    st.button(
-        "🔄 Correias",
-        key="btn_nav_painel_correias",
-        use_container_width=True,
-        type=tipo_painel_correias,
-        on_click=navegar,
-        args=("Painel Correias",),
+    # Mapeamento do estado atual para a chave seletora
+    is_lancamento = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
+    modo_selecionado = st.radio(
+        "Modo de Operação",
+        options=["📊 Painéis", "📝 Lançamentos"],
+        index=1 if is_lancamento else 0,
+        label_visibility="collapsed"
     )
 
     st.markdown("---")
 
-    st.subheader("📝 Lançamentos")
-    tipo_fusos = (
-        "primary"
-        if st.session_state.pagina_atual == "Lançamento Fusos"
-        else "secondary"
-    )
-    st.button(
-        "🔩 Fusos",
-        key="btn_nav_lancto_fusos",
-        use_container_width=True,
-        type=tipo_fusos,
-        on_click=navegar,
-        args=("Lançamento Fusos",),
-    )
+    if modo_selecionado == "📊 Painéis":
+        st.subheader("📊 Painéis Disponíveis")
+        tipo_painel_fusos = (
+            "primary"
+            if st.session_state.pagina_atual == "Painel Fusos"
+            else "secondary"
+        )
+        st.button(
+            "🔩 Painel de Fusos",
+            key="btn_nav_painel_fusos",
+            use_container_width=True,
+            type=tipo_painel_fusos,
+            on_click=navegar,
+            args=("Painel Fusos",),
+        )
 
-    tipo_correias = (
-        "primary"
-        if st.session_state.pagina_atual == "Correias"
-        else "secondary"
-    )
-    st.button(
-        "🔄 Correias",
-        key="btn_nav_lancto_correias",
-        use_container_width=True,
-        type=tipo_correias,
-        on_click=navegar,
-        args=("Correias",),
-    )
+        tipo_painel_correias = (
+            "primary"
+            if st.session_state.pagina_atual == "Painel Correias"
+            else "secondary"
+        )
+        st.button(
+            "🔄 Painel de Correias",
+            key="btn_nav_painel_correias",
+            use_container_width=True,
+            type=tipo_painel_correias,
+            on_click=navegar,
+            args=("Painel Correias",),
+        )
+        
+        # Sincroniza se mudou de modo e estava numa tela de lançamento
+        if is_lancamento:
+            st.session_state.pagina_atual = "Painel Fusos"
+            st.rerun()
 
-    tipo_prev = (
-        "primary"
-        if st.session_state.pagina_atual == "Preventiva"
-        else "secondary"
-    )
-    st.button(
-        "🛠️ Preventiva",
-        key="btn_nav_lancto_preventiva",
-        use_container_width=True,
-        type=tipo_prev,
-        on_click=navegar,
-        args=("Preventiva",),
-    )
+    else:
+        st.subheader("📝 Módulos de Apontamento")
+        tipo_fusos = (
+            "primary"
+            if st.session_state.pagina_atual == "Lançamento Fusos"
+            else "secondary"
+        )
+        st.button(
+            "🔩 Fechamento de Fusos",
+            key="btn_nav_lancto_fusos",
+            use_container_width=True,
+            type=tipo_fusos,
+            on_click=navegar,
+            args=("Lançamento Fusos",),
+        )
 
-    tipo_maq = (
-        "primary"
-        if st.session_state.pagina_atual == "Máquinas"
-        else "secondary"
-    )
-    st.button(
-        "🏭 Máquinas",
-        key="btn_nav_lancto_maquinas",
-        use_container_width=True,
-        type=tipo_maq,
-        on_click=navegar,
-        args=("Máquinas",),
-    )
+        tipo_correias = (
+            "primary"
+            if st.session_state.pagina_atual == "Correias"
+            else "secondary"
+        )
+        st.button(
+            "🔄 Gestão de Correias",
+            key="btn_nav_lancto_correias",
+            use_container_width=True,
+            type=tipo_correias,
+            on_click=navegar,
+            args=("Correias",),
+        )
+
+        tipo_prev = (
+            "primary"
+            if st.session_state.pagina_atual == "Preventiva"
+            else "secondary"
+        )
+        st.button(
+            "🛠️ Preventiva",
+            key="btn_nav_lancto_preventiva",
+            use_container_width=True,
+            type=tipo_prev,
+            on_click=navegar,
+            args=("Preventiva",),
+        )
+
+        tipo_maq = (
+            "primary"
+            if st.session_state.pagina_atual == "Máquinas"
+            else "secondary"
+        )
+        st.button(
+            "🏭 Máquinas",
+            key="btn_nav_lancto_maquinas",
+            use_container_width=True,
+            type=tipo_maq,
+            on_click=navegar,
+            args=("Máquinas",),
+        )
+        
+        # Sincroniza se mudou de modo e estava numa tela de painel
+        if not is_lancamento:
+            st.session_state.pagina_atual = "Lançamento Fusos"
+            st.rerun()
 
     st.markdown("---")
     st.caption("PCM • Versão Gerencial")
