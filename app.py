@@ -51,6 +51,10 @@ if not all(col in df_correias.columns for col in colunas_correias):
     df_correias = pd.DataFrame(columns=colunas_correias)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
+# Garantir tipos de texto estritos para evitar erros de tipo no Pandas
+df_correias["Tipo_Correia"] = df_correias["Tipo_Correia"].astype(str)
+df_correias["Data_Instalacao"] = df_correias["Data_Instalacao"].astype(str)
+
 # Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
@@ -79,9 +83,9 @@ DICIONARIO_SETORES = {
 }
 
 # ==========================================
-# CARGA AUTOMÁTICA DOS DADOS DA TABELA (SETOR MENEGATTO)
+# ATUALIZAÇÃO SEGURA DAS MÁQUINAS DO SETOR MENEGATTO
 # ==========================================
-dados_importados_imagem = [
+dados_importados = pd.DataFrame([
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-93", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-16"},
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-94", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-05-01"},
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-95", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-04-17"},
@@ -91,26 +95,17 @@ dados_importados_imagem = [
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-99", "Tipo_Correia": "38.740", "Data_Instalacao": "2024-12-06"},
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-100", "Tipo_Correia": "38.740", "Data_Instalacao": "2025-12-04"},
     {"Setor": "Setor Menegatto", "Maquina_TAG": "B-101", "Tipo_Correia": "38.740", "Data_Instalacao": "2026-04-03"},
+])
+
+tags_atualizadas = dados_importados["Maquina_TAG"].tolist()
+# Remove versões desatualizadas dessas tags e anexa as novas com tipos consistentes
+df_sem_essas = df_correias[
+    ~((df_correias["Setor"] == "Setor Menegatto") & (df_correias["Maquina_TAG"].isin(tags_atualizadas)))
 ]
-
-houve_atualizacao = False
-for reg in dados_importados_imagem:
-    cond = (df_correias["Setor"] == reg["Setor"]) & (df_correias["Maquina_TAG"] == reg["Maquina_TAG"])
-    if not df_correias[cond].empty:
-        idx_existente = df_correias[cond].index[-1]
-        if (
-            str(df_correias.at[idx_existente, "Tipo_Correia"]) != reg["Tipo_Correia"]
-            or str(df_correias.at[idx_existente, "Data_Instalacao"]) != reg["Data_Instalacao"]
-        ):
-            df_correias.at[idx_existente, "Tipo_Correia"] = reg["Tipo_Correia"]
-            df_correias.at[idx_existente, "Data_Instalacao"] = reg["Data_Instalacao"]
-            houve_atualizacao = True
-    else:
-        df_correias = pd.concat([df_correias, pd.DataFrame([reg])], ignore_index=True)
-        houve_atualizacao = True
-
-if houve_atualizacao:
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+df_correias = pd.concat([df_sem_essas, dados_importados], ignore_index=True)
+df_correias["Tipo_Correia"] = df_correias["Tipo_Correia"].astype(str)
+df_correias["Data_Instalacao"] = df_correias["Data_Instalacao"].astype(str)
+df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Correias"
