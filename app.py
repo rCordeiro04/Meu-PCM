@@ -386,8 +386,8 @@ st.markdown(
             margin-bottom: 3px;
         }}
 
-        /* Alerta de Correias Críticas */
-        .alerta-criticas {{
+        /* Alerta de Manutenção */
+        .alerta-manutencao {{
             background: #fef2f2;
             border: 1px solid #fecaca;
             border-left: 6px solid #ef4444;
@@ -611,6 +611,48 @@ if tela == "Painel Correias":
         unsafe_allow_html=True,
     )
 
+    # Filtros superiores por Setor e por Tipo de Correia
+    with st.container(border=True):
+        c_filt1, c_filt2, c_filt3 = st.columns([1.5, 1.5, 3])
+        with c_filt1:
+            lista_setores_filtro = ["Todos"] + list(DICIONARIO_SETORES.keys())
+            filtro_setor = st.selectbox("🏭 Filtrar Setor:", lista_setores_filtro, key="filtro_setor_painel")
+
+        with c_filt2:
+            # Extrai modelos únicos cadastrados para o filtro
+            modelos_unicos = set()
+            for r in lista_correias_todas:
+                if r["modelo"] and r["modelo"] != "Não informada":
+                    modelos_unicos.add(r["modelo"])
+            lista_modelos_filtro = ["Todos"] + sorted(list(modelos_unicos))
+            filtro_modelo = st.selectbox("🏷️ Filtrar Modelo:", lista_modelos_filtro, key="filtro_modelo_painel")
+
+        with c_filt3:
+            st.write("")
+            if filtro_setor != "Todos" or filtro_modelo != "Todos":
+                if st.button("🧹 Limpar Filtros", key="btn_limpar_filtros_painel"):
+                    st.session_state.filtro_setor_painel = "Todos"
+                    st.session_state.filtro_modelo_painel = "Todos"
+                    st.rerun()
+
+    # Aplicação dos filtros às máquinas
+    todas_as_maquinas = []
+    for setor_nome, lista_m in DICIONARIO_SETORES.items():
+        if filtro_setor != "Todos" and setor_nome != filtro_setor:
+            continue
+        for m in lista_m:
+            if filtro_modelo != "Todos":
+                # Verifica se a máquina possui o modelo selecionado na correia 1 ou 2
+                reg_m = df_correias[(df_correias["Setor"] == setor_nome) & (df_correias["Maquina_TAG"] == m)]
+                tem_mod = False
+                if not reg_m.empty:
+                    ult = reg_m.iloc[-1]
+                    if formatar_modelo(ult.get("Tipo_Correia_1", "")) == filtro_modelo or formatar_modelo(ult.get("Tipo_Correia_2", "")) == filtro_modelo:
+                        tem_mod = True
+                if not tem_mod:
+                    continue
+            todas_as_maquinas.append(m)
+
     # 4 Cartões KPI Estilizados
     k1, k2, k3, k4 = st.columns(4)
 
@@ -670,7 +712,7 @@ if tela == "Painel Correias":
             unsafe_allow_html=True,
         )
 
-    # Alerta em baixo dos cartões discriminando as correias críticas por modelo
+    # Alerta de Manutenção discriminando as correias críticas por modelo
     if lista_correias_criticas:
         df_crit = pd.DataFrame(lista_correias_criticas)
         contagem_criticas = df_crit["modelo"].value_counts().to_dict()
@@ -680,8 +722,8 @@ if tela == "Painel Correias":
         ])
         st.markdown(
             f"""
-            <div class="alerta-criticas">
-                <span>🚨 <b>Alerta de Manutenção (Troca Urgente):</b> &nbsp; {chips_crit_html}</span>
+            <div class="alerta-manutencao">
+                <span>🚨 <b>Alerta de Manutenção:</b> &nbsp; {chips_crit_html}</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -742,29 +784,41 @@ if tela == "Painel Correias":
             if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
+    else:
+        st.markdown(
+            """
+            <div style='background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 14px; margin: 4px 0 6px 0; color:#64748b; font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:8px;'>
+                <span>💡</span>
+                <span><b>Painel Operacional:</b> Clique em qualquer máquina abaixo para exibir o modelo da correia, data de instalação e tempo de operação.</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    # Grelha de Máquinas em Mosaico Refinado (12 Colunas)
-    COLS_GRELHA = 12
-    linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
+    if todas_as_maquinas:
+        COLS_GRELHA = 12
+        linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
 
-    for linha in linhas_grid:
-        cols = st.columns(COLS_GRELHA)
-        for idx_col, maq_tag in enumerate(linha):
-            info = dados_maquinas[maq_tag]
-            chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
-            with cols[idx_col]:
-                if st.button(
-                    maq_tag,
-                    key=chave_btn,
-                    use_container_width=True,
-                ):
-                    st.session_state.maq_clicada_cor = {
-                        "tag": maq_tag,
-                        **info,
-                    }
-                    st.rerun()
+        for linha in linhas_grid:
+            cols = st.columns(COLS_GRELHA)
+            for idx_col, maq_tag in enumerate(linha):
+                info = dados_maquinas[maq_tag]
+                chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
+                with cols[idx_col]:
+                    if st.button(
+                        maq_tag,
+                        key=chave_btn,
+                        use_container_width=True,
+                    ):
+                        st.session_state.maq_clicada_cor = {
+                            "tag": maq_tag,
+                            **info,
+                        }
+                        st.rerun()
+    else:
+        st.info("Nenhuma máquina encontrada com os filtros selecionados.")
 
 # ------------------------------------------
 # 2. LANÇAMENTOS: CORREIAS (SUPERIOR / INFERIOR)
