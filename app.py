@@ -115,7 +115,6 @@ def formatar_modelo(val):
 # =========================================================================
 @st.cache_data(show_spinner=False)
 def carregar_dados():
-    # 1. Fusos
     if os.path.exists(ARQUIVO_FUSOS):
         try:
             df_f = pd.read_excel(ARQUIVO_FUSOS)
@@ -127,7 +126,6 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # 2. Correias
     if os.path.exists(ARQUIVO_CORREIAS):
         try:
             df_c = pd.read_excel(ARQUIVO_CORREIAS)
@@ -147,7 +145,6 @@ def carregar_dados():
     df_c["Tipo_Correia_2"] = df_c["Tipo_Correia_2"].apply(formatar_modelo)
     df_c["Data_Instalacao_2"] = df_c["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
 
-    # 3. Paradas
     if os.path.exists(ARQUIVO_PARADAS):
         try:
             df_p = pd.read_excel(ARQUIVO_PARADAS)
@@ -161,7 +158,6 @@ def carregar_dados():
         if col not in df_p.columns:
             df_p[col] = 0.0 if col == "Tempo_Parado_Horas" else ""
 
-    # 4. Pendências
     if os.path.exists(ARQUIVO_PENDENCIAS):
         try:
             df_pend = pd.read_excel(ARQUIVO_PENDENCIAS)
@@ -242,7 +238,6 @@ for s_nome in DICIONARIO_SETORES.keys():
         if m not in todas_maquinas_totais:
             todas_maquinas_totais.append(m)
 
-# Dicionário indexado para busca O(1) ultra rápida
 ult_correias_dict = {}
 if not df_correias.empty:
     for (s_idx, m_idx), sub_c in df_correias.groupby(["Setor", "Maquina_TAG"]):
@@ -455,7 +450,6 @@ if tela == "Painel Correias":
         chips = " ".join([f"<span class='chip-critico'>🏷️ {k}: <b>{v} un.</b></span>" for k, v in pd.DataFrame(lista_correias_criticas)["modelo"].value_counts().items()])
         st.markdown(f"<div class='alerta-manutencao'>🚨 <b>Alerta de Troca Necessária:</b> &nbsp; {chips}</div>", unsafe_allow_html=True)
 
-    # Detalhe / HUD da Máquina Clicada
     if st.session_state.maq_clicada_cor:
         sel = st.session_state.maq_clicada_cor
         b_cor = "badge-verde" if sel["status_label"] == "Nova" else "badge-amarelo" if sel["status_label"] == "Meia-Vida" else "badge-vermelho" if sel["status_label"] == "Troca Necessária" else "badge-cinza"
@@ -478,7 +472,6 @@ if tela == "Painel Correias":
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
 
-    # Mosaico de Máquinas Exibindo Todos os Setores Concomitantemente
     for s_nome in DICIONARIO_SETORES.keys():
         maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
 
@@ -545,7 +538,6 @@ elif tela == "Painel Fusos":
     if df_ano_f.empty:
         df_ano_f = pd.DataFrame(columns=COLUNAS_FUSOS)
 
-    # VISÃO GERAL (FÁBRICA COMPLETA)
     if st.session_state.aba_setor_fuso == "Geral":
         tot_fabrica = int(df_ano_f["Quantidade_Quebras"].sum())
         med_fabrica = round(tot_fabrica / div_meses, 1)
@@ -616,7 +608,6 @@ elif tela == "Painel Fusos":
                 st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:0.95rem; margin-bottom:4px;'><span>⚙️ Setor Menegatto</span><span style='color:{cores_map['Setor Menegatto']}'>Total: {t_men} fusos</span></div>", unsafe_allow_html=True)
                 st.altair_chart(c_men, use_container_width=True)
 
-    # VISÃO DETALHADA POR SETOR
     else:
         s_ativo = st.session_state.aba_setor_fuso
         df_sa = df_ano_f[df_ano_f["Setor"] == s_ativo].copy()
@@ -711,125 +702,87 @@ elif tela == "Painel Fusos":
             )
             st.altair_chart((rect + txt).properties(height=max(320, len(maqs_setor) * 23)), use_container_width=True)
 
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-        tipos_disp = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else OPCOES_TIPO_FUSO
-        if not tipos_disp:
-            tipos_disp = OPCOES_TIPO_FUSO
-
-        with st.container(border=True):
-            c_dt1, c_dt2 = st.columns([2.5, 1.5])
-            with c_dt1:
-                st.markdown(f"<div style='font-size:1.02rem; font-weight:800;'>🔬 Desempenho Operacional por Tipo de Fuso — {s_ativo}</div>", unsafe_allow_html=True)
-            with c_dt2:
-                tipo_sel_analise = st.selectbox("Selecione o Tipo de Fuso:", tipos_disp, key=f"sel_tipo_diag_{s_ativo}")
-
-            df_tipo_esp = df_sa[df_sa["Tipo_Fuso"] == tipo_sel_analise].copy()
-            tot_f_tipo = int(df_tipo_esp["Quantidade_Quebras"].sum()) if not df_tipo_esp.empty else 0
-            med_f_tipo = round(tot_f_tipo / div_meses, 1)
-
-            maqs_tipo = sorted(df_tipo_esp["Maquina_TAG"].unique().tolist()) if not df_tipo_esp.empty else []
-            falhas_tipo = df_tipo_esp[df_tipo_esp["Quantidade_Quebras"] > 0]
-            maqs_falharam_tipo = falhas_tipo["Maquina_TAG"].nunique()
-
-            if not falhas_tipo.empty:
-                agrup_top_t = falhas_tipo.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().sort_values(ascending=False)
-                top_maq_t = agrup_top_t.index[0]
-                qtd_top_t = int(agrup_top_t.iloc[0])
-            else:
-                top_maq_t, qtd_top_t = "Nenhuma", 0
-
-            cf_k1, cf_k2, cf_k3, cf_k4 = st.columns(4)
-            cf_k1.markdown(f"<div class='card-kpi-bonito c-total' style='height:58px;'><div><div class='kpi-lbl'>Total ({tipo_sel_analise})</div><div class='kpi-val'>{tot_f_tipo} un.</div></div><div>🏷️</div></div>", unsafe_allow_html=True)
-            cf_k2.markdown(f"<div class='card-kpi-bonito c-ok' style='height:58px;'><div><div class='kpi-lbl'>Média Mensal</div><div class='kpi-val' style='color:#059669;'>{med_f_tipo} /mês</div></div><div>📉</div></div>", unsafe_allow_html=True)
-            cf_k3.markdown(f"<div class='card-kpi-bonito c-warn' style='height:58px;'><div><div class='kpi-lbl'>Máquinas Atreladas</div><div class='kpi-val' style='color:#d97706;'>{maqs_falharam_tipo} falharam / {len(maqs_tipo)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
-            cf_k4.markdown(f"<div class='card-kpi-bonito c-crit' style='height:58px;'><div><div class='kpi-lbl'>Maior Ofensor</div><div class='kpi-val' style='color:#dc2626; font-size:1.05rem;'>{top_maq_t} ({qtd_top_t})</div></div><div>🚨</div></div>", unsafe_allow_html=True)
-
-            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-            if not maqs_tipo:
-                st.info(f"Nenhuma máquina possui registros vinculados ao fuso {tipo_sel_analise} no {s_ativo} em {ano_f}.")
-            else:
-                grid_tipo = pd.MultiIndex.from_product([maqs_tipo, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
-                grid_tipo["MES"] = grid_tipo["Mes"].map(MAPA_MES_ABREV)
-                agrup_esp = df_tipo_esp.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
-                m_calor_esp = pd.merge(grid_tipo, agrup_esp, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
-
-                rect_t = alt.Chart(m_calor_esp).mark_rect(stroke="#fff", strokeWidth=1).encode(
-                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
-                    y=alt.Y("MAQ:N", sort=maqs_tipo, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
-                    color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
-                    tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
-                )
-                txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
-                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
-                    y=alt.Y("MAQ:N", sort=maqs_tipo),
-                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                    color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
-                )
-                st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
-
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES
+# 3. PAINEL GERENCIAL DE SETORES (COM FILTRO POR SETOR)
 # ------------------------------------------
 elif tela == "Painel Setores":
-    st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
-    st.caption("Visão consolidada e comparativa de desempenho operacional entre todos os setores da fábrica.")
+    c_ts1, c_ts2 = st.columns([3.5, 2.0])
+    with c_ts1:
+        st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
+    with c_ts2:
+        setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
+        setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
 
+    st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
+
+    # Consolida dados filtrando caso não seja "Todos"
+    setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
+    
     dados_resumo_setores = []
-    for s_nome in DICIONARIO_SETORES.keys():
+    for s_nome in setores_alvo_exec:
         maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
         tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
         
         crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
         novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
         meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
+        tot_horas_s = float(df_paradas[df_paradas["Setor"] == s_nome]["Tempo_Parado_Horas"].sum()) if not df_paradas.empty else 0.0
+        tot_pend_s = len(df_pendencias[(df_pendencias["Setor"] == s_nome) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")])
 
         dados_resumo_setores.append({
             "Setor": s_nome,
             "Total Máquinas": len(maqs_s),
-            "Quebras Fusos (Total)": tot_q_fusos,
-            "Correias Críticas (Troca)": crit_cor,
+            "Quebras Fusos": tot_q_fusos,
+            "Horas Paradas (Corretivas)": round(tot_horas_s, 1),
+            "Pendências Abertas": tot_pend_s,
+            "Correias Críticas": crit_cor,
             "Correias Meia-Vida": meia_cor,
             "Correias Novas": novas_cor,
         })
 
     df_res_setores = pd.DataFrame(dados_resumo_setores)
 
+    # Cards superiores resumidos
+    tot_maqs_sel = df_res_setores["Total Máquinas"].sum()
+    tot_fusos_sel = df_res_setores["Quebras Fusos"].sum()
+    tot_horas_sel = df_res_setores["Horas Paradas (Corretivas)"].sum()
+    tot_crit_sel = df_res_setores["Correias Críticas"].sum()
+
     cs1, cs2, cs3, cs4 = st.columns(4)
-    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total de Setores</div><div class='kpi-val'>{len(DICIONARIO_SETORES)}</div></div><div>🏢</div></div>", unsafe_allow_html=True)
-    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{len(todas_maquinas_totais)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
-    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correias Meia-Vida</div><div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div></div><div>🟡</div></div>", unsafe_allow_html=True)
-    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Total Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div></div><div>🚨</div></div>", unsafe_allow_html=True)
+    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor(es) Analisados</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_exec}</div></div><div>🏢</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{tot_maqs_sel}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div>🔩</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div>🚨</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    c_gset1, c_gset2 = st.columns(2)
-    with c_gset1:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
-            chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#2563eb").encode(
-                x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
-                y=alt.Y("Quebras Fusos (Total):Q", title="Quebras"),
-                tooltip=["Setor", "Quebras Fusos (Total)"]
-            )
-            txt_s_fuso = chart_s_fuso.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Quebras Fusos (Total):Q")
-            st.altair_chart((chart_s_fuso + txt_s_fuso).properties(height=240), use_container_width=True)
+    if setor_selecionado_exec == "Todos os Setores":
+        c_gset1, c_gset2 = st.columns(2)
+        with c_gset1:
+            with st.container(border=True):
+                st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
+                chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#2563eb").encode(
+                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                    y=alt.Y("Quebras Fusos:Q", title="Quebras"),
+                    tooltip=["Setor", "Quebras Fusos"]
+                )
+                txt_s_fuso = chart_s_fuso.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Quebras Fusos:Q")
+                st.altair_chart((chart_s_fuso + txt_s_fuso).properties(height=240), use_container_width=True)
 
-    with c_gset2:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🚨 Correias com Troca Necessária por Setor</div>", unsafe_allow_html=True)
-            chart_s_cor = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#dc2626").encode(
-                x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
-                y=alt.Y("Correias Críticas (Troca):Q", title="Críticas"),
-                tooltip=["Setor", "Correias Críticas (Troca)"]
-            )
-            txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Correias Críticas (Troca):Q")
-            st.altair_chart((chart_s_cor + txt_s_cor).properties(height=240), use_container_width=True)
+        with c_gset2:
+            with st.container(border=True):
+                st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🚨 Correias com Troca Necessária por Setor</div>", unsafe_allow_html=True)
+                chart_s_cor = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#dc2626").encode(
+                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                    y=alt.Y("Correias Críticas:Q", title="Críticas"),
+                    tooltip=["Setor", "Correias Críticas"]
+                )
+                txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Correias Críticas:Q")
+                st.altair_chart((chart_s_cor + txt_s_cor).properties(height=240), use_container_width=True)
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:6px;'>📋 Matriz Comparativa de Setores</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:6px;'>📋 Matriz de Desempenho Operacional — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
         st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
@@ -852,15 +805,12 @@ elif tela == "Painel Maquinas":
         sub_fusos_maq = df_fusos[df_fusos["Maquina_TAG"] == tag_selecionada]
         tot_falhas_maq = int(sub_fusos_maq["Quantidade_Quebras"].sum()) if not sub_fusos_maq.empty else 0
 
-        # Informações de Parada / Corretivas
         sub_paradas_maq = df_paradas[df_paradas["Maquina_TAG"] == tag_selecionada]
         tot_horas_paradas = float(sub_paradas_maq["Tempo_Parado_Horas"].sum()) if not sub_paradas_maq.empty else 0.0
 
-        # Informações de Pendências
         sub_pend_maq = df_pendencias[(df_pendencias["Maquina_TAG"] == tag_selecionada) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")]
         tot_pendencias_abertas = len(sub_pend_maq)
 
-        # Cards de Visão Geral da Máquina
         cm1, cm2, cm3, cm4 = st.columns(4)
         cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.05rem;'>{setor_selecionado_maq}</div></div><div>🏭</div></div>", unsafe_allow_html=True)
         cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.05rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'Sem Dados')}</div></div><div>🔄</div></div>", unsafe_allow_html=True)
@@ -869,7 +819,6 @@ elif tela == "Painel Maquinas":
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-        # Dados das Correias da Máquina
         with st.container(border=True):
             st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔄 Correias Instaladas na Máquina {tag_selecionada}</div>", unsafe_allow_html=True)
             c_cor1, c_cor2 = st.columns(2)
@@ -894,7 +843,6 @@ elif tela == "Painel Maquinas":
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # Histórico de Pendências de Manutenção
         with st.container(border=True):
             st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
             if not sub_pend_maq.empty:
@@ -905,7 +853,6 @@ elif tela == "Painel Maquinas":
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # Histórico de Manutenções Corretivas Executadas
         with st.container(border=True):
             st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🛠️ Manutenções Corretivas Executadas — {tag_selecionada}</div>", unsafe_allow_html=True)
             if not sub_paradas_maq.empty:
@@ -916,7 +863,6 @@ elif tela == "Painel Maquinas":
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # Histórico de Quebras de Fusos da Máquina
         with st.container(border=True):
             st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>📊 Evolução de Quebras de Fusos — {tag_selecionada}</div>", unsafe_allow_html=True)
             if not sub_fusos_maq.empty:
@@ -950,7 +896,6 @@ elif tela == "Banco de Dados":
         "🛡️ Histórico de Backups"
     ])
 
-    # Aba Fusos: 1 único arquivo com todos os 12 meses do ano
     with tab_fusos_db:
         st.markdown("### 📅 Gestão de Fusos Anual Consolidada")
         c_ano_db, c_set_db = st.columns([1.5, 2.5])
@@ -993,7 +938,6 @@ elif tela == "Banco de Dados":
 
         with col_down_ano:
             st.markdown("#### 📥 Descarregar Livro de 12 Meses")
-            st.caption(f"Descarrega um ficheiro Excel com 12 abas (Jan a Dez) de {ano_db_fuso} para o {setor_db_fuso}.")
             st.download_button(
                 f"📥 Baixar Ano {ano_db_fuso} Completo (.xlsx)",
                 data=buffer_excel_ano,
@@ -1005,7 +949,6 @@ elif tela == "Banco de Dados":
 
         with col_up_ano:
             st.markdown("#### 📤 Importar Livro de 12 Meses")
-            st.caption(f"Envie um ficheiro Excel (.xlsx) contendo abas dos meses (`Janeiro`, `Fevereiro`, etc.) no modelo `MAQUINA | 1 | 2 ... 31`.")
             upload_ano = st.file_uploader(
                 f"Enviar ficheiro completo de {ano_db_fuso} (.xlsx)",
                 type=["xlsx"],
@@ -1082,17 +1025,12 @@ elif tela == "Banco de Dados":
                     except Exception as erro_up:
                         st.error(f"Erro ao processar o ficheiro anual: {erro_up}")
 
-    # Aba Correias
     with tab_correias_db:
         st.markdown("### 🔄 Troca de Dados de Correias")
-        st.caption("Descarregue a planilha modelo com todas as máquinas cadastradas ou envie novos dados atualizados.")
-
         col_d_cor, col_u_cor = st.columns([1.5, 2.5])
 
         with col_d_cor:
             st.markdown("#### 📥 Descarregar Planilha")
-            st.caption("Gera um arquivo .xlsx limpo pronto para preenchimento de todas as máquinas.")
-
             filtro_export_setor = st.selectbox(
                 "Exportar Setor:",
                 ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()),
@@ -1146,28 +1084,13 @@ elif tela == "Banco de Dados":
 
         with col_u_cor:
             st.markdown("#### 📤 Enviar Dados Atualizados")
-            st.caption("Suba o arquivo Excel preenchido (.xlsx). Colunas esperadas: `Setor`, `Maquina_TAG`, `Tipo_Correia_1`, `Data_Instalacao_1`, `Tipo_Correia_2`, `Data_Instalacao_2`.")
-
-            up_arquivo_cor = st.file_uploader(
-                "Carregar nova planilha de correias (.xlsx)",
-                type=["xlsx"],
-                key="uploader_novas_correias",
-            )
-
-            modo_gravacao = st.radio(
-                "Modo de Atualização:",
-                [
-                    "Mesclar e Atualizar (Preserva outras máquinas e atualiza as enviadas)",
-                    "Substituição Completa (Sobrescreve toda a base atual)"
-                ],
-                key="radio_modo_up_cor"
-            )
+            up_arquivo_cor = st.file_uploader("Carregar nova planilha de correias (.xlsx)", type=["xlsx"], key="uploader_novas_correias")
+            modo_gravacao = st.radio("Modo de Atualização:", ["Mesclar e Atualizar", "Substituição Completa"], key="radio_modo_up_cor")
 
             if up_arquivo_cor is not None:
                 if st.button("🚀 Confirmar e Atualizar Base de Correias", type="primary", key="btn_executar_up_cor"):
                     try:
                         df_novo_cor = pd.read_excel(up_arquivo_cor)
-
                         mapa_cols_upload = {}
                         for c in df_novo_cor.columns:
                             c_norm = str(c).strip().lower().replace(" ", "_")
@@ -1185,71 +1108,50 @@ elif tela == "Banco de Dados":
                                 mapa_cols_upload[c] = "Data_Instalacao_2"
 
                         df_novo_cor.rename(columns=mapa_cols_upload, inplace=True)
+                        for c in COLUNAS_CORREIAS:
+                            if c not in df_novo_cor.columns:
+                                df_novo_cor[c] = ""
+                        df_novo_cor["Setor"] = df_novo_cor["Setor"].astype(str).str.strip()
+                        df_novo_cor["Maquina_TAG"] = df_novo_cor["Maquina_TAG"].astype(str).str.strip().str.upper()
 
-                        colunas_obrigatorias = ["Setor", "Maquina_TAG"]
-                        if not all(col in df_novo_cor.columns for col in colunas_obrigatorias):
-                            st.error("❌ O arquivo precisa conter pelo menos as colunas 'Setor' e 'Maquina_TAG'.")
+                        def tratar_data_str(val):
+                            if pd.isna(val) or val is None or str(val).strip().lower() in ["", "nan", "nat", "none"]:
+                                return ""
+                            try:
+                                return pd.to_datetime(val).strftime("%Y-%m-%d")
+                            except Exception:
+                                return ""
+
+                        df_novo_cor["Tipo_Correia_1"] = df_novo_cor["Tipo_Correia_1"].apply(formatar_modelo)
+                        df_novo_cor["Data_Instalacao_1"] = df_novo_cor["Data_Instalacao_1"].apply(tr tratar_data_str if 'tratar_data_str' in globals() else lambda x: str(x))
+                        df_novo_cor["Tipo_Correia_2"] = df_novo_cor["Tipo_Correia_2"].apply(formatar_modelo)
+                        df_novo_cor["Data_Instalacao_2"] = df_novo_cor["Data_Instalacao_2"].apply(tratar_data_str)
+
+                        df_novo_cor = df_novo_cor[COLUNAS_CORREIAS].drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last")
+                        gerar_backup_seguro(ARQUIVO_CORREIAS)
+
+                        if "Substituição Completa" in modo_gravacao:
+                            df_final_up_c = df_novo_cor
                         else:
-                            for c in COLUNAS_CORREIAS:
-                                if c not in df_novo_cor.columns:
-                                    df_novo_cor[c] = ""
+                            chaves_enviadas = set(zip(df_novo_cor["Setor"], df_novo_cor["Maquina_TAG"]))
+                            mascara_manter = [(r["Setor"], r["Maquina_TAG"]) not in chaves_enviadas for _, r in df_correias.iterrows()]
+                            df_base_restante = df_correias[mascara_manter]
+                            df_final_up_c = pd.concat([df_base_restante, df_novo_cor], ignore_index=True)
 
-                            df_novo_cor["Setor"] = df_novo_cor["Setor"].astype(str).str.strip()
-                            df_novo_cor["Maquina_TAG"] = df_novo_cor["Maquina_TAG"].astype(str).str.strip().str.upper()
-
-                            def tratar_data_str(val):
-                                if pd.isna(val) or val is None or str(val).strip().lower() in ["", "nan", "nat", "none"]:
-                                    return ""
-                                try:
-                                    return pd.to_datetime(val).strftime("%Y-%m-%d")
-                                except Exception:
-                                    return ""
-
-                            df_novo_cor["Tipo_Correia_1"] = df_novo_cor["Tipo_Correia_1"].apply(formatar_modelo)
-                            df_novo_cor["Data_Instalacao_1"] = df_novo_cor["Data_Instalacao_1"].apply(tratar_data_str)
-                            df_novo_cor["Tipo_Correia_2"] = df_novo_cor["Tipo_Correia_2"].apply(formatar_modelo)
-                            df_novo_cor["Data_Instalacao_2"] = df_novo_cor["Data_Instalacao_2"].apply(tratar_data_str)
-
-                            df_novo_cor = df_novo_cor[COLUNAS_CORREIAS].drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last")
-
-                            gerar_backup_seguro(ARQUIVO_CORREIAS)
-
-                            if "Substituição Completa" in modo_gravacao:
-                                df_final_up_c = df_novo_cor
-                            else:
-                                chaves_enviadas = set(zip(df_novo_cor["Setor"], df_novo_cor["Maquina_TAG"]))
-                                mascara_manter = [
-                                    (r["Setor"], r["Maquina_TAG"]) not in chaves_enviadas
-                                    for _, r in df_correias.iterrows()
-                                ]
-                                df_base_restante = df_correias[mascara_manter]
-                                df_final_up_c = pd.concat([df_base_restante, df_novo_cor], ignore_index=True)
-
-                            df_final_up_c.to_excel(ARQUIVO_CORREIAS, index=False)
-                            invalidar_cache()
-                            st.success(f"✅ Base de Correias atualizada com sucesso! ({len(df_novo_cor)} máquinas processadas)")
-                            st.rerun()
-
+                        df_final_up_c.to_excel(ARQUIVO_CORREIAS, index=False)
+                        invalidar_cache()
+                        st.success(f"✅ Base de Correias atualizada com sucesso!")
+                        st.rerun()
                     except Exception as erro_proc:
-                        st.error(f"Erro ao processar o arquivo de correias: {erro_proc}")
+                        st.error(f"Erro ao processar: {erro_proc}")
 
-    # Aba Corretivas & Paradas (ESTRITAMENTE EVENTOS OCORRIDOS)
     with tab_paradas_db:
         st.markdown("### 🛠️ Gestão de Manutenções Corretivas")
-        st.caption("Registe apenas as manutenções corretivas que de fato aconteceram. Máquinas e dias sem registro são considerados sem intervenção.")
-
         col_d_par, col_u_par = st.columns([1.5, 2.5])
 
         with col_d_par:
             st.markdown("#### 📥 Descarregar Registos")
-            st.caption("Descarrega o ficheiro .xlsx contendo apenas as manutenções corretivas apontadas.")
-
-            filtro_setor_par = st.selectbox(
-                "Filtrar Setor:",
-                ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()),
-                key="sel_export_setor_parada"
-            )
-
+            filtro_setor_par = st.selectbox("Filtrar Setor:", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), key="sel_export_setor_parada")
             df_export_par = df_paradas if filtro_setor_par == "Todos os Setores" else df_paradas[df_paradas["Setor"] == filtro_setor_par]
             
             if df_export_par.empty:
@@ -1262,11 +1164,10 @@ elif tela == "Banco de Dados":
                 df_export_par.to_excel(writer_p, index=False, sheet_name="Corretivas")
             buf_down_p.seek(0)
 
-            nome_arq_par = f"manutencoes_corretivas_{date.today().strftime('%Y%m%d')}.xlsx"
             st.download_button(
                 label="📥 Baixar Planilha de Corretivas (.xlsx)",
                 data=buf_down_p,
-                file_name=nome_arq_par,
+                file_name=f"manutencoes_corretivas_{date.today().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="btn_down_base_paradas",
                 use_container_width=True,
@@ -1274,28 +1175,13 @@ elif tela == "Banco de Dados":
 
         with col_u_par:
             st.markdown("#### 📤 Enviar Registos de Corretivas")
-            st.caption("Envie a planilha preenchida (.xlsx). É permitido múltiplas corretivas para a mesma máquina no mesmo dia.")
-
-            up_arquivo_par = st.file_uploader(
-                "Carregar planilha de corretivas (.xlsx)",
-                type=["xlsx"],
-                key="uploader_novas_paradas",
-            )
-
-            modo_gravacao_par = st.radio(
-                "Modo de Gravação:",
-                [
-                    "Incrementar Registos (Adicionar ao histórico atual)",
-                    "Substituição Completa (Sobrescrever histórico de corretivas)"
-                ],
-                key="radio_modo_up_par"
-            )
+            up_arquivo_par = st.file_uploader("Carregar planilha de corretivas (.xlsx)", type=["xlsx"], key="uploader_novas_paradas")
+            modo_gravacao_par = st.radio("Modo de Gravação:", ["Incrementar Registos", "Substituição Completa"], key="radio_modo_up_par")
 
             if up_arquivo_par is not None:
                 if st.button("🚀 Confirmar e Atualizar Corretivas", type="primary", key="btn_executar_up_par"):
                     try:
                         df_novo_p = pd.read_excel(up_arquivo_par)
-
                         mapa_cols_up_p = {}
                         for c in df_novo_p.columns:
                             c_norm = str(c).strip().lower().replace(" ", "_")
@@ -1313,65 +1199,45 @@ elif tela == "Banco de Dados":
                                 mapa_cols_up_p[c] = "Tempo_Parado_Horas"
 
                         df_novo_p.rename(columns=mapa_cols_up_p, inplace=True)
+                        for c in COLUNAS_PARADAS:
+                            if c not in df_novo_p.columns:
+                                df_novo_p[c] = 0.0 if c == "Tempo_Parado_Horas" else ""
+                        df_novo_p["Setor"] = df_novo_p["Setor"].astype(str).str.strip()
+                        df_novo_p["Maquina_TAG"] = df_novo_p["Maquina_TAG"].astype(str).str.strip().str.upper()
 
-                        colunas_obrigatorias_p = ["Setor", "Maquina_TAG"]
-                        if not all(col in df_novo_p.columns for col in colunas_obrigatorias_p):
-                            st.error("❌ O arquivo precisa conter pelo menos as colunas 'Setor' e 'Maquina_TAG'.")
+                        def tratar_data_p(val):
+                            if pd.isna(val) or val is None or str(val).strip().lower() in ["", "nan", "nat", "none"]:
+                                return date.today().strftime("%Y-%m-%d")
+                            try:
+                                return pd.to_datetime(val).strftime("%Y-%m-%d")
+                            except Exception:
+                                return date.today().strftime("%Y-%m-%d")
+
+                        df_novo_p["Data"] = df_novo_p["Data"].apply(tratar_data_p)
+                        df_novo_p["Tempo_Parado_Horas"] = pd.to_numeric(df_novo_p["Tempo_Parado_Horas"], errors="coerce").fillna(0.0)
+                        df_novo_p["Tipo_Manutencao"] = df_novo_p["Tipo_Manutencao"].replace({"": "Corretiva"}).fillna("Corretiva")
+                        df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
+
+                        gerar_backup_seguro(ARQUIVO_PARADAS)
+                        if "Substituição Completa" in modo_gravacao_par:
+                            df_final_p = df_novo_p[COLUNAS_PARADAS]
                         else:
-                            for c in COLUNAS_PARADAS:
-                                if c not in df_novo_p.columns:
-                                    df_novo_p[c] = 0.0 if c == "Tempo_Parado_Horas" else ""
+                            df_final_p = pd.concat([df_paradas, df_novo_p[COLUNAS_PARADAS]], ignore_index=True)
 
-                            df_novo_p["Setor"] = df_novo_p["Setor"].astype(str).str.strip()
-                            df_novo_p["Maquina_TAG"] = df_novo_p["Maquina_TAG"].astype(str).str.strip().str.upper()
-
-                            def tratar_data_p(val):
-                                if pd.isna(val) or val is None or str(val).strip().lower() in ["", "nan", "nat", "none"]:
-                                    return date.today().strftime("%Y-%m-%d")
-                                try:
-                                    return pd.to_datetime(val).strftime("%Y-%m-%d")
-                                except Exception:
-                                    return date.today().strftime("%Y-%m-%d")
-
-                            df_novo_p["Data"] = df_novo_p["Data"].apply(tratar_data_p)
-                            df_novo_p["Tempo_Parado_Horas"] = pd.to_numeric(df_novo_p["Tempo_Parado_Horas"], errors="coerce").fillna(0.0)
-                            
-                            df_novo_p["Tipo_Manutencao"] = df_novo_p["Tipo_Manutencao"].replace({"": "Corretiva"}).fillna("Corretiva")
-
-                            df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
-
-                            gerar_backup_seguro(ARQUIVO_PARADAS)
-
-                            if "Substituição Completa" in modo_gravacao_par:
-                                df_final_p = df_novo_p[COLUNAS_PARADAS]
-                            else:
-                                df_final_p = pd.concat([df_paradas, df_novo_p[COLUNAS_PARADAS]], ignore_index=True)
-
-                            df_final_p.to_excel(ARQUIVO_PARADAS, index=False)
-                            invalidar_cache()
-                            st.success(f"✅ {len(df_novo_p)} manutenções corretivas registradas com sucesso!")
-                            st.rerun()
-
+                        df_final_p.to_excel(ARQUIVO_PARADAS, index=False)
+                        invalidar_cache()
+                        st.success("✅ Manutenções corretivas registradas com sucesso!")
+                        st.rerun()
                     except Exception as erro_proc_p:
-                        st.error(f"Erro ao processar o arquivo de corretivas: {erro_proc_p}")
+                        st.error(f"Erro ao processar: {erro_proc_p}")
 
-    # Aba Manutenções Pendentes (SEM DATA - OTIMIZADA)
     with tab_pendencias_db:
         st.markdown("### 📋 Gestão de Manutenções Pendentes")
-        st.caption("Cadastre pendências e manutenções a realizar sem necessidade de data fixa. Acompanhe o backlog de intervenções futuras.")
-
         col_d_pend, col_u_pend = st.columns([1.5, 2.5])
 
         with col_d_pend:
             st.markdown("#### 📥 Descarregar Pendências")
-            st.caption("Descarrega o ficheiro .xlsx contendo o backlog de pendências apontadas.")
-
-            filtro_setor_pend = st.selectbox(
-                "Filtrar Setor:",
-                ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()),
-                key="sel_export_setor_pendencia"
-            )
-
+            filtro_setor_pend = st.selectbox("Filtrar Setor:", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), key="sel_export_setor_pendencia")
             df_export_pend = df_pendencias if filtro_setor_pend == "Todos os Setores" else df_pendencias[df_pendencias["Setor"] == filtro_setor_pend]
 
             if df_export_pend.empty:
@@ -1384,11 +1250,10 @@ elif tela == "Banco de Dados":
                 df_export_pend.to_excel(writer_pend, index=False, sheet_name="Pendencias")
             buf_down_pend.seek(0)
 
-            nome_arq_pend = f"manutencoes_pendentes_{date.today().strftime('%Y%m%d')}.xlsx"
             st.download_button(
                 label="📥 Baixar Planilha de Pendências (.xlsx)",
                 data=buf_down_pend,
-                file_name=nome_arq_pend,
+                file_name=f"manutencoes_pendentes_{date.today().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="btn_down_base_pendencias",
                 use_container_width=True,
@@ -1396,28 +1261,13 @@ elif tela == "Banco de Dados":
 
         with col_u_pend:
             st.markdown("#### 📤 Enviar Backlog de Pendências")
-            st.caption("Envie a planilha de pendências (.xlsx). Colunas esperadas: `Setor`, `Maquina_TAG`, `Descricao_Pendencia`, `Prioridade` e `Status`.")
-
-            up_arquivo_pend = st.file_uploader(
-                "Carregar planilha de pendências (.xlsx)",
-                type=["xlsx"],
-                key="uploader_novas_pendencias",
-            )
-
-            modo_gravacao_pend = st.radio(
-                "Modo de Gravação:",
-                [
-                    "Incrementar Pendências (Adicionar ao backlog existente)",
-                    "Substituição Completa (Sobrescrever backlog de pendências)"
-                ],
-                key="radio_modo_up_pend"
-            )
+            up_arquivo_pend = st.file_uploader("Carregar planilha de pendências (.xlsx)", type=["xlsx"], key="uploader_novas_pendencias")
+            modo_gravacao_pend = st.radio("Modo de Gravação:", ["Incrementar Pendências", "Substituição Completa"], key="radio_modo_up_pend")
 
             if up_arquivo_pend is not None:
                 if st.button("🚀 Confirmar e Atualizar Pendências", type="primary", key="btn_executar_up_pend"):
                     try:
                         df_novo_pend = pd.read_excel(up_arquivo_pend)
-
                         mapa_cols_up_pend = {}
                         for c in df_novo_pend.columns:
                             c_norm = str(c).strip().lower().replace(" ", "_")
@@ -1433,51 +1283,35 @@ elif tela == "Banco de Dados":
                                 mapa_cols_up_pend[c] = "Status"
 
                         df_novo_pend.rename(columns=mapa_cols_up_pend, inplace=True)
+                        for c in COLUNAS_PENDENCIAS:
+                            if c not in df_novo_pend.columns:
+                                df_novo_pend[c] = "Pendente" if c == "Status" else "Média" if c == "Prioridade" else ""
+                        df_novo_pend["Setor"] = df_novo_pend["Setor"].astype(str).str.strip()
+                        df_novo_pend["Maquina_TAG"] = df_novo_pend["Maquina_TAG"].astype(str).str.strip().str.upper()
+                        df_novo_pend["Descricao_Pendencia"] = df_novo_pend["Descricao_Pendencia"].astype(str).str.strip()
+                        df_novo_pend["Prioridade"] = df_novo_pend["Prioridade"].replace({"": "Média"}).fillna("Média")
+                        df_novo_pend["Status"] = df_novo_pend["Status"].replace({"": "Pendente"}).fillna("Pendente")
+                        df_novo_pend = df_novo_pend[df_novo_pend["Descricao_Pendencia"].astype(str).str.strip() != ""]
 
-                        colunas_obrigatorias_pend = ["Setor", "Maquina_TAG"]
-                        if not all(col in df_novo_pend.columns for col in colunas_obrigatorias_pend):
-                            st.error("❌ O arquivo precisa conter pelo menos as colunas 'Setor' e 'Maquina_TAG'.")
+                        gerar_backup_seguro(ARQUIVO_PENDENCIAS)
+                        if "Substituição Completa" in modo_gravacao_pend:
+                            df_final_pend = df_novo_pend[COLUNAS_PENDENCIAS]
                         else:
-                            for c in COLUNAS_PENDENCIAS:
-                                if c not in df_novo_pend.columns:
-                                    df_novo_pend[c] = "Pendente" if c == "Status" else "Média" if c == "Prioridade" else ""
+                            df_final_pend = pd.concat([df_pendencias, df_novo_pend[COLUNAS_PENDENCIAS]], ignore_index=True)
 
-                            df_novo_pend["Setor"] = df_novo_pend["Setor"].astype(str).str.strip()
-                            df_novo_pend["Maquina_TAG"] = df_novo_pend["Maquina_TAG"].astype(str).str.strip().str.upper()
-                            df_novo_pend["Descricao_Pendencia"] = df_novo_pend["Descricao_Pendencia"].astype(str).str.strip()
-                            df_novo_pend["Prioridade"] = df_novo_pend["Prioridade"].replace({"": "Média"}).fillna("Média")
-                            df_novo_pend["Status"] = df_novo_pend["Status"].replace({"": "Pendente"}).fillna("Pendente")
-
-                            df_novo_pend = df_novo_pend[df_novo_pend["Descricao_Pendencia"].astype(str).str.strip() != ""]
-
-                            gerar_backup_seguro(ARQUIVO_PENDENCIAS)
-
-                            if "Substituição Completa" in modo_gravacao_pend:
-                                df_final_pend = df_novo_pend[COLUNAS_PENDENCIAS]
-                            else:
-                                df_final_pend = pd.concat([df_pendencias, df_novo_pend[COLUNAS_PENDENCIAS]], ignore_index=True)
-
-                            df_final_pend.to_excel(ARQUIVO_PENDENCIAS, index=False)
-                            invalidar_cache()
-                            st.success(f"✅ {len(df_novo_pend)} pendências atualizadas com sucesso!")
-                            st.rerun()
-
+                        df_final_pend.to_excel(ARQUIVO_PENDENCIAS, index=False)
+                        invalidar_cache()
+                        st.success("✅ Pendências atualizadas com sucesso!")
+                        st.rerun()
                     except Exception as erro_proc_pend:
-                        st.error(f"Erro ao processar o arquivo de pendências: {erro_proc_pend}")
+                        st.error(f"Erro ao processar: {erro_proc_pend}")
 
-    # Aba Backups Automáticos
     with tab_backups_db:
         st.markdown("#### Cópias de Segurança Geradas Automaticamente")
-        st.caption("Cada vez que uma alteração é salva no sistema, uma cópia completa com data e hora é arquivada.")
-
         if os.path.exists("backups"):
             arquivos_bkp = sorted(os.listdir("backups"), reverse=True)
             if arquivos_bkp:
-                dados_bkp = []
-                for bkp in arquivos_bkp:
-                    caminho_bkp = os.path.join("backups", bkp)
-                    tam_kb = round(os.path.getsize(caminho_bkp) / 1024, 1)
-                    dados_bkp.append({"Arquivo de Backup": bkp, "Tamanho": f"{tam_kb} KB"})
+                dados_bkp = [{"Arquivo de Backup": bkp, "Tamanho": f"{round(os.path.getsize(os.path.join('backups', bkp)) / 1024, 1)} KB"} for bkp in arquivos_bkp]
                 st.dataframe(pd.DataFrame(dados_bkp), use_container_width=True, height=300)
             else:
                 st.info("Nenhum backup gerado ainda.")
@@ -1485,7 +1319,7 @@ elif tela == "Banco de Dados":
             st.info("Pasta de backups ainda não inicializada.")
 
 # ------------------------------------------
-# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS)
+# 6. GESTÃO CADASTRAL DE MÁQUINAS
 # ------------------------------------------
 elif tela == "Gestao Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
