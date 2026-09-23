@@ -668,7 +668,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-        # MAPA DE CALOR COM ESCALA VERDE-VERMELHO E FILTRO DE FUSO
+        # MAPA DE CALOR COM ESCALA CLÁSSICA (VERDE AO VERMELHO) E FILTRO DE FUSO
         with st.container(border=True):
             ch_col1, ch_col2 = st.columns([2.5, 1.5])
             with ch_col1:
@@ -1493,6 +1493,7 @@ elif tela == "Gestao Maquinas":
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
         if st.button("💾 Salvar Parâmetros da Máquina", type="primary", key=f"btn_salvar_param_{maq_selecionada}"):
+            # CORREÇÃO: Atualiza em lote o tipo de fuso para TODOS os registros existentes desta máquina no arquivo de fusos
             mask_fusos_maq = (df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)
             if mask_fusos_maq.any():
                 df_fusos.loc[mask_fusos_maq, "Tipo_Fuso"] = novo_fuso
