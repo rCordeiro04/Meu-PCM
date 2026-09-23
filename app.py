@@ -126,20 +126,6 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
-    if not df_f.empty:
-        mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
-        if mask_fag_init.any() and (df_f.loc[mask_fag_init, "Tipo_Fuso"] != "FAG").any():
-            df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
-            df_f.to_excel(ARQUIVO_FUSOS, index=False)
-
-    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
-    if not df_f.empty:
-        mask_men_init = df_f["Maquina_TAG"].isin(MAQUINAS_MENEGATTO)
-        if mask_men_init.any() and (df_f.loc[mask_men_init, "Tipo_Fuso"] != "MENEGATTO").any():
-            df_f.loc[mask_men_init, "Tipo_Fuso"] = "MENEGATTO"
-            df_f.to_excel(ARQUIVO_FUSOS, index=False)
-
     if os.path.exists(ARQUIVO_CORREIAS):
         try:
             df_c = pd.read_excel(ARQUIVO_CORREIAS)
@@ -809,7 +795,7 @@ elif tela == "Painel Setores":
         st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
-# 4. PAINEL GERENCIAL DE MÁQUINAS
+# 4. PAINEL GERENCIAL DE MÁQUINAS (EXATAMENTE COMO 1.0)
 # ------------------------------------------
 elif tela == "Painel Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
@@ -1342,7 +1328,7 @@ elif tela == "Banco de Dados":
             st.info("Pasta de backups ainda não inicializada.")
 
 # ------------------------------------------
-# 6. GESTÃO CADASTRAL DE MÁQUINAS
+# 6. GESTÃO CADASTRAL DE MÁQUINAS (EXATAMENTE COMO 1.0)
 # ------------------------------------------
 elif tela == "Gestao Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
