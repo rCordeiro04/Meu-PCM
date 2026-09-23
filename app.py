@@ -436,7 +436,7 @@ st.markdown(
             border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
         }
 
-        /* Estilização dos botões das máquinas com fonte destacada */
+        /* Estilização dos botões das máquinas */
         div.stButton > button {
             background: #ffffff !important;
             color: #0f172a !important;
@@ -517,7 +517,7 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) OTIMIZADA
+# BARRA LATERAL (SIDEBAR) REESTRUTURADA
 # ==========================================
 with st.sidebar:
     st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 14px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
@@ -525,6 +525,8 @@ with st.sidebar:
     st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
     st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
     st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
+    st.button("🏭 Setores", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Setores" else "secondary", on_click=navegar, args=("Painel Setores",))
+    st.button("⚙️ Máquinas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Maquinas" else "secondary", on_click=navegar, args=("Painel Maquinas",))
 
     st.markdown("---")
     st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>SISTEMA & DADOS</p>", unsafe_allow_html=True)
@@ -536,6 +538,14 @@ with st.sidebar:
         on_click=navegar,
         args=("Banco de Dados",),
     )
+    st.button(
+        "🏭 Máquinas",
+        key="btn_nav_cad_maquinas",
+        use_container_width=True,
+        type="primary" if st.session_state.pagina_atual == "Gestao Maquinas" else "secondary",
+        on_click=navegar,
+        args=("Gestao Maquinas",),
+    )
 
     st.markdown("---")
     st.markdown("<div style='text-align:center; font-size:0.72rem; color:#64748b;'>PCM • Versão Gerencial</div>", unsafe_allow_html=True)
@@ -546,7 +556,7 @@ with st.sidebar:
 tela = st.session_state.pagina_atual
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (FILTRO APENAS POR TIPO)
+# 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
     c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
@@ -602,7 +612,6 @@ if tela == "Painel Correias":
     for s_nome in DICIONARIO_SETORES.keys():
         maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
 
-        # Filtro ativo por modelo de correia
         if filtro_modelo != "Todos os Tipos":
             filtradas = []
             for m in maquinas_do_setor:
@@ -891,7 +900,146 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 3. BANCO DE DADOS & GESTÃO DE ARQUIVOS
+# 3. PAINEL GERENCIAL DE SETORES (NOVO)
+# ------------------------------------------
+elif tela == "Painel Setores":
+    st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
+    st.caption("Visão consolidada e comparativa de desempenho operacional entre todos os setores da fábrica.")
+
+    # Matriz de indicadores por setor
+    dados_resumo_setores = []
+    for s_nome in DICIONARIO_SETORES.keys():
+        maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+        tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
+        
+        # Correias críticas do setor
+        crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
+        novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
+        meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
+
+        dados_resumo_setores.append({
+            "Setor": s_nome,
+            "Total Máquinas": len(maqs_s),
+            "Quebras Fusos (Total)": tot_q_fusos,
+            "Correias Críticas (Troca)": crit_cor,
+            "Correias Meia-Vida": meia_cor,
+            "Correias Novas": novas_cor,
+        })
+
+    df_res_setores = pd.DataFrame(dados_resumo_setores)
+
+    # 4 Cards superiores de resumo geral
+    cs1, cs2, cs3, cs4 = st.columns(4)
+    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total de Setores</div><div class='kpi-val'>{len(DICIONARIO_SETORES)}</div></div><div>🏢</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{len(todas_maquinas_totais)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correias Meia-Vida</div><div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div></div><div>🟡</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Total Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div></div><div>🚨</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+    c_gset1, c_gset2 = st.columns(2)
+    with c_gset1:
+        with st.container(border=True):
+            st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
+            chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#2563eb").encode(
+                x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                y=alt.Y("Quebras Fusos (Total):Q", title="Quebras"),
+                tooltip=["Setor", "Quebras Fusos (Total)"]
+            )
+            txt_s_fuso = chart_s_fuso.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Quebras Fusos (Total):Q")
+            st.altair_chart((chart_s_fuso + txt_s_fuso).properties(height=240), use_container_width=True)
+
+    with c_gset2:
+        with st.container(border=True):
+            st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🚨 Correias com Troca Necessária por Setor</div>", unsafe_allow_html=True)
+            chart_s_cor = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#dc2626").encode(
+                x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                y=alt.Y("Correias Críticas (Troca):Q", title="Críticas"),
+                tooltip=["Setor", "Correias Críticas (Troca)"]
+            )
+            txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(text="Correias Críticas (Troca):Q")
+            st.altair_chart((chart_s_cor + txt_s_cor).properties(height=240), use_container_width=True)
+
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:6px;'>📋 Matriz Comparativa de Setores</div>", unsafe_allow_html=True)
+        st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
+
+# ------------------------------------------
+# 4. PAINEL GERENCIAL DE MÁQUINAS (NOVO)
+# ------------------------------------------
+elif tela == "Painel Maquinas":
+    st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
+    st.caption("Consulte o histórico detalhado, dados de correias e registros de quebras por TAG de máquina.")
+
+    col_sm, col_mq = st.columns([1.5, 2.0])
+    with col_sm:
+        setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
+    
+    maqs_disponiveis = obter_maquinas_setor(setor_selecionado_maq, df_correias, df_fusos)
+    with col_mq:
+        tag_selecionada = st.selectbox("Selecione a TAG da Máquina:", maqs_disponiveis, key="sel_maq_painel_tag")
+
+    if tag_selecionada:
+        info_cor_maq = dados_maquinas.get(tag_selecionada, {})
+        sub_fusos_maq = df_fusos[df_fusos["Maquina_TAG"] == tag_selecionada]
+        tot_falhas_maq = int(sub_fusos_maq["Quantidade_Quebras"].sum()) if not sub_fusos_maq.empty else 0
+
+        # Cards de Visão Geral da Máquina
+        cm1, cm2, cm3, cm4 = st.columns(4)
+        cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.05rem;'>{setor_selecionado_maq}</div></div><div>🏭</div></div>", unsafe_allow_html=True)
+        cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.05rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'Sem Dados')}</div></div><div>🔄</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Total Quebras Fusos</div><div class='kpi-val' style='color:#dc2626;'>{tot_falhas_maq}</div></div><div>🔩</div></div>", unsafe_allow_html=True)
+        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Tipo Fuso Padrão</div><div class='kpi-val' style='font-size:1.05rem;'>{sub_fusos_maq['Tipo_Fuso'].iloc[0] if not sub_fusos_maq.empty else 'N/A'}</div></div><div>🏷️</div></div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+        # Dados das Correias da Máquina
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔄 Correias Instaladas na Máquina {tag_selecionada}</div>", unsafe_allow_html=True)
+            c_cor1, c_cor2 = st.columns(2)
+            with c_cor1:
+                st.markdown(f"""
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+                        <div style="font-weight:800; font-size:0.85rem; color:#0f172a; margin-bottom:4px;">🔼 Superior / Cabeceira</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Modelo:</b> {info_cor_maq.get('t1', 'Não informada')}</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Instalação:</b> {info_cor_maq.get('d1', 'Sem registro')}</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Tempo de Uso:</b> {info_cor_maq.get('uso1', 'Sem histórico')}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            with c_cor2:
+                st.markdown(f"""
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px;">
+                        <div style="font-weight:800; font-size:0.85rem; color:#0f172a; margin-bottom:4px;">🔽 Inferior / Traseira</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Modelo:</b> {info_cor_maq.get('t2', 'Não informada')}</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Instalação:</b> {info_cor_maq.get('d2', 'Sem registro')}</div>
+                        <div style="font-size:0.8rem; color:#475569;"><b>Tempo de Uso:</b> {info_cor_maq.get('uso2', 'Sem histórico')}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+        # Histórico de Quebras de Fusos da Máquina
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>📊 Evolução de Quebras de Fusos — {tag_selecionada}</div>", unsafe_allow_html=True)
+            if not sub_fusos_maq.empty:
+                df_f_maq = sub_fusos_maq.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
+                df_f_maq["Mes_Abrev"] = df_f_maq["Mes"].map(MAPA_MES_ABREV)
+
+                bar_maq = alt.Chart(df_f_maq).mark_bar(color="#2563eb", cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+                    x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
+                    y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                    tooltip=["Mes", "Quantidade_Quebras"]
+                )
+                txt_maq = bar_maq.mark_text(dy=-6, fontSize=11, fontWeight=700).encode(
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                )
+                st.altair_chart((bar_maq + txt_maq).properties(height=240), use_container_width=True)
+            else:
+                st.info(f"Sem registros de quebras de fusos para a máquina {tag_selecionada}.")
+
+# ------------------------------------------
+# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
@@ -1200,3 +1348,84 @@ elif tela == "Banco de Dados":
                 st.info("Nenhum backup gerado ainda.")
         else:
             st.info("Pasta de backups ainda não inicializada.")
+
+# ------------------------------------------
+# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS) (NOVO)
+# ------------------------------------------
+elif tela == "Gestao Maquinas":
+    st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
+    st.caption("Cadastre novas máquinas no parque de ativos ou desative TAGs dos setores.")
+
+    c_cad_s, _ = st.columns([2, 3])
+    with c_cad_s:
+        setor_gerenc = st.selectbox("Selecione o Setor:", list(DICIONARIO_SETORES.keys()), key="sel_setor_gestao_maq")
+
+    maqs_atuais_gestao = obter_maquinas_setor(setor_gerenc, df_correias, df_fusos)
+
+    st.markdown("---")
+    col_add, col_del = st.columns(2)
+
+    with col_add:
+        with st.container(border=True):
+            st.markdown(f"#### ➕ Adicionar Nova Máquina — {setor_gerenc}")
+            st.caption("A nova máquina será incorporada nas bases de fusos e correias.")
+            nova_tag_input = st.text_input("Código / TAG da Máquina:", placeholder="Ex: L-54 ou B-109", key="inp_nova_tag_gerenc").strip().upper()
+
+            if st.button("Cadastrar Máquina", type="primary", key="btn_cadastrar_maq_gerenc"):
+                if not nova_tag_input:
+                    st.warning("Informe o código da máquina.")
+                elif nova_tag_input in maqs_atuais_gestao:
+                    st.warning(f"A máquina {nova_tag_input} já existe no {setor_gerenc}.")
+                else:
+                    # Adiciona à base de correias se não existir
+                    mask_c = (df_correias["Setor"] == setor_gerenc) & (df_correias["Maquina_TAG"] == nova_tag_input)
+                    if not mask_c.any():
+                        novo_cor = {
+                            "Setor": setor_gerenc, "Maquina_TAG": nova_tag_input,
+                            "Tipo_Correia_1": "", "Data_Instalacao_1": "",
+                            "Tipo_Correia_2": "", "Data_Instalacao_2": "",
+                        }
+                        df_correias = pd.concat([df_correias, pd.DataFrame([novo_cor])], ignore_index=True)
+                        gerar_backup_seguro(ARQUIVO_CORREIAS)
+                        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
+                    # Adiciona à base de fusos para o ano vigente
+                    fuso_padrao = "FAG" if setor_gerenc == "Setor A" else "TEP" if setor_gerenc == "Setor B" else "M4BA" if setor_gerenc == "Setor Látex" else "MENEGATTO"
+                    mask_f = (df_fusos["Setor"] == setor_gerenc) & (df_fusos["Maquina_TAG"] == nova_tag_input)
+                    if not mask_f.any():
+                        novos_fusos_ano = [
+                            {"Ano": 2026, "Mes": m_nome, "Dia": 1, "Setor": setor_gerenc, "Maquina_TAG": nova_tag_input, "Quantidade_Quebras": 0, "Tipo_Fuso": fuso_padrao}
+                            for m_nome in LISTA_MESES_PUROS
+                        ]
+                        df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_fusos_ano)], ignore_index=True)
+                        gerar_backup_seguro(ARQUIVO_FUSOS)
+                        df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+
+                    st.success(f"✅ Máquina {nova_tag_input} cadastrada com sucesso no {setor_gerenc}!")
+                    st.rerun()
+
+    with col_del:
+        with st.container(border=True):
+            st.markdown(f"#### 🗑️ Desativar / Remover Máquina — {setor_gerenc}")
+            st.caption("Remove a TAG e desvincula os apontamentos existentes das bases.")
+            tag_del_sel = st.selectbox("Selecione a TAG para remover:", ["-- Selecione --"] + maqs_atuais_gestao, key="sel_tag_excluir_gerenc")
+
+            if st.button("Remover Máquina", type="secondary", key="btn_remover_maq_gerenc"):
+                if tag_del_sel and tag_del_sel != "-- Selecione --":
+                    gerar_backup_seguro(ARQUIVO_CORREIAS)
+                    df_correias = df_correias[~((df_correias["Setor"] == setor_gerenc) & (df_correias["Maquina_TAG"] == tag_del_sel))]
+                    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
+                    gerar_backup_seguro(ARQUIVO_FUSOS)
+                    df_fusos = df_fusos[~((df_fusos["Setor"] == setor_gerenc) & (df_fusos["Maquina_TAG"] == tag_del_sel))]
+                    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+
+                    st.success(f"🗑️ Máquina {tag_del_sel} removida com sucesso do {setor_gerenc}!")
+                    st.rerun()
+                else:
+                    st.warning("Selecione uma máquina válida para remover.")
+
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(f"#### 📋 Lista de Máquinas Ativas — {setor_gerenc} ({len(maqs_atuais_gestao)} no total)")
+        st.write(", ".join(maqs_atuais_gestao))
