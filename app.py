@@ -654,7 +654,7 @@ elif tela == "Painel Fusos":
 
         with c_rosca:
             with st.container(border=True):
-                st.markdown("<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
                 if not df_sa.empty and tot_s > 0:
                     df_tipos = df_sa[df_sa["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
                     chart_donut = alt.Chart(df_tipos).mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
@@ -668,31 +668,42 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-        # ADICIONANDO O MAPA DE CALOR DIDÁTICO NO PAINEL DE FUSOS POR SETOR
+        # ADICIONANDO O MAPA DE CALOR EM TONS DE AZUL COM FILTRO DE TIPO DE FUSO
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🔥 Mapa de Calor Operacional — Quebras por Máquina x Mês ({s_ativo} - {ano_f})</div>", unsafe_allow_html=True)
-            
+            ch_col1, ch_col2 = st.columns([2.5, 1.5])
+            with ch_col1:
+                st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🔥 Mapa de Calor Operacional — Quebras por Máquina x Mês ({s_ativo} - {ano_f})</div>", unsafe_allow_html=True)
+            with ch_col2:
+                tipos_fuso_disponiveis = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else []
+                if not tipos_fuso_disponiveis:
+                    tipos_fuso_disponiveis = OPCOES_TIPO_FUSO
+                fuso_filtro_mapa = st.selectbox("Filtrar Tipo de Fuso:", ["Todos os Tipos"] + tipos_fuso_disponiveis, key=f"sel_fuso_mapa_{s_ativo}")
+
+            df_mapa_calor = df_sa.copy()
+            if fuso_filtro_mapa != "Todos os Tipos":
+                df_mapa_calor = df_mapa_calor[df_mapa_calor["Tipo_Fuso"] == fuso_filtro_mapa]
+
             idx_grid = pd.MultiIndex.from_product([maqs_setor, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
             idx_grid["MES"] = idx_grid["Mes"].map(MAPA_MES_ABREV)
-            agrup_c = df_sa.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
+            agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
             rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
-                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
+                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 2, 5, 10], range=["#f8fafc", "#93c5fd", "#3b82f6", "#1d4ed8"]), legend=alt.Legend(title="Quebras")),
                 tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
             )
             txt = alt.Chart(m_calor).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                 y=alt.Y("MAQ:N", sort=maqs_setor),
                 text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
+                color=alt.condition("datum.Quantidade_Quebras >= 6", alt.value("#ffffff"), alt.value("#0f172a")),
             )
             st.altair_chart((rect + txt).properties(height=max(220, len(maqs_setor) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES (COM LEGENDA AMPLIADA E VISÍVEL)
+# 3. PAINEL GERENCIAL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
     c_ts1, c_ts2, c_ts3 = st.columns([2.2, 1.8, 1.8])
@@ -709,11 +720,9 @@ elif tela == "Painel Setores":
     maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
     qtd_maqs_setor = len(maqs_s)
 
-    # 1. Dados de Fusos do Setor (Ano 2026)
     df_f_setor_ano = df_fusos[(df_fusos["Setor"] == s_nome) & (df_fusos["Ano"] == 2026)].copy() if not df_fusos.empty else pd.DataFrame()
     tot_q_fusos = int(df_f_setor_ano["Quantidade_Quebras"].sum()) if not df_f_setor_ano.empty else 0
 
-    # 2. Dados de Paradas / Corretivas do Setor (Último 1 Ano)
     df_p_setor = df_paradas[df_paradas["Setor"] == s_nome].copy() if not df_paradas.empty else pd.DataFrame()
     if not df_p_setor.empty:
         df_p_setor["Data_Dt"] = pd.to_datetime(df_p_setor["Data"], errors="coerce")
@@ -728,17 +737,14 @@ elif tela == "Painel Setores":
         df_p_setor["Mes_Nome"] = df_p_setor["Data_Dt"].dt.month.map(lambda x: LISTA_MESES_PUROS[x-1] if pd.notna(x) and 1 <= x <= 12 else "")
         tot_horas_paradas_setor = float(df_p_setor[df_p_setor["Mes_Nome"] == mes_selecionado_exec]["Tempo_Parado_Horas"].sum())
 
-    # 3. Rendimento da Manutenção (%)
     horas_possiveis_total = qtd_maqs_setor * 720.0 if mes_selecionado_exec == "Todos os Meses" else qtd_maqs_setor * 24.0 * calendar.monthrange(2026, LISTA_MESES_PUROS.index(mes_selecionado_exec)+1)[1]
     rendimento_manutencao = max(0.0, round(100.0 * (1.0 - (tot_horas_paradas_setor / horas_possiveis_total)), 1)) if horas_possiveis_total > 0 else 100.0
 
-    # 4. Condições das Correias do Setor
     novas_s = len([r for r in lista_correias_novas if r["setor"] == s_nome])
     meia_s = len([r for r in lista_correias_meia if r["setor"] == s_nome])
     crit_s = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
     total_cor_s = novas_s + meia_s + crit_s
 
-    # 5. Top Máquinas com mais Corretivas (para rosca)
     if not df_p_setor.empty:
         top_corretivas = df_p_setor.groupby("Maquina_TAG")["Tempo_Parado_Horas"].sum().reset_index()
         top_corretivas.columns = ["Máquina", "Horas Paradas"]
@@ -746,7 +752,6 @@ elif tela == "Painel Setores":
     else:
         top_corretivas = pd.DataFrame(columns=["Máquina", "Horas Paradas"])
 
-    # 6. Preventivas: Realizados vs Não Realizados (Último 1 Ano)
     if not df_p_1ano.empty:
         preventivas_realizadas = len(df_p_1ano[df_p_1ano["Tipo_Manutencao"].astype(str).str.lower().str.contains("preventiva")])
         meta_preventivas_ano = qtd_maqs_setor * 12
@@ -760,7 +765,6 @@ elif tela == "Painel Setores":
         {"Status": "Não Realizados", "Total": preventivas_nao_realizadas},
     ])
 
-    # KPIs Superiores do Setor
     cs1, cs2, cs3, cs4 = st.columns(4)
     cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Rendimento Manutenção</div><div class='kpi-val' style='color:#059669;'>{rendimento_manutencao}%</div></div><div>📈</div></div>", unsafe_allow_html=True)
     cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Total Horas Paradas</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas_setor, 1)}h</div></div><div>⏱️</div></div>", unsafe_allow_html=True)
@@ -769,7 +773,6 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    # Primeira Linha de Gráficos: Fusos (Evolução ou Por Máquina) + Condições de Correias (Rosca com Legenda Otimizada)
     cg_s1, cg_s2 = st.columns(2)
 
     with cg_s1:
@@ -830,7 +833,6 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # Segunda Linha de Gráficos: Rosca de Top Corretivas + Rosca de Preventivas (Com legenda nítida e visível)
     cg_s3, cg_s4 = st.columns(2)
 
     with cg_s3:
