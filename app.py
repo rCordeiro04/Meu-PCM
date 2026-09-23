@@ -712,7 +712,7 @@ elif tela == "Correias":
         st.rerun()
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS
+# 3. PAINEL GERENCIAL DE FUSOS (COM GRÁFICOS RESTAURADOS)
 # ------------------------------------------
 elif tela == "Painel Fusos":
     cf_t, cf_a = st.columns([3.8, 1.4])
@@ -1033,138 +1033,179 @@ elif tela == "Lançamento Fusos":
                 st.rerun()
 
 # ------------------------------------------
-# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS
+# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS (12 MESES EM 1 ARQUIVO)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
-    st.caption("Gerenciamento por ano e mês com importação e exportação de dados")
+    st.caption("Exportação e importação consolidada: 1 único ficheiro Excel contendo os 12 meses como abas separadas")
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
-    # Aba Fusos com o modelo exato da imagem: Coluna MAQUINA + Dias 1..N
+    # Aba Fusos: 1 único arquivo com todos os 12 meses do ano
     with tab_fusos_db:
-        st.markdown("### 📅 Gestão de Fusos por Período")
+        st.markdown("### 📅 Gestão de Fusos Anual Consolidada")
         c_ano_db, c_set_db = st.columns([1.5, 2.5])
         with c_ano_db:
             ano_db_fuso = st.selectbox("Ano de Trabalho:", [2024, 2025, 2026, 2027], index=2, key="sel_ano_db_fuso")
         with c_set_db:
             setor_db_fuso = st.selectbox("Setor:", list(DICIONARIO_SETORES.keys()), key="sel_setor_db_fuso")
 
-        st.markdown("---")
-        st.markdown("#### 📂 Selecione o Mês para Importar ou Baixar os Dados:")
+        maquinas_set_db = obter_maquinas_setor(setor_db_fuso, df_correias, df_fusos)
 
-        abas_meses_db = st.tabs(LISTA_MESES_PUROS)
-
-        for idx_m, nome_mes_db in enumerate(LISTA_MESES_PUROS):
-            with abas_meses_db[idx_m]:
+        # Montagem do Excel consolidado com 12 abas (Janeiro a Dezembro)
+        buffer_excel_ano = io.BytesIO()
+        with pd.ExcelWriter(buffer_excel_ano, engine="openpyxl") as writer:
+            for idx_m, nome_mes_aba in enumerate(LISTA_MESES_PUROS):
                 num_mes = idx_m + 1
-                _, dias_no_mes_db = calendar.monthrange(int(ano_db_fuso), num_mes)
-                cols_dias_db = [str(d) for d in range(1, dias_no_mes_db + 1)]
+                _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), num_mes)
+                cols_dias_aba = [str(d) for d in range(1, dias_no_mes + 1)]
 
                 df_mes_fuso = df_fusos[
                     (df_fusos["Ano"] == int(ano_db_fuso))
-                    & (df_fusos["Mes"] == nome_mes_db)
+                    & (df_fusos["Mes"] == nome_mes_aba)
                     & (df_fusos["Setor"] == setor_db_fuso)
                 ]
 
-                maquinas_set_db = obter_maquinas_setor(setor_db_fuso, df_correias, df_fusos)
-
-                grade_db = []
+                grade_aba = []
                 for maq in maquinas_set_db:
                     sub_maq = df_mes_fuso[df_mes_fuso["Maquina_TAG"] == maq]
-                    linha_db = {"MAQUINA": maq}
-                    for d in range(1, dias_no_mes_db + 1):
+                    linha_aba = {"MAQUINA": maq}
+                    for d in range(1, dias_no_mes + 1):
                         sub_d = sub_maq[sub_maq["Dia"] == d]
-                        linha_db[str(d)] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
-                    grade_db.append(linha_db)
+                        linha_aba[str(d)] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
+                    grade_aba.append(linha_aba)
 
-                df_grade_exportar = pd.DataFrame(grade_db)[["MAQUINA"] + cols_dias_db]
+                df_mes_planilha = pd.DataFrame(grade_aba)[["MAQUINA"] + cols_dias_aba]
+                df_mes_planilha.to_excel(writer, index=False, sheet_name=nome_mes_aba[:31])
 
-                c_m1, c_m2, c_m3 = st.columns(3)
-                total_mes_db = sum([df_grade_exportar[c].sum() for c in cols_dias_db])
-                c_m1.metric("Mês Selecionado", f"{nome_mes_db}/{ano_db_fuso}")
-                c_m2.metric("Total Quebras", f"{int(total_mes_db)} un.")
-                c_m3.metric("Máquinas Listadas", len(df_grade_exportar))
+        buffer_excel_ano.seek(0)
 
-                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        st.markdown("---")
+        col_down_ano, col_up_ano = st.columns([1.5, 2.5])
 
-                col_down_m, col_up_m = st.columns([1.5, 2.5])
-                with col_down_m:
-                    buffer_excel = io.BytesIO()
-                    with pd.ExcelWriter(buffer_excel, engine="openpyxl") as writer:
-                        df_grade_exportar.to_excel(writer, index=False, sheet_name=nome_mes_db[:31])
-                    buffer_excel.seek(0)
+        with col_down_ano:
+            st.markdown("#### 📥 Descarregar Livro de 12 Meses")
+            st.caption(f"Descarrega um ficheiro Excel com 12 abas (Jan a Dez) de {ano_db_fuso} para o {setor_db_fuso}.")
+            st.download_button(
+                f"📥 Baixar Ano {ano_db_fuso} Completo (.xlsx)",
+                data=buffer_excel_ano,
+                file_name=f"fusos_{setor_db_fuso.replace(' ', '_')}_{ano_db_fuso}_12_meses.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_down_ano_completo_{ano_db_fuso}_{setor_db_fuso}",
+                use_container_width=True,
+            )
 
-                    st.download_button(
-                        f"📥 Baixar Modelo/Dados ({nome_mes_db})",
-                        data=buffer_excel,
-                        file_name=f"fusos_{setor_db_fuso.replace(' ', '_')}_{nome_mes_db}_{ano_db_fuso}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        key=f"btn_down_db_{ano_db_fuso}_{setor_db_fuso}_{nome_mes_db}",
-                        use_container_width=True,
-                    )
+        with col_up_ano:
+            st.markdown("#### 📤 Importar Livro de 12 Meses")
+            st.caption(f"Envie um ficheiro Excel (.xlsx) contendo abas dos meses (`Janeiro`, `Fevereiro`, etc.) no modelo `MAQUINA | 1 | 2 ... 31`.")
+            upload_ano = st.file_uploader(
+                f"Enviar ficheiro completo de {ano_db_fuso} (.xlsx)",
+                type=["xlsx"],
+                key=f"upload_ano_db_{ano_db_fuso}_{setor_db_fuso}",
+            )
+            if upload_ano is not None:
+                if st.button(f"Confirmar e Atualizar Ano {ano_db_fuso}", key=f"btn_conf_up_ano_{ano_db_fuso}", type="primary"):
+                    try:
+                        excel_importado = pd.ExcelFile(upload_ano)
+                        abas_encontradas = excel_importado.sheet_names
+                        novos_registros_ano = []
+                        meses_atualizados = []
 
-                with col_up_m:
-                    upload_mes = st.file_uploader(
-                        f"Enviar/Substituir Dados de {nome_mes_db}/{ano_db_fuso} (.xlsx)",
-                        type=["xlsx"],
-                        key=f"upload_db_{ano_db_fuso}_{setor_db_fuso}_{nome_mes_db}",
-                    )
-                    if upload_mes is not None:
-                        if st.button(f"Confirmar Envio ({nome_mes_db}/{ano_db_fuso})", key=f"btn_conf_up_{ano_db_fuso}_{setor_db_fuso}_{nome_mes_db}", type="primary"):
-                            try:
-                                df_novo_up = pd.read_excel(upload_mes)
+                        fuso_padrao = "FAG" if setor_db_fuso == "Setor A" else "TEP" if setor_db_fuso == "Setor B" else "M4BA" if setor_db_fuso == "Setor Látex" else "MENEGATTO"
+
+                        for nome_mes_oficial in LISTA_MESES_PUROS:
+                            # Busca aba que coincida (ex: 'Janeiro' ou 'janeiro')
+                            aba_alvo = None
+                            for sh in abas_encontradas:
+                                if sh.strip().lower() == nome_mes_oficial.lower():
+                                    aba_alvo = sh
+                                    break
+
+                            if aba_alvo:
+                                df_aba = pd.read_excel(excel_importado, sheet_name=aba_alvo)
                                 col_maq = None
                                 for cand in ["MAQUINA", "Máquina", "Maquina", "Maquina_TAG"]:
-                                    if cand in df_novo_up.columns:
+                                    if cand in df_aba.columns:
                                         col_maq = cand
                                         break
 
-                                if not col_maq:
-                                    st.error("O arquivo enviado precisa ter a coluna 'MAQUINA'.")
-                                else:
-                                    novos_registros_up = []
-                                    for _, r_up in df_novo_up.iterrows():
+                                if col_maq:
+                                    num_mes = LISTA_MESES_PUROS.index(nome_mes_oficial) + 1
+                                    _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), num_mes)
+                                    meses_atualizados.append(nome_mes_oficial)
+
+                                    for _, r_up in df_aba.iterrows():
                                         m_val = str(r_up[col_maq]).strip()
-                                        for d in range(1, dias_no_mes_db + 1):
+                                        for d in range(1, dias_no_mes + 1):
                                             qtd_val = 0
-                                            if d in df_novo_up.columns:
+                                            if d in df_aba.columns:
                                                 qtd_val = int(r_up[d]) if pd.notna(r_up[d]) else 0
-                                            elif str(d) in df_novo_up.columns:
+                                            elif str(d) in df_aba.columns:
                                                 qtd_val = int(r_up[str(d)]) if pd.notna(r_up[str(d)]) else 0
-                                            elif f"{d:02d}" in df_novo_up.columns:
+                                            elif f"{d:02d}" in df_aba.columns:
                                                 qtd_val = int(r_up[f"{d:02d}"]) if pd.notna(r_up[f"{d:02d}"]) else 0
 
-                                            novos_registros_up.append({
+                                            novos_registros_ano.append({
                                                 "Ano": int(ano_db_fuso),
-                                                "Mes": nome_mes_db,
+                                                "Mes": nome_mes_oficial,
                                                 "Dia": d,
                                                 "Setor": setor_db_fuso,
                                                 "Maquina_TAG": m_val,
                                                 "Quantidade_Quebras": qtd_val,
-                                                "Tipo_Fuso": "FAG" if setor_db_fuso == "Setor A" else "TEP" if setor_db_fuso == "Setor B" else "M4BA" if setor_db_fuso == "Setor Látex" else "MENEGATTO",
+                                                "Tipo_Fuso": fuso_padrao,
                                             })
 
-                                    df_limpo_fusos = df_fusos[
-                                        ~(
-                                            (df_fusos["Ano"] == int(ano_db_fuso))
-                                            & (df_fusos["Mes"] == nome_mes_db)
-                                            & (df_fusos["Setor"] == setor_db_fuso)
-                                        )
-                                    ]
-                                    df_atualizado_fusos = pd.concat([df_limpo_fusos, pd.DataFrame(novos_registros_up)], ignore_index=True)
-                                    gerar_backup_seguro(ARQUIVO_FUSOS)
-                                    df_atualizado_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-                                    st.success(f"✅ Dados de {nome_mes_db}/{ano_db_fuso} atualizados com sucesso!")
-                                    st.rerun()
-                            except Exception as erro_up:
-                                st.error(f"Erro ao processar o arquivo: {erro_up}")
+                        if novos_registros_ano:
+                            # Remove os dados antigos dos meses que vieram na planilha
+                            df_limpo_fusos = df_fusos[
+                                ~(
+                                    (df_fusos["Ano"] == int(ano_db_fuso))
+                                    & (df_fusos["Setor"] == setor_db_fuso)
+                                    & (df_fusos["Mes"].isin(meses_atualizados))
+                                )
+                            ]
+                            df_atualizado_fusos = pd.concat([df_limpo_fusos, pd.DataFrame(novos_registros_ano)], ignore_index=True)
+                            gerar_backup_seguro(ARQUIVO_FUSOS)
+                            df_atualizado_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+                            st.success(f"✅ {len(meses_atualizados)} meses atualizados com sucesso ({', '.join(meses_atualizados[:4])}...)!")
+                            st.rerun()
+                        else:
+                            st.warning("Nenhuma aba com nome de mês correspondente ou coluna 'MAQUINA' foi encontrada.")
 
-                st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-                st.dataframe(df_grade_exportar, use_container_width=True, height=360)
+                    except Exception as erro_up:
+                        st.error(f"Erro ao processar o ficheiro anual: {erro_up}")
 
         st.markdown("---")
-        st.markdown("#### 📦 Base Geral de Fusos (Todos os Anos e Setores)")
+        st.markdown("#### 👁️ Pré-visualização das Abas do Ano Selecionado:")
+        abas_visualizador = st.tabs(LISTA_MESES_PUROS)
+        for idx_m, nome_mes_vis in enumerate(LISTA_MESES_PUROS):
+            with abas_visualizador[idx_m]:
+                num_mes = idx_m + 1
+                _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), num_mes)
+                cols_dias_vis = [str(d) for d in range(1, dias_no_mes + 1)]
+
+                df_mes_fuso = df_fusos[
+                    (df_fusos["Ano"] == int(ano_db_fuso))
+                    & (df_fusos["Mes"] == nome_mes_vis)
+                    & (df_fusos["Setor"] == setor_db_fuso)
+                ]
+
+                grade_vis = []
+                for maq in maquinas_set_db:
+                    sub_maq = df_mes_fuso[df_mes_fuso["Maquina_TAG"] == maq]
+                    linha_vis = {"MAQUINA": maq}
+                    for d in range(1, dias_no_mes + 1):
+                        sub_d = sub_maq[sub_maq["Dia"] == d]
+                        linha_vis[str(d)] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
+                    grade_vis.append(linha_vis)
+
+                df_grid_vis = pd.DataFrame(grade_vis)[["MAQUINA"] + cols_dias_vis]
+                tot_mes_vis = sum([df_grid_vis[c].sum() for c in cols_dias_vis])
+                st.caption(f"Total de quebras em **{nome_mes_vis}**: **{int(tot_mes_vis)} un.**")
+                st.dataframe(df_grid_vis, use_container_width=True, height=300)
+
+        st.markdown("---")
+        st.markdown("#### 📦 Base Geral de Fusos Completa (Todos os Anos)")
         if os.path.exists(ARQUIVO_FUSOS):
             with open(ARQUIVO_FUSOS, "rb") as f_down_full:
                 st.download_button(
