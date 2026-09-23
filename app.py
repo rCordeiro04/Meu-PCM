@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Ficheiros de dados blindados e separados
+# Arquivos de dados principais
 ARQUIVO_FUSOS = "lancamentos_fusos_v5.xlsx"
 ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 
@@ -122,24 +122,8 @@ if os.path.exists(ARQUIVO_CORREIAS):
         df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
         df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 else:
-    if os.path.exists("lancamentos_correias_v3.xlsx"):
-        try:
-            df_antigo = pd.read_excel("lancamentos_correias_v3.xlsx")
-            df_migrado = pd.DataFrame(columns=COLUNAS_CORREIAS)
-            df_migrado["Setor"] = df_antigo.get("Setor", "")
-            df_migrado["Maquina_TAG"] = df_antigo.get("Maquina_TAG", "")
-            df_migrado["Tipo_Correia_1"] = df_antigo.get("Tipo_Correia", "")
-            df_migrado["Data_Instalacao_1"] = df_antigo.get("Data_Instalacao", "")
-            df_migrado["Tipo_Correia_2"] = ""
-            df_migrado["Data_Instalacao_2"] = ""
-            df_migrado.to_excel(ARQUIVO_CORREIAS, index=False)
-            df_correias = df_migrado
-        except Exception:
-            df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
-            df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-    else:
-        df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
-        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+    df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
 for col in COLUNAS_CORREIAS:
     if col not in df_correias.columns:
@@ -150,7 +134,7 @@ for col in COLUNAS_CORREIAS:
 # 3. CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS
 # =========================================================================
 DADOS_HISTORICOS_CORREIAS = [
-    # --- Setor A ---
+    # Setor A
     ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
     ("Setor A", "L-02", "", "", "", ""),
     ("Setor A", "L-03", "36.100", "2026-05-04", "", ""),
@@ -180,7 +164,7 @@ DADOS_HISTORICOS_CORREIAS = [
     ("Setor A", "L-27", "", "", "18.050", "2025-03-13"),
     ("Setor A", "L-28", "19.500", "2025-03-22", "", ""),
 
-    # --- Setor B ---
+    # Setor B
     ("Setor B", "L-29", "36.100", "2025-11-13", "", ""),
     ("Setor B", "L-30", "36.100", "2026-09-10", "", ""),
     ("Setor B", "L-31", "36.100", "2026-08-24", "", ""),
@@ -196,14 +180,14 @@ DADOS_HISTORICOS_CORREIAS = [
     ("Setor B", "L-50", "19.500", "2026-07-28", "18.050", "2026-03-05"),
     ("Setor B", "L-51", "36.100", "2026-06-30", "", ""),
 
-    # --- Setor Látex ---
+    # Setor Látex
     ("Setor Látex", "B-72", "33.990", "2026-01-02", "", ""),
     ("Setor Látex", "B-73", "33.990", "2026-06-13", "34.870", "2026-06-13"),
     ("Setor Látex", "B-74", "33.990", "2026-03-10", "34.870", "2025-02-15"),
     ("Setor Látex", "B-78", "", "", "34.870", "2025-12-29"),
     ("Setor Látex", "B-79", "", "", "34.870", "2024-11-30"),
 
-    # --- Setor Menegatto ---
+    # Setor Menegatto
     ("Setor Menegatto", "B-93", "", "", "38.740", "2025-04-16"),
     ("Setor Menegatto", "B-94", "", "", "38.740", "2025-05-01"),
     ("Setor Menegatto", "B-95", "", "", "38.740", "2025-04-17"),
@@ -228,19 +212,12 @@ for s_cor, tag_cor, m1_cor, dt1_cor, m2_cor, dt2_cor in DADOS_HISTORICOS_CORREIA
         salvar_cor_init = True
     else:
         idx = df_correias[mask].index[0]
-        if m1_cor:
+        if m1_cor and str(df_correias.loc[idx, "Tipo_Correia_1"]).strip() in ["", "nan", "None"]:
             df_correias.loc[idx, "Tipo_Correia_1"] = str(m1_cor)
             df_correias.loc[idx, "Data_Instalacao_1"] = str(dt1_cor)
             salvar_cor_init = True
-        elif dt1_cor and str(df_correias.loc[idx, "Data_Instalacao_1"]).strip() in ["", "nan", "None", "NaT"]:
-            df_correias.loc[idx, "Data_Instalacao_1"] = str(dt1_cor)
-            salvar_cor_init = True
-
-        if m2_cor:
+        if m2_cor and str(df_correias.loc[idx, "Tipo_Correia_2"]).strip() in ["", "nan", "None"]:
             df_correias.loc[idx, "Tipo_Correia_2"] = str(m2_cor)
-            df_correias.loc[idx, "Data_Instalacao_2"] = str(dt2_cor)
-            salvar_cor_init = True
-        elif dt2_cor and str(df_correias.loc[idx, "Data_Instalacao_2"]).strip() in ["", "nan", "None", "NaT"]:
             df_correias.loc[idx, "Data_Instalacao_2"] = str(dt2_cor)
             salvar_cor_init = True
 
@@ -363,8 +340,6 @@ if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Painel Fusos"
 if "maq_clicada_cor" not in st.session_state:
     st.session_state.maq_clicada_cor = None
-if "card_selecionado_kpi" not in st.session_state:
-    st.session_state.card_selecionado_kpi = None
 if "aba_setor_fuso" not in st.session_state:
     st.session_state.aba_setor_fuso = "Geral"
 
@@ -891,7 +866,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 3. BANCO DE DADOS & GESTÃO DE ARQUIVOS (CONSOLIDADO E OTIMIZADO)
+# 3. BANCO DE DADOS & GESTÃO DE ARQUIVOS
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
