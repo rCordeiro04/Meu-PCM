@@ -351,7 +351,6 @@ def navegar(p):
 # ==========================================
 data_hoje = date.today()
 dados_maquinas = {}
-css_botoes = []
 
 lista_correias_todas = []
 lista_correias_novas = []
@@ -408,94 +407,110 @@ for maq_tag in todas_maquinas_totais:
     if scores:
         pior = max(scores)
         classe_card = "status-verde" if pior == 1 else "status-amarelo" if pior == 2 else "status-vermelho"
-        cor_grad = "linear-gradient(135deg, #10b981, #059669)" if pior == 1 else "linear-gradient(135deg, #f59e0b, #d97706)" if pior == 2 else "linear-gradient(135deg, #ef4444, #dc2626)"
-        cor_borda = "#047857" if pior == 1 else "#b45309" if pior == 2 else "#b91c1c"
         status_label = "Nova" if pior == 1 else "Meia-Vida" if pior == 2 else "Troca Necessária"
+        dot_simbolo = "🟢" if pior == 1 else "🟡" if pior == 2 else "🔴"
     else:
-        classe_card, cor_grad, cor_borda, status_label = "status-cinza", "linear-gradient(135deg, #64748b, #475569)", "#334155", "Sem Dados"
+        classe_card, status_label, dot_simbolo = "status-cinza", "Sem Dados", "⚪"
 
     dados_maquinas[maq_tag] = {
         "setor": setor_m, "t1": t1, "d1": d1_str, "uso1": t1_uso, "tem_c1": tem_c1,
         "t2": t2, "d2": d2_str, "uso2": t2_uso, "tem_c2": tem_c2,
-        "status_label": status_label, "classe_card": classe_card
+        "status_label": status_label, "classe_card": classe_card, "dot": dot_simbolo
     }
 
-    chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
-    css_botoes.append(f"""
-        button[key="{chave_btn}"], div.st-key-{chave_btn} button {{
-            background: {cor_grad} !important; color: #ffffff !important; border: 1px solid {cor_borda} !important;
-        }}
-    """)
-
-regras_css_botoes = "\n".join(css_botoes)
-
 st.markdown(
-    f"""
+    """
     <style>
-        .block-container {{ padding: 4.4rem 2rem 1rem 2rem !important; }}
-        [data-testid="stSidebar"] {{ background-color: #0f172a !important; border-right: 1px solid #1e293b !important; }}
-        [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span {{ color: #f8fafc; }}
+        .block-container { padding: 3.5rem 1.6rem 1rem 1.6rem !important; }
+        [data-testid="stSidebar"] { background-color: #0f172a !important; border-right: 1px solid #1e293b !important; }
+        [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: #f8fafc; }
         
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"] {
             background-color: #1e293b !important; color: #e2e8f0 !important; border: 1px solid #334155 !important;
             border-radius: 8px !important; font-weight: 700 !important; height: 38px !important;
-        }}
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"] p {{ color: #e2e8f0 !important; }}
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {{ background-color: #334155 !important; }}
+        }
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover { background-color: #334155 !important; }
         
-        [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+        [data-testid="stSidebar"] .stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #ffffff !important;
             border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
-        }}
-        [data-testid="stSidebar"] .stButton > button[kind="primary"] p {{ color: #ffffff !important; }}
+        }
+
+        /* Estilização compacta dos botões de máquina com círculo colorido */
+        div.stButton > button {
+            background: #ffffff !important;
+            color: #1e293b !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 0px 4px !important;
+            font-size: 0.76rem !important;
+            font-weight: 700 !important;
+            height: 27px !important;
+            min-height: 27px !important;
+            line-height: 25px !important;
+            border-radius: 6px !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+            transition: all 0.1s ease-in-out !important;
+        }
+        div.stButton > button:hover {
+            border-color: #3b82f6 !important;
+            background: #f1f5f9 !important;
+            transform: translateY(-1px);
+        }
         
-        div[data-testid="column"] {{ padding: 1px !important; margin: 0px !important; }}
-        div[data-testid="stHorizontalBlock"] {{ gap: 4px !important; margin-bottom: 4px !important; }}
-        div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions {{ display: none !important; }}
-        div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{ overscroll-behavior: contain; }}
+        div[data-testid="column"] { padding: 1px !important; margin: 0px !important; }
+        div[data-testid="stHorizontalBlock"] { gap: 4px !important; margin-bottom: 3px !important; }
+        div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
         
-        div[data-testid="stButton"] button {{
-            padding: 0px !important; font-size: 0.8rem !important; height: 33px !important;
-            min-height: 33px !important; line-height: 31px !important; border-radius: 7px !important;
-        }}
-        {regras_css_botoes}
-        
-        .card-kpi-bonito {{
-            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px;
-            display: flex; align-items: center; justify-content: space-between; height: 64px; box-sizing: border-box;
+        .card-kpi-bonito {
+            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 9px; padding: 7px 12px;
+            display: flex; align-items: center; justify-content: space-between; height: 56px; box-sizing: border-box;
             position: relative; overflow: hidden;
-        }}
-        .card-kpi-bonito::after {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }}
-        .card-kpi-bonito.c-total::after {{ background: #475569; }}
-        .card-kpi-bonito.c-ok::after {{ background: #10b981; }}
-        .card-kpi-bonito.c-warn::after {{ background: #f59e0b; }}
-        .card-kpi-bonito.c-crit::after {{ background: #ef4444; }}
-        .kpi-val {{ font-size: 1.35rem; font-weight: 800; line-height: 1; font-family: ui-monospace, monospace; }}
-        .kpi-lbl {{ font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }}
+        }
+        .card-kpi-bonito::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        .card-kpi-bonito.c-total::after { background: #475569; }
+        .card-kpi-bonito.c-ok::after { background: #10b981; }
+        .card-kpi-bonito.c-warn::after { background: #f59e0b; }
+        .card-kpi-bonito.c-crit::after { background: #ef4444; }
+        .kpi-val { font-size: 1.25rem; font-weight: 800; line-height: 1; font-family: ui-monospace, monospace; }
+        .kpi-lbl { font-size: 0.65rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
         
-        .alerta-manutencao {{
-            background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
-            padding: 8px 14px; margin: 6px 0 10px 0; font-size: 0.83rem; font-weight: 600; color: #991b1b;
-        }}
-        .chip-critico {{ background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 5px; font-weight: 800; }}
-        .hud-detalhe {{
-            background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 18px; margin: 6px 0 12px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #64748b;
-        }}
-        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
-        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
-        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
+        .alerta-manutencao {
+            background: #fef2f2; border: 1px solid #fecaca; border-left: 5px solid #ef4444; border-radius: 7px;
+            padding: 5px 12px; margin: 4px 0 8px 0; font-size: 0.8rem; font-weight: 600; color: #991b1b;
+        }
+        .chip-critico { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 1px 7px; border-radius: 4px; font-weight: 800; font-size: 0.76rem; }
         
-        .tag-pill {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; color: #334155; }}
-        .badge-status {{ padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }}
-        .badge-verde {{ background: #d1fae5; color: #065f46; }}
-        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
-        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
+        .hud-detalhe {
+            background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; margin: 4px 0 8px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 5px solid #64748b;
+        }
+        .hud-detalhe.status-verde { border-left-color: #10b981; }
+        .hud-detalhe.status-amarelo { border-left-color: #f59e0b; }
+        .hud-detalhe.status-vermelho { border-left-color: #ef4444; }
+        .hud-detalhe.status-cinza { border-left-color: #94a3b8; }
         
-        .pill-legenda {{ display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px; }}
-        .dot-legenda {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; }}
+        .tag-pill { background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 10px; border-radius: 5px; font-size: 0.78rem; font-weight: 700; color: #334155; }
+        .badge-status { padding: 3px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+        .badge-verde { background: #d1fae5; color: #065f46; }
+        .badge-amarelo { background: #fef3c7; color: #92400e; }
+        .badge-vermelho { background: #fee2e2; color: #991b1b; }
+        .badge-cinza { background: #e2e8f0; color: #475569; }
+        
+        .pill-legenda { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 16px; }
+        .dot-legenda { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* Títulos de Seção de Cada Setor */
+        .header-setor-dash {
+            font-size: 0.84rem;
+            font-weight: 800;
+            color: #0f172a;
+            border-left: 3px solid #2563eb;
+            padding-left: 7px;
+            margin: 6px 0 3px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -531,12 +546,12 @@ with st.sidebar:
 tela = st.session_state.pagina_atual
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS
+# 1. PAINEL GERENCIAL DE CORREIAS (OTIMIZADO COM CÍRCULOS E SETORES SEPARADOS)
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_t, c_f1, c_f2, c_leg = st.columns([3.2, 1.4, 1.4, 5.0])
+    c_t, c_f1, c_f2, c_leg = st.columns([3.0, 1.4, 1.4, 5.2])
     with c_t:
-        st.markdown("<h2 style='margin:0; font-weight:900;'>Dashboard Correias</h2>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin:0; font-weight:900;'>Dashboard Correias</h3>", unsafe_allow_html=True)
     with c_f1:
         filtro_setor = st.selectbox("Setor", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), label_visibility="collapsed")
     with c_f2:
@@ -544,10 +559,11 @@ if tela == "Painel Correias":
         filtro_modelo = st.selectbox("Tipo", ["Todos os Tipos"] + mods_un, label_visibility="collapsed")
     with c_leg:
         st.markdown("""
-            <div style="height:40px; display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+            <div style="height:36px; display:flex; align-items:center; justify-content:flex-end; gap:6px;">
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia (1-1.5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Urgente (&gt; 1.5a)</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> Sem Dados</span>
             </div>
         """, unsafe_allow_html=True)
 
@@ -561,6 +577,7 @@ if tela == "Painel Correias":
         chips = " ".join([f"<span class='chip-critico'>🏷️ {k}: <b>{v} un.</b></span>" for k, v in pd.DataFrame(lista_correias_criticas)["modelo"].value_counts().items()])
         st.markdown(f"<div class='alerta-manutencao'>🚨 <b>Alerta de Troca Necessária:</b> &nbsp; {chips}</div>", unsafe_allow_html=True)
 
+    # Detalhe / HUD da Máquina Clicada
     if st.session_state.maq_clicada_cor:
         sel = st.session_state.maq_clicada_cor
         b_cor = "badge-verde" if sel["status_label"] == "Nova" else "badge-amarelo" if sel["status_label"] == "Meia-Vida" else "badge-vermelho" if sel["status_label"] == "Troca Necessária" else "badge-cinza"
@@ -568,11 +585,11 @@ if tela == "Painel Correias":
         with c_hud:
             st.markdown(f"""
                 <div class="hud-detalhe {sel['classe_card']}">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                         <span class="tag-pill" style="background:#0f172a; color:#ffffff;">⚙️ {sel['tag']} - {sel['setor']}</span>
                         <span class="badge-status {b_cor}">{sel['status_label']}</span>
                     </div>
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:6px;">
                         <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {sel['t1']} | {sel['d1']} | {sel['uso1']}</span>
                         <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {sel['t2']} | {sel['d2']} | {sel['uso2']}</span>
                     </div>
@@ -583,27 +600,39 @@ if tela == "Painel Correias":
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
 
-    maqs_grid = []
-    for s in DICIONARIO_SETORES.keys():
-        if filtro_setor != "Todos os Setores" and s != filtro_setor:
-            continue
-        for m in obter_maquinas_setor(s, df_correias, df_fusos):
-            if filtro_modelo != "Todos os Tipos":
-                r_m = df_correias[(df_correias["Setor"] == s) & (df_correias["Maquina_TAG"] == m)]
-                if r_m.empty:
-                    continue
-                ult_m = r_m.iloc[-1]
-                if formatar_modelo(ult_m.get("Tipo_Correia_1")) != filtro_modelo and formatar_modelo(ult_m.get("Tipo_Correia_2")) != filtro_modelo:
-                    continue
-            maqs_grid.append(m)
+    # Mosaico de Máquinas Separado por Setores (Visualização Compacta em 1 Página)
+    setores_exibicao = [s for s in DICIONARIO_SETORES.keys() if filtro_setor == "Todos os Setores" or s == filtro_setor]
 
-    cols_g = 12
-    for chunk in [maqs_grid[i:i + cols_g] for i in range(0, len(maqs_grid), cols_g)]:
-        cols = st.columns(cols_g)
-        for i, m in enumerate(chunk):
-            if cols[i].button(m, key=f"btn_q_{m.replace('-', '_')}", use_container_width=True):
-                st.session_state.maq_clicada_cor = {"tag": m, **dados_maquinas[m]}
-                st.rerun()
+    for s_nome in setores_exibicao:
+        maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+
+        # Filtro por tipo de correia se ativo
+        if filtro_modelo != "Todos os Tipos":
+            filtradas = []
+            for m in maquinas_do_setor:
+                r_m = df_correias[(df_correias["Setor"] == s_nome) & (df_correias["Maquina_TAG"] == m)]
+                if not r_m.empty:
+                    ult_m = r_m.iloc[-1]
+                    if formatar_modelo(ult_m.get("Tipo_Correia_1")) == filtro_modelo or formatar_modelo(ult_m.get("Tipo_Correia_2")) == filtro_modelo:
+                        filtradas.append(m)
+            maquinas_do_setor = filtradas
+
+        if not maquinas_do_setor:
+            continue
+
+        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b;'>{len(maquinas_do_setor)} máquinas</span></div>", unsafe_allow_html=True)
+
+        cols_g = 14  # Grade ampla para acomodar até 28 máquinas em no máximo 2 linhas por setor
+        for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
+            cols = st.columns(cols_g)
+            for i, m in enumerate(chunk):
+                info_m = dados_maquinas.get(m, {})
+                dot_m = info_m.get("dot", "⚪")
+                btn_label = f"{dot_m} {m}"
+
+                if cols[i].button(btn_label, key=f"btn_c_{m.replace('-', '_')}", use_container_width=True):
+                    st.session_state.maq_clicada_cor = {"tag": m, **info_m}
+                    st.rerun()
 
 # ------------------------------------------
 # 2. PAINEL GERENCIAL DE FUSOS
