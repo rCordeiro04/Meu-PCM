@@ -894,7 +894,7 @@ elif tela == "Painel Fusos":
                 txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
                     x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                     y=alt.Y("MAQ:N", sort=maqs_tipo),
-                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
                     color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a"))
                 )
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
@@ -1347,144 +1347,148 @@ elif tela == "Banco de Dados":
             st.info("Pasta de backups ainda não inicializada.")
 
 # ------------------------------------------
-# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS COM FILTRO POR SETOR E MÁQUINA)
+# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS - LIMPO E MODELADO)
 # ------------------------------------------
 elif tela == "Gestao Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
-    st.caption("Filtre o parque de ativos por setor e máquina, adicione novas TAGs ou remova equipamentos descontinuados.")
+    st.caption("Parametrize os ativos: configure o tipo de fuso, quantidade de correias e dados instalados.")
 
-    # 1. Filtros Interdependentes de Visualização
+    # 1. Filtros Limpos de Seleção Interdependentes
     c_f_set, c_f_maq = st.columns([1.5, 2.0])
     with c_f_set:
-        opcoes_setor_gestao = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
-        setor_selecionado_gestao = st.selectbox("Filtrar por Setor:", opcoes_setor_gestao, key="sel_setor_gestao_filtro")
+        setores_disponiveis = list(DICIONARIO_SETORES.keys())
+        setor_selecionado = st.selectbox("Setor Operacional:", setores_disponiveis, key="sel_setor_gestao_maq")
 
-    # Mapeamento dinâmico das máquinas conforme o filtro de setor
-    if setor_selecionado_gestao == "Todos os Setores":
-        maquinas_filtradas_gestao = todas_maquinas_totais
-    else:
-        maquinas_filtradas_gestao = obter_maquinas_setor(setor_selecionado_gestao, df_correias, df_fusos)
+    maquinas_do_setor = obter_maquinas_setor(setor_selecionado, df_correias, df_fusos)
 
     with c_f_maq:
-        opcoes_maq_gestao = ["Todas as Máquinas"] + maquinas_filtradas_gestao
-        maq_selecionada_gestao = st.selectbox("Filtrar por Máquina:", opcoes_maq_gestao, key="sel_maq_gestao_filtro")
+        maq_selecionada = st.selectbox("Máquina (TAG):", maquinas_do_setor, key="sel_maq_gestao_maq")
 
-    # Detalhe / Diagnóstico da Máquina Filtrada
-    if maq_selecionada_gestao != "Todas as Máquinas":
-        setor_da_maq = mapa_setor_maquina.get(maq_selecionada_gestao, "Setor A")
-        info_m_cad = dados_maquinas.get(maq_selecionada_gestao, {})
+    # 2. Recuperação dos Dados Atuais da Máquina Selecionada
+    fuso_atual = "FAG"
+    sub_fuso = df_fusos[(df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)]
+    if not sub_fuso.empty:
+        val_fuso = str(sub_fuso.iloc[-1].get("Tipo_Fuso", "")).strip()
+        if val_fuso in OPCOES_TIPO_FUSO:
+            fuso_atual = val_fuso
+        else:
+            fuso_atual = "FAG" if setor_selecionado == "Setor A" else "TEP" if setor_selecionado == "Setor B" else "M4BA" if setor_selecionado == "Setor Látex" else "MENEGATTO"
+    else:
+        fuso_atual = "FAG" if setor_selecionado == "Setor A" else "TEP" if setor_selecionado == "Setor B" else "M4BA" if setor_selecionado == "Setor Látex" else "MENEGATTO"
 
-        st.markdown(f"""
-            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid #2563eb; border-radius:8px; padding:10px 14px; margin:8px 0 14px 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <span style="font-weight:800; font-size:0.95rem; color:#0f172a;">⚙️ Ativo: {maq_selecionada_gestao}</span>
-                    <span class="tag-pill" style="background:#0f172a; color:#ffffff;">🏭 {setor_da_maq}</span>
-                </div>
-                <div style="display:flex; gap:12px; font-size:0.8rem; color:#475569;">
-                    <span><b>Correia Sup:</b> {info_m_cad.get('t1', 'N/A')} ({info_m_cad.get('d1', 'Sem data')})</span>
-                    <span><b>Correia Inf:</b> {info_m_cad.get('t2', 'N/A')} ({info_m_cad.get('d2', 'Sem data')})</span>
-                    <span><b>Status:</b> {info_m_cad.get('dot', '⚪')} {info_m_cad.get('status_label', 'Sem dados')}</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+    sub_cor = df_correias[(df_correias["Setor"] == setor_selecionado) & (df_correias["Maquina_TAG"] == maq_selecionada)]
+    mod1_atual, dt1_atual = "", None
+    mod2_atual, dt2_atual = "", None
+
+    if not sub_cor.empty:
+        ult_c = sub_cor.iloc[-1]
+        mod1_atual = formatar_modelo(ult_c.get("Tipo_Correia_1", ""))
+        raw_d1 = ult_c.get("Data_Instalacao_1", "")
+        if pd.notna(raw_d1) and str(raw_d1).strip() not in ["", "nan", "NaT", "None"]:
+            try:
+                dt1_atual = pd.to_datetime(raw_d1).date()
+            except Exception:
+                dt1_atual = None
+
+        mod2_atual = formatar_modelo(ult_c.get("Tipo_Correia_2", ""))
+        raw_d2 = ult_c.get("Data_Instalacao_2", "")
+        if pd.notna(raw_d2) and str(raw_d2).strip() not in ["", "nan", "NaT", "None"]:
+            try:
+                dt2_atual = pd.to_datetime(raw_d2).date()
+            except Exception:
+                dt2_atual = None
+
+    # Detecta se atualmente possui 2 correias (se a correia 2 possuir modelo ou data)
+    tem_duas_inicial = bool(mod2_atual or dt2_atual)
 
     st.markdown("---")
 
-    # 2. Operações de Cadastro e Exclusão
-    col_add, col_del = st.columns(2)
+    # 3. Formulário de Modelagem e Edição do Ativo
+    with st.container(border=True):
+        st.markdown(f"#### ⚙️ Parâmetros do Ativo: **{maq_selecionada}** ({setor_selecionado})")
+        
+        c_fuso, c_qtd_cor = st.columns([1.5, 2.0])
+        
+        with c_fuso:
+            idx_fuso = OPCOES_TIPO_FUSO.index(fuso_atual) if fuso_atual in OPCOES_TIPO_FUSO else 0
+            novo_fuso = st.selectbox("Tipo de Fuso:", OPCOES_TIPO_FUSO, index=idx_fuso, key=f"fuso_edit_{maq_selecionada}")
 
-    with col_add:
-        with st.container(border=True):
-            st.markdown("#### ➕ Cadastrar Nova Máquina")
-            st.caption("Insira uma nova TAG nas bases de correias e de fusos.")
-            
-            # Seletor do setor de destino da nova máquina
-            setor_destino_add = st.selectbox(
-                "Setor de Destino:",
-                list(DICIONARIO_SETORES.keys()),
-                index=0 if setor_selecionado_gestao == "Todos os Setores" else list(DICIONARIO_SETORES.keys()).index(setor_selecionado_gestao),
-                key="sel_setor_add_modal"
+        with c_qtd_cor:
+            qtd_correias_opc = st.radio(
+                "Quantidade de Correias:",
+                ["1 Correia (Única)", "2 Correias (Superior/Cabeceira e Inferior/Traseira)"],
+                index=1 if tem_duas_inicial else 0,
+                key=f"qtd_cor_edit_{maq_selecionada}",
+                horizontal=True
             )
 
-            nova_tag_input = st.text_input("Código / TAG da Máquina:", placeholder="Ex: L-54 ou B-109", key="inp_nova_tag_gerenc").strip().upper()
+        st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-            if st.button("Salvar Nova Máquina", type="primary", key="btn_cadastrar_maq_gerenc", use_container_width=True):
-                if not nova_tag_input:
-                    st.warning("Informe o código da máquina.")
-                elif nova_tag_input in todas_maquinas_totais:
-                    st.warning(f"A máquina {nova_tag_input} já existe no parque de ativos.")
-                else:
-                    # Registra na base de correias
-                    mask_c = (df_correias["Setor"] == setor_destino_add) & (df_correias["Maquina_TAG"] == nova_tag_input)
-                    if not mask_c.any():
-                        novo_cor = {
-                            "Setor": setor_destino_add, "Maquina_TAG": nova_tag_input,
-                            "Tipo_Correia_1": "", "Data_Instalacao_1": "",
-                            "Tipo_Correia_2": "", "Data_Instalacao_2": "",
-                        }
-                        df_correias = pd.concat([df_correias, pd.DataFrame([novo_cor])], ignore_index=True)
-                        gerar_backup_seguro(ARQUIVO_CORREIAS)
-                        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+        # Campos de correia condicionais
+        if qtd_correias_opc == "1 Correia (Única)":
+            c_c1_mod, c_c1_dt = st.columns(2)
+            with c_c1_mod:
+                novo_mod1 = st.text_input("Modelo da Correia Única:", value=mod1_atual, key=f"inp_mod1_u_{maq_selecionada}", placeholder="Ex: 36.100")
+            with c_c1_dt:
+                nova_dt1 = st.date_input("Data de Instalação:", value=dt1_atual, key=f"inp_dt1_u_{maq_selecionada}", format="DD/MM/YYYY")
 
-                    # Registra na base de fusos para o ano vigente
-                    fuso_padrao = "FAG" if setor_destino_add == "Setor A" else "TEP" if setor_destino_add == "Setor B" else "M4BA" if setor_destino_add == "Setor Látex" else "MENEGATTO"
-                    mask_f = (df_fusos["Setor"] == setor_destino_add) & (df_fusos["Maquina_TAG"] == nova_tag_input)
-                    if not mask_f.any():
-                        novos_fusos_ano = [
-                            {"Ano": 2026, "Mes": m_nome, "Dia": 1, "Setor": setor_destino_add, "Maquina_TAG": nova_tag_input, "Quantidade_Quebras": 0, "Tipo_Fuso": fuso_padrao}
-                            for m_nome in LISTA_MESES_PUROS
-                        ]
-                        df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_fusos_ano)], ignore_index=True)
-                        gerar_backup_seguro(ARQUIVO_FUSOS)
-                        df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+            novo_mod2 = ""
+            nova_dt2 = None
+        else:
+            c_sup1, c_sup2 = st.columns(2)
+            with c_sup1:
+                st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0f172a; margin-bottom:2px;'>🔼 Superior / Cabeceira</p>", unsafe_allow_html=True)
+                novo_mod1 = st.text_input("Modelo (Superior / Cabeceira):", value=mod1_atual, key=f"inp_mod1_d_{maq_selecionada}", placeholder="Ex: 19.500")
+                nova_dt1 = st.date_input("Data de Instalação (Superior):", value=dt1_atual, key=f"inp_dt1_d_{maq_selecionada}", format="DD/MM/YYYY")
 
-                    st.success(f"✅ Máquina {nova_tag_input} cadastrada com sucesso no {setor_destino_add}!")
-                    st.rerun()
+            with c_sup2:
+                st.markdown("<p style='font-size:0.85rem; font-weight:800; color:#0f172a; margin-bottom:2px;'>🔽 Inferior / Traseira</p>", unsafe_allow_html=True)
+                novo_mod2 = st.text_input("Modelo (Inferior / Traseira):", value=mod2_atual, key=f"inp_mod2_d_{maq_selecionada}", placeholder="Ex: 18.050")
+                nova_dt2 = st.date_input("Data de Instalação (Inferior):", value=dt2_atual, key=f"inp_dt2_d_{maq_selecionada}", format="DD/MM/YYYY")
 
-    with col_del:
-        with st.container(border=True):
-            st.markdown("#### 🗑️ Desativar / Remover Máquina")
-            st.caption("Remove o equipamento e exclui seus vínculos das bases de dados.")
-            
-            # Seletor com as máquinas filtradas atualmente
-            lista_para_excluir = maquinas_filtradas_gestao if maq_selecionada_gestao == "Todas as Máquinas" else [maq_selecionada_gestao]
-            tag_del_sel = st.selectbox("Selecione a TAG para remover:", ["-- Selecione --"] + lista_para_excluir, key="sel_tag_excluir_gerenc")
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-            if st.button("Remover Máquina", type="secondary", key="btn_remover_maq_gerenc", use_container_width=True):
-                if tag_del_sel and tag_del_sel != "-- Selecione --":
-                    setor_da_exclusao = mapa_setor_maquina.get(tag_del_sel, "")
-                    
-                    gerar_backup_seguro(ARQUIVO_CORREIAS)
-                    df_correias = df_correias[~(df_correias["Maquina_TAG"] == tag_del_sel)]
-                    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+        if st.button("💾 Salvar Parâmetros da Máquina", type="primary", key=f"btn_salvar_param_{maq_selecionada}"):
+            # 1. Atualiza Fuso na base de Fusos
+            mask_fusos_maq = (df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)
+            if mask_fusos_maq.any():
+                df_fusos.loc[mask_fusos_maq, "Tipo_Fuso"] = novo_fuso
+            else:
+                novos_ano = [
+                    {"Ano": 2026, "Mes": m_n, "Dia": 1, "Setor": setor_selecionado, "Maquina_TAG": maq_selecionada, "Quantidade_Quebras": 0, "Tipo_Fuso": novo_fuso}
+                    for m_n in LISTA_MESES_PUROS
+                ]
+                df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_ano)], ignore_index=True)
 
-                    gerar_backup_seguro(ARQUIVO_FUSOS)
-                    df_fusos = df_fusos[~(df_fusos["Maquina_TAG"] == tag_del_sel)]
-                    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+            gerar_backup_seguro(ARQUIVO_FUSOS)
+            df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-                    st.success(f"🗑️ Máquina {tag_del_sel} removida com sucesso!")
-                    st.rerun()
-                else:
-                    st.warning("Selecione uma máquina válida para remover.")
+            # 2. Atualiza Correias na base de Correias
+            m1_fmt = formatar_modelo(novo_mod1)
+            d1_fmt = str(nova_dt1) if nova_dt1 is not None else ""
+            m2_fmt = formatar_modelo(novo_mod2)
+            d2_fmt = str(nova_dt2) if nova_dt2 is not None else ""
 
-    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            mask_cor_maq = (df_correias["Setor"] == setor_selecionado) & (df_correias["Maquina_TAG"] == maq_selecionada)
+            if mask_cor_maq.any():
+                idx_c = df_correias[mask_cor_maq].index[0]
+                df_correias.loc[idx_c, "Tipo_Correia_1"] = m1_fmt
+                df_correias.loc[idx_c, "Data_Instalacao_1"] = d1_fmt
+                df_correias.loc[idx_c, "Tipo_Correia_2"] = m2_fmt
+                df_correias.loc[idx_c, "Data_Instalacao_2"] = d2_fmt
+            else:
+                novo_registro_cor = {
+                    "Setor": setor_selecionado,
+                    "Maquina_TAG": maq_selecionada,
+                    "Tipo_Correia_1": m1_fmt,
+                    "Data_Instalacao_1": d1_fmt,
+                    "Tipo_Correia_2": m2_fmt,
+                    "Data_Instalacao_2": d2_fmt,
+                }
+                df_correias = pd.concat([df_correias, pd.DataFrame([novo_registro_cor])], ignore_index=True)
 
-    # 3. Lista e Tabela de Máquinas Filtradas
-    with st.container(border=True):
-        st.markdown(f"#### 📋 Parque de Ativos ({len(maquinas_filtradas_gestao)} máquinas listadas)")
-        
-        dados_tabela_gestao = []
-        for m in maquinas_filtradas_gestao:
-            s_m = mapa_setor_maquina.get(m, "Setor A")
-            inf = dados_maquinas.get(m, {})
-            dados_tabela_gestao.append({
-                "TAG": m,
-                "Setor": s_m,
-                "Status Correia": f"{inf.get('dot', '⚪')} {inf.get('status_label', 'Sem dados')}",
-                "Modelo Sup.": inf.get("t1", "-"),
-                "Instalação Sup.": inf.get("d1", "-"),
-                "Modelo Inf.": inf.get("t2", "-"),
-                "Instalação Inf.": inf.get("d2", "-"),
-            })
-            
-        st.dataframe(pd.DataFrame(dados_tabela_gestao), use_container_width=True, hide_index=True, height=280)
+            gerar_backup_seguro(ARQUIVO_CORREIAS)
+            df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
+            st.success(f"✅ Configurações da máquina {maq_selecionada} atualizadas com sucesso!")
+            st.rerun()
