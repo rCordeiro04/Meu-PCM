@@ -668,7 +668,6 @@ elif tela == "Painel Fusos":
 
         with c_rosca:
             with st.container(border=True):
-                # CABEÇALHO COM FILTRO DE MÊS INTEGRADO NA ROSCA DE TIPO DE FUSO
                 cr_col1, cr_col2 = st.columns([2.0, 1.5])
                 with cr_col1:
                     st.markdown(f"<div style='font-size:0.96rem; font-weight:800;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
