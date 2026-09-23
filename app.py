@@ -110,9 +110,6 @@ def formatar_modelo(val):
         return f"{partes[0]}.{p_dec}"
     return v_str
 
-# =========================================================================
-# LEITURA OTIMIZADA COM CACHE
-# =========================================================================
 @st.cache_data(show_spinner=False)
 def carregar_dados():
     if os.path.exists(ARQUIVO_FUSOS):
@@ -208,12 +205,8 @@ if "aba_setor_fuso" not in st.session_state:
 def navegar(p):
     st.session_state.pagina_atual = p
 
-# ==========================================
-# PROCESSAMENTO DE CORREIAS OTIMIZADO
-# ==========================================
 data_hoje = date.today()
 dados_maquinas = {}
-
 lista_correias_todas = []
 lista_correias_novas = []
 lista_correias_meia = []
@@ -381,9 +374,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ==========================================
-# BARRA LATERAL (SIDEBAR) REESTRUTURADA
-# ==========================================
 with st.sidebar:
     st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 14px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
     
@@ -415,14 +405,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("<div style='text-align:center; font-size:0.72rem; color:#64748b;'>PCM • Versão Gerencial</div>", unsafe_allow_html=True)
 
-# ==========================================
-# ÁREA PRINCIPAL
-# ==========================================
 tela = st.session_state.pagina_atual
 
-# ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS
-# ------------------------------------------
 if tela == "Painel Correias":
     c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
     with c_t:
@@ -502,9 +486,6 @@ if tela == "Painel Correias":
                     st.session_state.maq_clicada_cor = {"tag": m, **info_m}
                     st.rerun()
 
-# ------------------------------------------
-# 2. PAINEL GERENCIAL DE FUSOS
-# ------------------------------------------
 elif tela == "Painel Fusos":
     cf_t, cf_a = st.columns([3.8, 1.4])
     cf_t.markdown("<h2 style='margin:0; font-weight:900;'>Dashboard Fusos</h2>", unsafe_allow_html=True)
@@ -678,90 +659,8 @@ elif tela == "Painel Fusos":
                 else:
                     st.info(f"Sem registros de tipos de fuso para {s_ativo} em {ano_f}.")
 
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🔥 Mapa de Calor Operacional — Quebras por Máquina x Mês ({s_ativo} - {ano_f})</div>", unsafe_allow_html=True)
-            
-            idx_grid = pd.MultiIndex.from_product([maqs_setor, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
-            idx_grid["MES"] = idx_grid["Mes"].map(MAPA_MES_ABREV)
-            agrup_c = df_sa.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
-            m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
-
-            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1).encode(
-                x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
-                y=alt.Y("MAQ:N", sort=maqs_setor, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
-                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
-                tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
-            )
-            txt = alt.Chart(m_calor).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
-                x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
-                y=alt.Y("MAQ:N", sort=maqs_setor),
-                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
-            )
-            st.altair_chart((rect + txt).properties(height=max(320, len(maqs_setor) * 23)), use_container_width=True)
-
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-
-        tipos_disp = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else OPCOES_TIPO_FUSO
-        if not tipos_disp:
-            tipos_disp = OPCOES_TIPO_FUSO
-
-        with st.container(border=True):
-            c_dt1, c_dt2 = st.columns([2.5, 1.5])
-            with c_dt1:
-                st.markdown(f"<div style='font-size:1.02rem; font-weight:800;'>🔬 Desempenho Operacional por Tipo de Fuso — {s_ativo}</div>", unsafe_allow_html=True)
-            with c_dt2:
-                tipo_sel_analise = st.selectbox("Selecione o Tipo de Fuso:", tipos_disp, key=f"sel_tipo_diag_{s_ativo}")
-
-            df_tipo_esp = df_sa[df_sa["Tipo_Fuso"] == tipo_sel_analise].copy()
-            tot_f_tipo = int(df_tipo_esp["Quantidade_Quebras"].sum()) if not df_tipo_esp.empty else 0
-            med_f_tipo = round(tot_f_tipo / div_meses, 1)
-
-            maqs_tipo = sorted(df_tipo_esp["Maquina_TAG"].unique().tolist()) if not df_tipo_esp.empty else []
-            falhas_tipo = df_tipo_esp[df_tipo_esp["Quantidade_Quebras"] > 0]
-            maqs_falharam_tipo = falhas_tipo["Maquina_TAG"].nunique()
-
-            if not falhas_tipo.empty:
-                agrup_top_t = falhas_tipo.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().sort_values(ascending=False)
-                top_maq_t = agrup_top_t.index[0]
-                qtd_top_t = int(agrup_top_t.iloc[0])
-            else:
-                top_maq_t, qtd_top_t = "Nenhuma", 0
-
-            cf_k1, cf_k2, cf_k3, cf_k4 = st.columns(4)
-            cf_k1.markdown(f"<div class='card-kpi-bonito c-total' style='height:58px;'><div><div class='kpi-lbl'>Total ({tipo_sel_analise})</div><div class='kpi-val'>{tot_f_tipo} un.</div></div><div>🏷️</div></div>", unsafe_allow_html=True)
-            cf_k2.markdown(f"<div class='card-kpi-bonito c-ok' style='height:58px;'><div><div class='kpi-lbl'>Média Mensal</div><div class='kpi-val' style='color:#059669;'>{med_f_tipo} /mês</div></div><div>📉</div></div>", unsafe_allow_html=True)
-            cf_k3.markdown(f"<div class='card-kpi-bonito c-warn' style='height:58px;'><div><div class='kpi-lbl'>Máquinas Atreladas</div><div class='kpi-val' style='color:#d97706;'>{maqs_falharam_tipo} falharam / {len(maqs_tipo)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
-            cf_k4.markdown(f"<div class='card-kpi-bonito c-crit' style='height:58px;'><div><div class='kpi-lbl'>Maior Ofensor</div><div class='kpi-val' style='color:#dc2626; font-size:1.05rem;'>{top_maq_t} ({qtd_top_t})</div></div><div>🚨</div></div>", unsafe_allow_html=True)
-
-            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-            if not maqs_tipo:
-                st.info(f"Nenhuma máquina possui registros vinculados ao fuso {tipo_sel_analise} no {s_ativo} em {ano_f}.")
-            else:
-                grid_tipo = pd.MultiIndex.from_product([maqs_tipo, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
-                grid_tipo["MES"] = grid_tipo["Mes"].map(MAPA_MES_ABREV)
-                agrup_esp = df_tipo_esp.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
-                m_calor_esp = pd.merge(grid_tipo, agrup_esp, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
-
-                rect_t = alt.Chart(m_calor_esp).mark_rect(stroke="#fff", strokeWidth=1).encode(
-                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
-                    y=alt.Y("MAQ:N", sort=maqs_tipo, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
-                    color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
-                    tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
-                )
-                txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
-                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
-                    y=alt.Y("MAQ:N", sort=maqs_tipo),
-                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                    color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
-                )
-                st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
-
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES (ATUALIZADO COM OS GRÁFICOS SOLICITADOS)
+# 3. PAINEL GERENCIAL DE SETORES (ATUALIZADO COM GRÁFICOS DINÂMICOS E ROSCAS)
 # ------------------------------------------
 elif tela == "Painel Setores":
     c_ts1, c_ts2, c_ts3 = st.columns([2.2, 1.8, 1.8])
@@ -782,7 +681,7 @@ elif tela == "Painel Setores":
     df_f_setor_ano = df_fusos[(df_fusos["Setor"] == s_nome) & (df_fusos["Ano"] == 2026)].copy() if not df_fusos.empty else pd.DataFrame()
     tot_q_fusos = int(df_f_setor_ano["Quantidade_Quebras"].sum()) if not df_f_setor_ano.empty else 0
 
-    # 2. Dados de Paradas / Corretivas do Setor
+    # 2. Dados de Paradas / Corretivas do Setor (Último 1 Ano)
     df_p_setor = df_paradas[df_paradas["Setor"] == s_nome].copy() if not df_paradas.empty else pd.DataFrame()
     if not df_p_setor.empty:
         df_p_setor["Data_Dt"] = pd.to_datetime(df_p_setor["Data"], errors="coerce")
@@ -807,7 +706,7 @@ elif tela == "Painel Setores":
     crit_s = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
     total_cor_s = novas_s + meia_s + crit_s
 
-    # 5. Top Máquinas com mais Corretivas
+    # 5. Top Máquinas com mais Corretivas (para rosca)
     if not df_p_setor.empty:
         top_corretivas = df_p_setor.groupby("Maquina_TAG")["Tempo_Parado_Horas"].sum().reset_index()
         top_corretivas.columns = ["Máquina", "Horas Paradas"]
@@ -815,12 +714,22 @@ elif tela == "Painel Setores":
     else:
         top_corretivas = pd.DataFrame(columns=["Máquina", "Horas Paradas"])
 
-    # 6. Preventivas vs Corretivas (Último 1 Ano)
+    # 6. Preventivas: Realizados vs Não Realizados (Último 1 Ano)
+    # Supõe-se que na tabela de paradas/manutenções o Tipo_Manutencao possa ser "Preventiva" ou "Corretiva"
+    # Vamos calcular os realizados e não realizados com base nas manutenções preventivas cadastradas vs uma meta estimada ou contagem
     if not df_p_1ano.empty:
-        contagem_manut = df_p_1ano["Tipo_Manutencao"].value_counts().reset_index()
-        contagem_manut.columns = ["Tipo", "Total"]
+        preventivas_realizadas = len(df_p_1ano[df_p_1ano["Tipo_Manutencao"].astype(str).str.lower().str.contains("preventiva")])
+        # Meta estimada: digamos que cada máquina do setor deveria ter 1 preventiva por mês (12 por ano)
+        meta_preventivas_ano = qtd_maqs_setor * 12
+        preventivas_nao_realizadas = max(0, meta_preventivas_ano - preventivas_realizadas)
     else:
-        contagem_manut = pd.DataFrame(columns=["Tipo", "Total"])
+        preventivas_realizadas = 0
+        preventivas_nao_realizadas = qtd_maqs_setor * 12
+
+    df_prev_donut = pd.DataFrame([
+        {"Status": "Realizados", "Total": preventivas_realizadas},
+        {"Status": "Não Realizados", "Total": preventivas_nao_realizadas},
+    ])
 
     # KPIs Superiores do Setor
     cs1, cs2, cs3, cs4 = st.columns(4)
@@ -890,7 +799,7 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # Segunda Linha de Gráficos: Rosca de Top Corretivas + Rosca de % Preventivas (último 1 ano)
+    # Segunda Linha de Gráficos: Rosca de Top Corretivas + Rosca de Preventivas (Realizadas x Não Realizados)
     cg_s3, cg_s4 = st.columns(2)
 
     with cg_s3:
@@ -908,16 +817,13 @@ elif tela == "Painel Setores":
 
     with cg_s4:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Preventivas vs Outras (Último 1 Ano)</div>", unsafe_allow_html=True)
-            if not contagem_manut.empty and contagem_manut["Total"].sum() > 0:
-                chart_don_prev = alt.Chart(contagem_manut).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
-                    theta=alt.Theta("Total:Q", stack=True),
-                    color=alt.Color("Tipo:N", scale=alt.Scale(scheme="accent"), legend=alt.Legend(orient="right")),
-                    tooltip=["Tipo", "Total"]
-                ).properties(height=240)
-                st.altair_chart(chart_don_prev, use_container_width=True)
-            else:
-                st.info("Sem histórico de manutenções registradas nos últimos 12 meses neste setor.")
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Preventivas: Realizados vs Não Realizados (Último 1 Ano)[cite: 5]</div>", unsafe_allow_html=True)
+            chart_don_prev = alt.Chart(df_prev_donut).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
+                theta=alt.Theta("Total:Q", stack=True),
+                color=alt.Color("Status:N", scale=alt.Scale(domain=["Realizados", "Não Realizados"], range=["#10b981", "#cbd5e1"]), legend=alt.Legend(orient="right")),
+                tooltip=["Status", "Total"]
+            ).properties(height=240)
+            st.altair_chart(chart_don_prev, use_container_width=True)
 
 # ------------------------------------------
 # 4. PAINEL GERENCIAL DE MÁQUINAS
