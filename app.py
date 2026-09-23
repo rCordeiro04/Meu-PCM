@@ -588,7 +588,8 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
-            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5, rx=3, ry=3).encode(
+            # CORRIGIDO: Retirados os parâmetros rx e ry que causaram o erro
+            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
                 color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#ef4444"]), legend=alt.Legend(title="Quebras", orient="right")),
@@ -697,8 +698,8 @@ elif tela == "Painel Maquinas":
         cm1, cm2, cm3, cm4 = st.columns(4)
         cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_maq}</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
         cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.1rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'S/ Dados')}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Corretivas)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências Abertas</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
