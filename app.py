@@ -525,6 +525,38 @@ st.markdown(
         
         .pill-legenda {{ display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px; }}
         .dot-legenda {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; }}
+
+        /* Painéis customizados do Banco de Dados */
+        .painel-db-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .painel-db-card.azul { border-top: 4px solid #2563eb; }
+        .painel-db-card.roxo { border-top: 4px solid #7c3aed; }
+        .painel-db-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .painel-db-titulo {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .painel-db-desc {
+            font-size: 0.85rem;
+            color: #64748b;
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -965,26 +997,37 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (CONSOLIDADO E OTIMIZADO)
+# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (DESIGN OTIMIZADO)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
-    st.caption("Exportação e importação consolidada: 1 único ficheiro Excel contendo os 12 meses como abas separadas")
+    st.caption("Central consolidada de importação, exportação e integridade dos dados operacionais")
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
-    # Aba Fusos: 1 único arquivo com todos os 12 meses do ano
+    # Aba Fusos: Visual refinado com cards profissionais
     with tab_fusos_db:
-        st.markdown("### 📅 Gestão de Fusos Anual Consolidada")
-        c_ano_db, c_set_db = st.columns([1.5, 2.5])
-        with c_ano_db:
-            ano_db_fuso = st.selectbox("Ano de Trabalho:", [2024, 2025, 2026, 2027], index=2, key="sel_ano_db_fuso")
-        with c_set_db:
-            setor_db_fuso = st.selectbox("Setor:", list(DICIONARIO_SETORES.keys()), key="sel_setor_db_fuso")
+        st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+        
+        # Filtros e métricas de cabeçalho
+        col_ctrl1, col_ctrl2, col_m1, col_m2 = st.columns([1.5, 2.0, 1.5, 1.5])
+        with col_ctrl1:
+            ano_db_fuso = st.selectbox("📅 Ano de Referência:", [2024, 2025, 2026, 2027], index=2, key="sel_ano_db_fuso")
+        with col_ctrl2:
+            setor_db_fuso = st.selectbox("🏭 Setor Operacional:", list(DICIONARIO_SETORES.keys()), key="sel_setor_db_fuso")
 
         maquinas_set_db = obter_maquinas_setor(setor_db_fuso, df_correias, df_fusos)
+        df_ano_setor_f = df_fusos[(df_fusos["Ano"] == int(ano_db_fuso)) & (df_fusos["Setor"] == setor_db_fuso)]
+        tot_quebras_periodo = int(df_ano_setor_f["Quantidade_Quebras"].sum()) if not df_ano_setor_f.empty else 0
 
-        # Montagem do Excel consolidado com 12 abas (Janeiro a Dezembro)
+        with col_m1:
+            st.metric("Total Máquinas", len(maquinas_set_db))
+        with col_m2:
+            st.metric(f"Quebras ({ano_db_fuso})", f"{tot_quebras_periodo} un.")
+
+        st.markdown("---")
+
+        # Geração em memória do arquivo Excel com as 12 abas (Janeiro a Dezembro)
         buffer_excel_ano = io.BytesIO()
         with pd.ExcelWriter(buffer_excel_ano, engine="openpyxl") as writer:
             for idx_m, nome_mes_aba in enumerate(LISTA_MESES_PUROS):
@@ -992,11 +1035,7 @@ elif tela == "Banco de Dados":
                 _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), num_mes)
                 cols_dias_aba = [str(d) for d in range(1, dias_no_mes + 1)]
 
-                df_mes_fuso = df_fusos[
-                    (df_fusos["Ano"] == int(ano_db_fuso))
-                    & (df_fusos["Mes"] == nome_mes_aba)
-                    & (df_fusos["Setor"] == setor_db_fuso)
-                ]
+                df_mes_fuso = df_ano_setor_f[df_ano_setor_f["Mes"] == nome_mes_aba]
 
                 grade_aba = []
                 for maq in maquinas_set_db:
@@ -1012,14 +1051,33 @@ elif tela == "Banco de Dados":
 
         buffer_excel_ano.seek(0)
 
-        st.markdown("---")
-        col_down_ano, col_up_ano = st.columns([1.5, 2.5])
+        # Painéis de Ação (Download e Upload) com design em cartões
+        col_down_ano, col_up_ano = st.columns(2)
 
         with col_down_ano:
-            st.markdown("#### 📥 Descarregar Livro de 12 Meses")
-            st.caption(f"Descarrega um ficheiro Excel com 12 abas (Jan a Dez) de {ano_db_fuso} para o {setor_db_fuso}.")
+            st.markdown(
+                f"""
+                <div class="painel-db-card azul">
+                    <div>
+                        <div class="painel-db-header">
+                            <span style="font-size: 1.4rem;">📥</span>
+                            <span class="painel-db-titulo">Exportar Planilha Anual (12 Meses)</span>
+                        </div>
+                        <div class="painel-db-desc">
+                            Gera um único ficheiro <b>.xlsx</b> consolidado contendo as 12 folhas de <b>Janeiro a Dezembro</b> de <b>{ano_db_fuso}</b> para o <b>{setor_db_fuso}</b>, formatado no padrão com cabeçalhos diários.
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <span class="tag-pill" style="font-size:0.75rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
+                                Formato: MAQUINA | 1 | 2 ... 31
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             st.download_button(
-                f"📥 Baixar Ano {ano_db_fuso} Completo (.xlsx)",
+                f"📥 Baixar Ficheiro {ano_db_fuso} ({setor_db_fuso})",
                 data=buffer_excel_ano,
                 file_name=f"fusos_{setor_db_fuso.replace(' ', '_')}_{ano_db_fuso}_12_meses.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1028,15 +1086,30 @@ elif tela == "Banco de Dados":
             )
 
         with col_up_ano:
-            st.markdown("#### 📤 Importar Livro de 12 Meses")
-            st.caption(f"Envie um ficheiro Excel (.xlsx) contendo abas dos meses (`Janeiro`, `Fevereiro`, etc.) no modelo `MAQUINA | 1 | 2 ... 31`.")
+            st.markdown(
+                f"""
+                <div class="painel-db-card roxo">
+                    <div>
+                        <div class="painel-db-header">
+                            <span style="font-size: 1.4rem;">📤</span>
+                            <span class="painel-db-titulo">Importar / Atualizar Planilha Anual</span>
+                        </div>
+                        <div class="painel-db-desc">
+                            Envie a folha de cálculo preenchida com as abas mensais (ex: <i>Janeiro</i>, <i>Fevereiro</i>). O sistema processará automaticamente os apontamentos diários e gerará uma cópia de segurança antes de aplicar.
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             upload_ano = st.file_uploader(
-                f"Enviar ficheiro completo de {ano_db_fuso} (.xlsx)",
+                f"Selecionar ficheiro anual (.xlsx)",
                 type=["xlsx"],
                 key=f"upload_ano_db_{ano_db_fuso}_{setor_db_fuso}",
+                label_visibility="collapsed"
             )
             if upload_ano is not None:
-                if st.button(f"Confirmar e Atualizar Ano {ano_db_fuso}", key=f"btn_conf_up_ano_{ano_db_fuso}", type="primary"):
+                if st.button(f"⚡ Confirmar Importação para {ano_db_fuso}", key=f"btn_conf_up_ano_{ano_db_fuso}", type="primary", use_container_width=True):
                     try:
                         excel_importado = pd.ExcelFile(upload_ano)
                         abas_encontradas = excel_importado.sheet_names
