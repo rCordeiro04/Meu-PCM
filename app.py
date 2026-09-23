@@ -436,7 +436,7 @@ st.markdown(
             border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
         }
 
-        /* Estilização com FONTE MAIOR e botões compactos */
+        /* Estilização dos botões das máquinas com fonte destacada */
         div.stButton > button {
             background: #ffffff !important;
             color: #0f172a !important;
@@ -500,7 +500,6 @@ st.markdown(
         .pill-legenda { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 16px; }
         .dot-legenda { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
-        /* Títulos de Seção de Cada Setor */
         .header-setor-dash {
             font-size: 0.86rem;
             font-weight: 800;
@@ -547,15 +546,13 @@ with st.sidebar:
 tela = st.session_state.pagina_atual
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (FONTE AJUSTADA E VISÃO COMPLETA)
+# 1. PAINEL GERENCIAL DE CORREIAS (FILTRO APENAS POR TIPO)
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_t, c_f1, c_f2, c_leg = st.columns([3.0, 1.4, 1.4, 5.2])
+    c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
     with c_t:
         st.markdown("<h3 style='margin:0; font-weight:900;'>Dashboard Correias</h3>", unsafe_allow_html=True)
-    with c_f1:
-        filtro_setor = st.selectbox("Setor", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), label_visibility="collapsed")
-    with c_f2:
+    with c_f:
         mods_un = sorted(list({r["modelo"] for r in lista_correias_todas if r["modelo"] and r["modelo"] != "Não informada"}))
         filtro_modelo = st.selectbox("Tipo", ["Todos os Tipos"] + mods_un, label_visibility="collapsed")
     with c_leg:
@@ -601,13 +598,11 @@ if tela == "Painel Correias":
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
 
-    # Mosaico de Máquinas Separado por Setores (Visualização Compacta em 1 Página)
-    setores_exibicao = [s for s in DICIONARIO_SETORES.keys() if filtro_setor == "Todos os Setores" or s == filtro_setor]
-
-    for s_nome in setores_exibicao:
+    # Mosaico de Máquinas Exibindo Todos os Setores Concomitantemente
+    for s_nome in DICIONARIO_SETORES.keys():
         maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
 
-        # Filtro por tipo de correia se ativo
+        # Filtro ativo por modelo de correia
         if filtro_modelo != "Todos os Tipos":
             filtradas = []
             for m in maquinas_do_setor:
@@ -623,7 +618,7 @@ if tela == "Painel Correias":
 
         st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b;'>{len(maquinas_do_setor)} máquinas</span></div>", unsafe_allow_html=True)
 
-        cols_g = 14  # Grade de 14 colunas para acomodar os setores mantendo tudo visível em uma só tela
+        cols_g = 14
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
             for i, m in enumerate(chunk):
