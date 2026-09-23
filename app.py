@@ -566,13 +566,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:4px 0;'>📥 BACKUP DAS BASES</p>", unsafe_allow_html=True)
-    if os.path.exists(ARQUIVO_CORREIAS):
-        with open(ARQUIVO_CORREIAS, "rb") as fc:
-            st.download_button("Baixar Correias (.xlsx)", fc, "lancamentos_correias.xlsx", use_container_width=True)
-    if os.path.exists(ARQUIVO_FUSOS):
-        with open(ARQUIVO_FUSOS, "rb") as ff:
-            st.download_button("Baixar Fusos (.xlsx)", ff, "lancamentos_fusos.xlsx", use_container_width=True)
+    st.markdown("<div style='text-align:center; font-size:0.72rem; color:#64748b;'>PCM • Versão Gerencial</div>", unsafe_allow_html=True)
 
 # ==========================================
 # ÁREA PRINCIPAL
