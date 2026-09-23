@@ -126,12 +126,20 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # Forçar fuso FAG para as máquinas informadas[cite: 5]
+    # Forçar fuso FAG para as máquinas informadas
     MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
     if not df_f.empty:
         mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
         if mask_fag_init.any() and (df_f.loc[mask_fag_init, "Tipo_Fuso"] != "FAG").any():
             df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
+            df_f.to_excel(ARQUIVO_FUSOS, index=False)
+
+    # Forçar fuso MENEGATTO para as máquinas informadas[cite: 6]
+    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"][cite: 6]
+    if not df_f.empty:
+        mask_men_init = df_f["Maquina_TAG"].isin(MAQUINAS_MENEGATTO)
+        if mask_men_init.any() and (df_f.loc[mask_men_init, "Tipo_Fuso"] != "MENEGATTO").any():
+            df_f.loc[mask_men_init, "Tipo_Fuso"] = "MENEGATTO"
             df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
     if os.path.exists(ARQUIVO_CORREIAS):
@@ -731,7 +739,7 @@ elif tela == "Painel Setores":
     df_f_setor_ano = df_fusos[(df_fusos["Setor"] == s_nome) & (df_fusos["Ano"] == 2026)].copy() if not df_fusos.empty else pd.DataFrame()
     tot_q_fusos = int(df_f_setor_ano["Quantidade_Quebras"].sum()) if not df_f_setor_ano.empty else 0
 
-    df_p_setor = df_paradas[df_paradas["Setor"] == s_nome].copy() if not df_paradas.empty else pd.DataFrame()
+    df_p_setor = df_paradas[df_paradas["Setor"] == s_nome].copy() if not df_p_setor.empty else pd.DataFrame()
     if not df_p_setor.empty:
         df_p_setor["Data_Dt"] = pd.to_datetime(df_p_setor["Data"], errors="coerce")
         data_limite_1ano = pd.Timestamp(date.today()) - pd.DateOffset(years=1)
@@ -1501,7 +1509,6 @@ elif tela == "Gestao Maquinas":
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
         if st.button("💾 Salvar Parâmetros da Máquina", type="primary", key=f"btn_salvar_param_{maq_selecionada}"):
-            # CORREÇÃO: Atualiza em lote o tipo de fuso para TODOS os registros existentes desta máquina no arquivo de fusos
             mask_fusos_maq = (df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)
             if mask_fusos_maq.any():
                 df_fusos.loc[mask_fusos_maq, "Tipo_Fuso"] = novo_fuso
