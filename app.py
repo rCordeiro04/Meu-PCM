@@ -894,7 +894,7 @@ elif tela == "Painel Fusos":
                 txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
                     x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                     y=alt.Y("MAQ:N", sort=maqs_tipo),
-                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
                     color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a"))
                 )
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
@@ -1398,7 +1398,6 @@ elif tela == "Gestao Maquinas":
             except Exception:
                 dt2_atual = None
 
-    # Detecta se atualmente possui 2 correias (se a correia 2 possuir modelo ou data)
     tem_duas_inicial = bool(mod2_atual or dt2_atual)
 
     st.markdown("---")
@@ -1424,7 +1423,6 @@ elif tela == "Gestao Maquinas":
 
         st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-        # Campos de correia condicionais
         if qtd_correias_opc == "1 Correia (Única)":
             c_c1_mod, c_c1_dt = st.columns(2)
             with c_c1_mod:
