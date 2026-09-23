@@ -126,6 +126,14 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
+    # Forçar fuso FAG para as máquinas informadas[cite: 5]
+    MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
+    if not df_f.empty:
+        mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
+        if mask_fag_init.any() and (df_f.loc[mask_fag_init, "Tipo_Fuso"] != "FAG").any():
+            df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
+            df_f.to_excel(ARQUIVO_FUSOS, index=False)
+
     if os.path.exists(ARQUIVO_CORREIAS):
         try:
             df_c = pd.read_excel(ARQUIVO_CORREIAS)
