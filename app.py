@@ -108,54 +108,99 @@ for col in colunas_correias:
         df_correias[col] = ""
 
 # =========================================================================
-# CARGA FIXA HISTÓRICA: CORREIAS 36.100 (SETOR A)
+# CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS (TODOS OS SETORES)
 # =========================================================================
-dados_correias_setor_a_iniciais = [
-    ("L-01", "36.100", "2026-08-21"),
-    ("L-02", "", ""),
-    ("L-03", "36.100", "2026-05-04"),
-    ("L-04", "36.100", "2025-01-07"),
-    ("L-05", "36.100", "2026-05-27"),
-    ("L-06", "36.100", "2024-11-19"),
-    ("L-07", "36.100", "2025-11-25"),
-    ("L-08", "36.100", "2025-05-20"),
-    ("L-09", "36.100", "2026-05-13"),
-    ("L-10", "36.100", "2025-10-08"),
-    ("L-15", "36.100", "2025-03-07"),
-    ("L-16", "36.100", "2025-02-12"),
-    ("L-17", "36.100", "2025-08-20"),
-    ("L-18", "36.100", "2026-08-24"),
-    ("L-19", "36.100", "2025-04-12"),
-    ("L-20", "36.100", "2025-07-01"),
-    ("L-21", "36.100", "2026-05-20"),
-    ("L-22", "36.100", "2026-05-19"),
-    ("L-23", "36.100", "2025-09-01"),
-    ("L-24", "36.100", "2025-10-27"),
+# Estrutura: (Setor, Maquina_TAG, Mod_Sup, Data_Sup, Mod_Inf, Data_Inf)
+dados_correias_completos = [
+    # --- Setor A (36.100, 19.500 e 18.050) ---
+    ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
+    ("Setor A", "L-02", "", "", "", ""),
+    ("Setor A", "L-03", "36.100", "2026-05-04", "", ""),
+    ("Setor A", "L-04", "36.100", "2025-01-07", "", ""),
+    ("Setor A", "L-05", "36.100", "2026-05-27", "", ""),
+    ("Setor A", "L-06", "36.100", "2024-11-19", "", ""),
+    ("Setor A", "L-07", "36.100", "2025-11-25", "", ""),
+    ("Setor A", "L-08", "36.100", "2025-05-20", "", ""),
+    ("Setor A", "L-09", "36.100", "2026-05-13", "", ""),
+    ("Setor A", "L-10", "36.100", "2025-10-08", "", ""),
+    ("Setor A", "L-11", "19.500", "2025-01-27", "18.050", "2026-08-21"),
+    ("Setor A", "L-12", "19.500", "2026-01-17", "18.050", "2026-01-17"),
+    ("Setor A", "L-13", "", "", "18.050", "2025-08-11"),
+    ("Setor A", "L-14", "19.500", "2025-02-02", "18.050", "2026-03-26"),
+    ("Setor A", "L-15", "36.100", "2025-03-07", "", ""),
+    ("Setor A", "L-16", "36.100", "2025-02-12", "", ""),
+    ("Setor A", "L-17", "36.100", "2025-08-20", "", ""),
+    ("Setor A", "L-18", "36.100", "2026-08-24", "", ""),
+    ("Setor A", "L-19", "36.100", "2025-04-12", "", ""),
+    ("Setor A", "L-20", "36.100", "2025-07-01", "", ""),
+    ("Setor A", "L-21", "36.100", "2026-05-20", "", ""),
+    ("Setor A", "L-22", "36.100", "2026-05-19", "", ""),
+    ("Setor A", "L-23", "36.100", "2025-09-01", "", ""),
+    ("Setor A", "L-24", "36.100", "2025-10-27", "", ""),
+    ("Setor A", "L-26", "", "", "18.050", "2026-09-14"),
+    ("Setor A", "L-27", "", "", "18.050", "2025-03-13"),
+    ("Setor A", "L-28", "19.500", "2025-03-22", "", ""),
+
+    # --- Setor B (19.500, 18.050, 33.990 e 34.870) ---
+    ("Setor B", "L-42", "", "", "34.870", "2025-10-02"),
+    ("Setor B", "L-43", "", "", "34.870", "2025-08-05"),
+    ("Setor B", "L-44", "", "", "34.870", "2025-08-08"),
+    ("Setor B", "L-50", "19.500", "2026-07-28", "18.050", "2026-03-05"),
+
+    # --- Setor Látex (33.990 e 34.870) ---
+    ("Setor Látex", "B-72", "33.990", "2026-01-02", "", ""),
+    ("Setor Látex", "B-73", "33.990", "2026-06-13", "34.870", "2026-06-13"),
+    ("Setor Látex", "B-74", "33.990", "2026-03-10", "34.870", "2025-02-15"),
+    ("Setor Látex", "B-78", "", "", "34.870", "2025-12-29"),
+    ("Setor Látex", "B-79", "", "", "34.870", "2024-11-30"),
+
+    # --- Setor Menegatto (38.740 e Superior) ---
+    ("Setor Menegatto", "B-93", "", "", "38.740", "2025-04-16"),
+    ("Setor Menegatto", "B-94", "", "", "38.740", "2025-05-01"),
+    ("Setor Menegatto", "B-95", "", "", "38.740", "2025-04-17"),
+    ("Setor Menegatto", "B-96", "", "", "38.740", "2026-06-25"),
+    ("Setor Menegatto", "B-97", "", "", "38.740", "2025-05-05"),
+    ("Setor Menegatto", "B-98", "", "", "38.740", "2024-12-11"),
+    ("Setor Menegatto", "B-99", "", "", "38.740", "2024-12-06"),
+    ("Setor Menegatto", "B-100", "", "2025-05-27", "38.740", "2025-12-04"),
+    ("Setor Menegatto", "B-101", "", "2025-10-04", "38.740", "2026-04-03"),
 ]
 
 precisa_salvar_correias = False
-for tag_c, modelo_c, dt_c in dados_correias_setor_a_iniciais:
+for s_cor, tag_cor, m1_cor, dt1_cor, m2_cor, dt2_cor in dados_correias_completos:
     idx_m = df_correias[
-        (df_correias["Setor"] == "Setor A") & (df_correias["Maquina_TAG"] == tag_c)
+        (df_correias["Setor"] == s_cor) & (df_correias["Maquina_TAG"] == tag_cor)
     ].index
 
     if len(idx_m) == 0:
-        novo_registro = {
-            "Setor": "Setor A",
-            "Maquina_TAG": tag_c,
-            "Tipo_Correia_1": modelo_c,
-            "Data_Instalacao_1": dt_c,
-            "Tipo_Correia_2": "",
-            "Data_Instalacao_2": "",
+        novo_reg = {
+            "Setor": s_cor,
+            "Maquina_TAG": tag_cor,
+            "Tipo_Correia_1": m1_cor,
+            "Data_Instalacao_1": dt1_cor,
+            "Tipo_Correia_2": m2_cor,
+            "Data_Instalacao_2": dt2_cor,
         }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo_registro])], ignore_index=True)
+        df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
         precisa_salvar_correias = True
     else:
         linha_idx = idx_m[0]
-        val_atual = str(df_correias.at[linha_idx, "Tipo_Correia_1"]).strip()
-        if (not val_atual or val_atual in ["", "nan", "None"]) and modelo_c:
-            df_correias.at[linha_idx, "Tipo_Correia_1"] = modelo_c
-            df_correias.at[linha_idx, "Data_Instalacao_1"] = dt_c
+        # Atualiza Superior se especificado
+        if m1_cor:
+            df_correias.at[linha_idx, "Tipo_Correia_1"] = m1_cor
+            df_correias.at[linha_idx, "Data_Instalacao_1"] = dt1_cor
+            precisa_salvar_correias = True
+        elif dt1_cor and str(df_correias.at[linha_idx, "Data_Instalacao_1"]).strip() in ["", "nan", "None", "NaT"]:
+            df_correias.at[linha_idx, "Data_Instalacao_1"] = dt1_cor
+            precisa_salvar_correias = True
+
+        # Atualiza Inferior se especificado
+        if m2_cor:
+            df_correias.at[linha_idx, "Tipo_Correia_2"] = m2_cor
+            df_correias.at[linha_idx, "Data_Instalacao_2"] = dt2_cor
+            precisa_salvar_correias = True
+        elif dt2_cor and str(df_correias.at[linha_idx, "Data_Instalacao_2"]).strip() in ["", "nan", "None", "NaT"]:
+            df_correias.at[linha_idx, "Data_Instalacao_2"] = dt2_cor
             precisa_salvar_correias = True
 
 if precisa_salvar_correias:
