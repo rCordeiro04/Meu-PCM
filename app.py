@@ -461,10 +461,6 @@ st.markdown(
         [data-testid="stSidebar"] {{ background-color: #0f172a !important; border-right: 1px solid #1e293b !important; }}
         [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span {{ color: #f8fafc; }}
         
-        [data-testid="stSidebar"] div[data-testid="stRadio"] {{ background: #1e293b; padding: 4px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 12px; }}
-        [data-testid="stSidebar"] div[data-testid="stRadio"] > div {{ flex-direction: row; justify-content: space-between; }}
-        [data-testid="stSidebar"] div[data-testid="stRadio"] label p {{ color: #f1f5f9 !important; font-weight: 700 !important; }}
-        
         [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
             background-color: #1e293b !important; color: #e2e8f0 !important; border: 1px solid #334155 !important;
             border-radius: 8px !important; font-weight: 700 !important; height: 38px !important;
@@ -531,28 +527,14 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR)
+# BARRA LATERAL (SIDEBAR) OTIMIZADA
 # ==========================================
 with st.sidebar:
-    st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 10px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
-    is_lancto = st.session_state.pagina_atual in ["Correias", "Preventiva", "Máquinas"]
-    modo = st.radio("Modo", ["📊 Painéis", "📝 Lançamentos"], index=1 if is_lancto else 0, label_visibility="collapsed")
-
-    if modo == "📊 Painéis":
-        st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
-        st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
-        st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
-        if is_lancto:
-            st.session_state.pagina_atual = "Painel Fusos"
-            st.rerun()
-    else:
-        st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>APONTAMENTOS</p>", unsafe_allow_html=True)
-        st.button("🔄 Gestão de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Correias" else "secondary", on_click=navegar, args=("Correias",))
-        st.button("🛠️ Preventiva", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Preventiva" else "secondary", on_click=navegar, args=("Preventiva",))
-        st.button("🏭 Máquinas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Máquinas" else "secondary", on_click=navegar, args=("Máquinas",))
-        if not is_lancto:
-            st.session_state.pagina_atual = "Correias"
-            st.rerun()
+    st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 14px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
+    
+    st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
+    st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
+    st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
 
     st.markdown("---")
     st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>SISTEMA & DADOS</p>", unsafe_allow_html=True)
@@ -649,63 +631,7 @@ if tela == "Painel Correias":
                 st.rerun()
 
 # ------------------------------------------
-# 2. LANÇAMENTO DE CORREIAS
-# ------------------------------------------
-elif tela == "Correias":
-    st.title("🔄 Lançamento: Gestão de Correias")
-    setor_sel = st.selectbox("Setor Operacional", list(DICIONARIO_SETORES.keys()))
-    df_cur_c = pd.read_excel(ARQUIVO_CORREIAS)
-    maqs_s = obter_maquinas_setor(setor_sel, df_cur_c, df_fusos)
-
-    grade = []
-    for m in maqs_s:
-        reg = df_cur_c[(df_cur_c["Setor"] == setor_sel) & (df_cur_c["Maquina_TAG"] == m)]
-        t1, dt1, t2, dt2 = "", None, "", None
-        if not reg.empty:
-            u = reg.iloc[-1]
-            t1 = formatar_modelo(u.get("Tipo_Correia_1"))
-            try:
-                dt1 = pd.to_datetime(u.get("Data_Instalacao_1")).date()
-            except Exception:
-                pass
-            t2 = formatar_modelo(u.get("Tipo_Correia_2"))
-            try:
-                dt2 = pd.to_datetime(u.get("Data_Instalacao_2")).date()
-            except Exception:
-                pass
-        grade.append({"Máquina": m, "Modelo (Superior / Cabeceira)": t1, "Data (Superior / Cabeceira)": dt1, "Modelo (Inferior / Traseira)": t2, "Data (Inferior / Traseira)": dt2})
-
-    editado = st.data_editor(
-        pd.DataFrame(grade),
-        column_config={
-            "Máquina": st.column_config.TextColumn(disabled=True),
-            "Data (Superior / Cabeceira)": st.column_config.DateColumn(format="DD/MM/YYYY"),
-            "Data (Inferior / Traseira)": st.column_config.DateColumn(format="DD/MM/YYYY"),
-        },
-        hide_index=True,
-        use_container_width=True,
-        height=450
-    )
-
-    if st.button("💾 Salvar Correias", type="primary"):
-        limpo = df_cur_c[df_cur_c["Setor"] != setor_sel]
-        novos = []
-        for _, r in editado.iterrows():
-            novos.append({
-                "Setor": setor_sel, "Maquina_TAG": r["Máquina"],
-                "Tipo_Correia_1": formatar_modelo(r["Modelo (Superior / Cabeceira)"]),
-                "Data_Instalacao_1": str(r["Data (Superior / Cabeceira)"]) if pd.notna(r["Data (Superior / Cabeceira)"]) else "",
-                "Tipo_Correia_2": formatar_modelo(r["Modelo (Inferior / Traseira)"]),
-                "Data_Instalacao_2": str(r["Data (Inferior / Traseira)"]) if pd.notna(r["Data (Inferior / Traseira)"]) else "",
-            })
-        final = pd.concat([limpo, pd.DataFrame(novos)], ignore_index=True)
-        gerar_backup_seguro(ARQUIVO_CORREIAS)
-        final.to_excel(ARQUIVO_CORREIAS, index=False)
-        st.success("Salvo com sucesso!")
-        st.rerun()
-
-# ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS
+# 2. PAINEL GERENCIAL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
     cf_t, cf_a = st.columns([3.8, 1.4])
@@ -965,7 +891,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (CONSOLIDADO E OTIMIZADO)
+# 3. BANCO DE DADOS & GESTÃO DE ARQUIVOS (CONSOLIDADO E OTIMIZADO)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
@@ -1274,8 +1200,3 @@ elif tela == "Banco de Dados":
                 st.info("Nenhum backup gerado ainda.")
         else:
             st.info("Pasta de backups ainda não inicializada.")
-
-elif tela == "Preventiva":
-    st.header("🛠️ Lançamentos: Preventiva")
-elif tela == "Máquinas":
-    st.header("🏭 Lançamentos: Máquinas")
