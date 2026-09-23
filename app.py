@@ -1,4 +1,5 @@
 import os
+import calendar
 from datetime import date, datetime
 import pandas as pd
 import streamlit as st
@@ -18,6 +19,7 @@ ARQUIVO_CORREIAS = "lancamentos_correias_v4.xlsx"
 colunas_fusos = [
     "Ano",
     "Mes",
+    "Dia",
     "Setor",
     "Maquina_TAG",
     "Quantidade_Quebras",
@@ -62,9 +64,11 @@ df_fusos = None
 if os.path.exists(ARQUIVO_FUSOS):
     try:
         df_fusos = pd.read_excel(ARQUIVO_FUSOS)
-        if not all(col in df_fusos.columns for col in colunas_fusos):
-            df_fusos = pd.DataFrame(columns=colunas_fusos)
-            df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+        if "Dia" not in df_fusos.columns:
+            df_fusos["Dia"] = 1
+        for col in colunas_fusos:
+            if col not in df_fusos.columns:
+                df_fusos[col] = 0 if col == "Quantidade_Quebras" else ""
     except Exception:
         df_fusos = pd.DataFrame(columns=colunas_fusos)
         df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
@@ -72,7 +76,7 @@ else:
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias
+# Base de Correias com blindagem contra corrupção
 df_correias = None
 if os.path.exists(ARQUIVO_CORREIAS):
     try:
@@ -148,7 +152,6 @@ for tag_c, modelo_c, dt_c in dados_correias_setor_a_iniciais:
         df_correias = pd.concat([df_correias, pd.DataFrame([novo_registro])], ignore_index=True)
         precisa_salvar_correias = True
     else:
-        # Se existir na base mas estiver vazio, restaura o dado original
         linha_idx = idx_m[0]
         val_atual = str(df_correias.at[linha_idx, "Tipo_Correia_1"]).strip()
         if (not val_atual or val_atual in ["", "nan", "None"]) and modelo_c:
@@ -496,6 +499,7 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_b:
             {
                 "Ano": 2026,
                 "Mes": nome_mes_carga,
+                "Dia": 1,
                 "Setor": "Setor B",
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
@@ -524,6 +528,7 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
             {
                 "Ano": 2026,
                 "Mes": nome_mes_carga,
+                "Dia": 1,
                 "Setor": "Setor A",
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
@@ -552,6 +557,7 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
             {
                 "Ano": 2026,
                 "Mes": nome_mes_carga,
+                "Dia": 1,
                 "Setor": "Setor Látex",
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
@@ -580,6 +586,7 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_menegatto:
             {
                 "Ano": 2026,
                 "Mes": nome_mes_carga,
+                "Dia": 1,
                 "Setor": "Setor Menegatto",
                 "Maquina_TAG": maq,
                 "Quantidade_Quebras": int(qtd),
@@ -818,8 +825,6 @@ st.markdown(
             padding-left: 2rem !important;
             padding-right: 2rem !important;
         }}
-
-        /* Otimização da Barra Lateral */
         [data-testid="stSidebar"] {{
             background-color: #0f172a !important;
             border-right: 1px solid #1e293b !important;
@@ -862,7 +867,6 @@ st.markdown(
             margin: 10px 0 !important;
             border-color: #1e293b !important;
         }}
-
         div[data-testid="column"] {{
             padding: 1px !important;
             margin: 0px !important;
@@ -871,7 +875,6 @@ st.markdown(
             gap: 4px !important;
             margin-bottom: 4px !important;
         }}
-
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {{
             display: none !important;
@@ -879,10 +882,6 @@ st.markdown(
         div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
             overscroll-behavior: contain;
         }}
-        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {{
-            resize: none !important;
-        }}
-
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -892,9 +891,7 @@ st.markdown(
             border-radius: 7px !important;
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
-
         {regras_css_botoes}
-
         div.st-key-btn_inv_total,
         div.st-key-btn_inv_novas,
         div.st-key-btn_inv_meia,
@@ -911,7 +908,6 @@ st.markdown(
             width: 100% !important;
             cursor: pointer !important;
         }}
-
         .card-kpi-bonito {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -959,7 +955,6 @@ st.markdown(
             letter-spacing: 0.5px;
             margin-bottom: 3px;
         }}
-
         .alerta-manutencao {{
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -986,50 +981,6 @@ st.markdown(
             display: inline-block;
             margin-right: 4px;
         }}
-
-        .hud-detalhe {{
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin: 6px 0 12px 0;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-            border-left: 6px solid #64748b;
-            animation: fadeIn 0.15s ease-in;
-        }}
-        @keyframes fadeIn {{
-            from {{ opacity: 0; transform: translateY(-4px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
-        }}
-        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
-        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
-        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
-
-        .tag-pill {{
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #334155;
-            display: inline-block;
-            margin-right: 8px;
-        }}
-        .badge-status {{
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        .badge-verde {{ background: #d1fae5; color: #065f46; }}
-        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
-        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
-
         .pill-legenda {{
             display: inline-flex;
             align-items: center;
@@ -1048,7 +999,6 @@ st.markdown(
             border-radius: 50%;
             display: inline-block;
         }}
-
         .chart-header-row {{
             display: flex;
             align-items: center;
@@ -1076,7 +1026,7 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) OTIMIZADA
+# BARRA LATERAL (SIDEBAR)
 # ==========================================
 with st.sidebar:
     st.markdown(
@@ -1377,61 +1327,6 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
-    if st.session_state.maq_clicada_cor is not None:
-        maq_sel = st.session_state.maq_clicada_cor
-        classe_badge = (
-            "badge-verde" if maq_sel["status_label"] == "Nova"
-            else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
-            else "badge-vermelho" if maq_sel["status_label"] == "Troca Necessária"
-            else "badge-cinza"
-        )
-
-        c_box, c_close = st.columns([6.2, 0.8])
-        with c_box:
-            html_linhas = ""
-            if maq_sel["tem_c1"]:
-                html_linhas += f"""
-                <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {formatar_modelo(maq_sel['t1'])} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
-                """
-            else:
-                html_linhas += """
-                <span class="tag-pill" style="opacity:0.75;">🔼 <b>Superior / Cabeceira:</b> Sem registro</span>
-                """
-
-            if maq_sel["tem_c2"]:
-                html_linhas += f"""
-                <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {formatar_modelo(maq_sel['t2'])} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
-                """
-            else:
-                html_linhas += """
-                <span class="tag-pill" style="opacity:0.75;">🔽 <b>Inferior / Traseira:</b> Sem registro</span>
-                """
-
-            st.markdown(
-                f"""
-                <div class="hud-detalhe {maq_sel['classe_card']}">
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
-                        <div>
-                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff; border-color:#0f172a;">⚙️ {maq_sel['tag']}</span>
-                            <span class="tag-pill" style="background:#e2e8f0;">🏭 {maq_sel['setor']}</span>
-                        </div>
-                        <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        {html_linhas}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with c_close:
-            st.write("")
-            if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
-                st.session_state.maq_clicada_cor = None
-                st.rerun()
-
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-
     if todas_as_maquinas:
         COLS_GRELHA = 12
         linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
@@ -1456,7 +1351,7 @@ if tela == "Painel Correias":
         st.info("Nenhuma máquina encontrada com os filtros selecionados.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (SUPERIOR / INFERIOR - BLINDADO)
+# 2. LANÇAMENTOS: CORREIAS (COM PRESERVAÇÃO DE DADOS)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -1472,7 +1367,6 @@ elif tela == "Correias":
         df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
         maquinas_do_setor = obter_maquinas_setor(setor_selecionado, df_atual_cor, df_fusos)
 
-        # Inserção de Nova Máquina
         with col_add:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>➕ Adicionar Máquina</div>", unsafe_allow_html=True)
             c_input_add, c_btn_add = st.columns([1.5, 1.0])
@@ -1499,7 +1393,6 @@ elif tela == "Correias":
                     else:
                         st.warning("Informe o código da máquina.")
 
-        # Exclusão de Máquina
         with col_del:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>🗑️ Excluir Máquina</div>", unsafe_allow_html=True)
             c_sel_del, c_btn_del = st.columns([1.5, 1.0])
@@ -1530,7 +1423,6 @@ elif tela == "Correias":
 
         if not reg_existente.empty:
             ultimo = reg_existente.iloc[-1]
-            
             c1 = formatar_modelo(ultimo.get("Tipo_Correia_1", ""))
             t1 = c1 if c1 != "nan" else ""
             d1_val = ultimo.get("Data_Instalacao_1", "")
@@ -1700,6 +1592,8 @@ elif tela == "Painel Fusos":
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
     df_dados_fusos = pd.read_excel(ARQUIVO_FUSOS)
+    if "Dia" not in df_dados_fusos.columns:
+        df_dados_fusos["Dia"] = 1
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
     # ABA GERAL
@@ -2068,7 +1962,6 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
@@ -2153,7 +2046,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # 2. DIAGNÓSTICO POR TIPO DE FUSO
+        # DIAGNÓSTICO POR TIPO DE FUSO
         tipos_disponiveis_setor = sorted(df_setor["Tipo_Fuso"].dropna().unique().tolist()) if not df_setor.empty else []
         if not tipos_disponiveis_setor:
             tipos_disponiveis_setor = OPCOES_TIPO_FUSO
@@ -2348,11 +2241,11 @@ elif tela == "Painel Fusos":
                 st.altair_chart(chart_calor_tipo_final, use_container_width=True)
 
 # ------------------------------------------
-# 4. LANÇAMENTOS: FUSOS (COM INSERÇÃO E EXCLUSÃO)
+# 4. LANÇAMENTOS: FUSOS (MATRIZ DIÁRIA: MÁQUINAS x DIAS DO MÊS)
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
-    st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
-    st.caption("Preenchimento rápido de quebras por máquina, seleção de tipo de fuso e fechamento por setor")
+    st.title("🔩 Lançamento: Apontamento Diário de Fusos")
+    st.caption("Preenchimento diário de quebras por máquina ao longo de todos os dias do mês selecionado")
 
     with st.container(border=True):
         col_ano, col_setor, col_add_f, col_del_f = st.columns([1.1, 1.4, 2.1, 2.1])
@@ -2366,6 +2259,8 @@ elif tela == "Lançamento Fusos":
             )
 
         df_atual_fuso_ctrl = pd.read_excel(ARQUIVO_FUSOS)
+        if "Dia" not in df_atual_fuso_ctrl.columns:
+            df_atual_fuso_ctrl["Dia"] = 1
         maquinas_do_setor_f = obter_maquinas_setor(setor_selecionado, df_correias, df_atual_fuso_ctrl)
 
         with col_add_f:
@@ -2383,6 +2278,7 @@ elif tela == "Lançamento Fusos":
                                 {
                                     "Ano": int(ano_selecionado),
                                     "Mes": m_nome,
+                                    "Dia": 1,
                                     "Setor": setor_selecionado,
                                     "Maquina_TAG": nova_maq_fuso,
                                     "Quantidade_Quebras": 0,
@@ -2419,9 +2315,15 @@ elif tela == "Lançamento Fusos":
 
     for idx, nome_mes in enumerate(lista_meses_puros):
         with abas_meses[idx]:
-            st.subheader(f"Apontamento — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
+            mes_num = idx + 1
+            _, qtd_dias_mes = calendar.monthrange(int(ano_selecionado), mes_num)
+            colunas_dias = [f"{d:02d}" for d in range(1, qtd_dias_mes + 1)]
+
+            st.subheader(f"Apontamento Diário — {setor_selecionado} ({nome_mes}/{ano_selecionado})")
 
             df_atual = pd.read_excel(ARQUIVO_FUSOS)
+            if "Dia" not in df_atual.columns:
+                df_atual["Dia"] = 1
 
             df_filtrado = df_atual[
                 (df_atual["Ano"] == ano_selecionado)
@@ -2431,60 +2333,61 @@ elif tela == "Lançamento Fusos":
 
             dados_grade = []
             for maq in maquinas_do_setor:
-                registro_existente = df_filtrado[
-                    df_filtrado["Maquina_TAG"] == maq
-                ]
-                if not registro_existente.empty:
-                    qtd = int(registro_existente.iloc[0]["Quantidade_Quebras"])
-                    tipo_salvo = str(registro_existente.iloc[0]["Tipo_Fuso"])
+                reg_maq = df_filtrado[df_filtrado["Maquina_TAG"] == maq]
+
+                linha_dict = {"Máquina": maq}
+
+                if not reg_maq.empty:
+                    tipo_salvo = str(reg_maq.iloc[0].get("Tipo_Fuso", OPCOES_TIPO_FUSO[0]))
                     if tipo_salvo not in OPCOES_TIPO_FUSO:
                         tipo_salvo = OPCOES_TIPO_FUSO[0]
                 else:
-                    qtd = 0
                     tipo_salvo = OPCOES_TIPO_FUSO[0]
+                linha_dict["Tipo de Fuso"] = tipo_salvo
 
-                dados_grade.append(
-                    {
-                        "Máquina": maq,
-                        "Quantidade de Quebras": qtd,
-                        "Tipo de Fuso": tipo_salvo,
-                    }
-                )
+                for d in range(1, qtd_dias_mes + 1):
+                    col_dia_nome = f"{d:02d}"
+                    reg_dia = reg_maq[reg_maq["Dia"] == d]
+                    if not reg_dia.empty:
+                        linha_dict[col_dia_nome] = int(reg_dia.iloc[0]["Quantidade_Quebras"])
+                    else:
+                        linha_dict[col_dia_nome] = 0
+
+                dados_grade.append(linha_dict)
 
             df_grade = pd.DataFrame(dados_grade)
 
             configuracao_colunas = {
-                "Máquina": st.column_config.TextColumn(
-                    "Máquina",
-                    disabled=True,
-                ),
-                "Quantidade de Quebras": st.column_config.NumberColumn(
-                    "Quantidade de Quebras",
+                "Máquina": st.column_config.TextColumn("Máquina", disabled=True, width="small"),
+                "Tipo de Fuso": st.column_config.SelectboxColumn("Tipo de Fuso", options=OPCOES_TIPO_FUSO, required=True, width="medium"),
+            }
+
+            for col_d in colunas_dias:
+                configuracao_colunas[col_d] = st.column_config.NumberColumn(
+                    col_d,
                     min_value=0,
                     step=1,
                     format="%d",
-                ),
-                "Tipo de Fuso": st.column_config.SelectboxColumn(
-                    "Tipo de Fuso",
-                    options=OPCOES_TIPO_FUSO,
-                    required=True,
-                ),
-            }
+                    width="small",
+                )
+
+            cols_ordenadas = ["Máquina", "Tipo de Fuso"] + colunas_dias
+            df_grade = df_grade[cols_ordenadas]
 
             tabela_editada = st.data_editor(
                 df_grade,
                 column_config=configuracao_colunas,
                 hide_index=True,
                 use_container_width=True,
-                height=440,
-                key=f"editor_fusos_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                height=460,
+                key=f"editor_fusos_diario_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
             )
 
             col_btn, _ = st.columns([2, 4])
             with col_btn:
                 salvar_mes = st.button(
-                    f"💾 Salvar {setor_selecionado} ({nome_mes}/{ano_selecionado})",
-                    key=f"btn_salvar_fusos_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
+                    f"💾 Salvar Apontamentos ({nome_mes}/{ano_selecionado})",
+                    key=f"btn_salvar_fusos_dias_{ano_selecionado}_{setor_selecionado}_{nome_mes}",
                     type="primary",
                 )
 
@@ -2499,32 +2402,30 @@ elif tela == "Lançamento Fusos":
 
                 novos_registros = []
                 for _, linha in tabela_editada.iterrows():
-                    novos_registros.append(
-                        {
-                            "Ano": int(ano_selecionado),
-                            "Mes": nome_mes,
-                            "Setor": setor_selecionado,
-                            "Maquina_TAG": linha["Máquina"],
-                            "Quantidade_Quebras": int(
-                                linha["Quantidade de Quebras"]
-                            ),
-                            "Tipo_Fuso": str(linha["Tipo de Fuso"]),
-                        }
-                    )
+                    maq_val = linha["Máquina"]
+                    tipo_val = str(linha["Tipo de Fuso"])
+                    for d in range(1, qtd_dias_mes + 1):
+                        col_d = f"{d:02d}"
+                        qtd_dia = int(linha[col_d]) if pd.notna(linha[col_d]) else 0
+                        novos_registros.append(
+                            {
+                                "Ano": int(ano_selecionado),
+                                "Mes": nome_mes,
+                                "Dia": d,
+                                "Setor": setor_selecionado,
+                                "Maquina_TAG": maq_val,
+                                "Quantidade_Quebras": qtd_dia,
+                                "Tipo_Fuso": tipo_val,
+                            }
+                        )
 
-                df_final = pd.concat(
-                    [df_limpo, pd.DataFrame(novos_registros)], ignore_index=True
-                )
+                df_final = pd.concat([df_limpo, pd.DataFrame(novos_registros)], ignore_index=True)
                 df_final.to_excel(ARQUIVO_FUSOS, index=False)
-                st.success(
-                    f"✅ Fechamento do {setor_selecionado} para {nome_mes}/{ano_selecionado} salvo com sucesso!"
-                )
+                st.success(f"✅ Apontamentos diários de {nome_mes}/{ano_selecionado} para {setor_selecionado} salvos com sucesso!")
                 st.rerun()
 
-            total_mes = tabela_editada["Quantidade de Quebras"].sum()
-            st.caption(
-                f"Total de fusos apontados no {setor_selecionado} em {nome_mes}: **{total_mes} unid.**"
-            )
+            total_mes = sum([tabela_editada[c].sum() for c in colunas_dias])
+            st.caption(f"Total de quebras acumuladas no {setor_selecionado} em {nome_mes}: **{int(total_mes)} unid.**")
 
 elif tela == "Preventiva":
     st.header("🛠️ Lançamentos: Preventiva")
