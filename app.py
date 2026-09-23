@@ -45,7 +45,6 @@ COLUNAS_PARADAS = [
     "Tipo_Manutencao",
     "Descricao_Servico",
     "Tempo_Parado_Horas",
-    "Responsavel",
 ]
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
@@ -865,9 +864,9 @@ elif tela == "Painel Fusos":
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                 y=alt.Y("MAQ:N", sort=maqs_setor),
                 text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a"))
+                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
             )
-            st.altair_chart((rect + txt).properties(height=max(320, len(maqs_setor) * 23)), use_container_width=True)
+            st.altair_chart((rect + txt).properties(height=max(220, len(maqs_setor) * 23)), use_container_width=True)
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
@@ -1010,7 +1009,7 @@ elif tela == "Painel Maquinas":
         sub_fusos_maq = df_fusos[df_fusos["Maquina_TAG"] == tag_selecionada]
         tot_falhas_maq = int(sub_fusos_maq["Quantidade_Quebras"].sum()) if not sub_fusos_maq.empty else 0
 
-        # Informações de Parada
+        # Informações de Parada / Corretivas
         sub_paradas_maq = df_paradas[df_paradas["Maquina_TAG"] == tag_selecionada]
         tot_horas_paradas = float(sub_paradas_maq["Tempo_Parado_Horas"].sum()) if not sub_paradas_maq.empty else 0.0
 
@@ -1018,7 +1017,7 @@ elif tela == "Painel Maquinas":
         cm1, cm2, cm3, cm4 = st.columns(4)
         cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.05rem;'>{setor_selecionado_maq}</div></div><div>🏭</div></div>", unsafe_allow_html=True)
         cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.05rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'Sem Dados')}</div></div><div>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Total Horas Paradas</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div>⏱️</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Corretivas)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div>⏱️</div></div>", unsafe_allow_html=True)
         cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#059669;'>{tot_falhas_maq}</div></div><div>🔩</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
@@ -1048,14 +1047,14 @@ elif tela == "Painel Maquinas":
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-        # Histórico de Paradas de Manutenção
+        # Histórico de Manutenções Corretivas Executadas
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🛠️ Histórico de Paradas de Manutenção — {tag_selecionada}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🛠️ Manutenções Corretivas Executadas — {tag_selecionada}</div>", unsafe_allow_html=True)
             if not sub_paradas_maq.empty:
-                df_exibe_p = sub_paradas_maq[["Data", "Tipo_Manutencao", "Descricao_Servico", "Tempo_Parado_Horas", "Responsavel"]].sort_values("Data", ascending=False)
+                df_exibe_p = sub_paradas_maq[["Data", "Tipo_Manutencao", "Descricao_Servico", "Tempo_Parado_Horas"]].sort_values("Data", ascending=False)
                 st.dataframe(df_exibe_p, use_container_width=True, hide_index=True)
             else:
-                st.info(f"Nenhum apontamento de parada ou serviço cadastrado para a máquina {tag_selecionada}.")
+                st.info(f"Nenhuma manutenção corretiva registrada para a máquina {tag_selecionada}.")
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
@@ -1079,13 +1078,13 @@ elif tela == "Painel Maquinas":
                 st.info(f"Sem registros de quebras de fusos para a máquina {tag_selecionada}.")
 
 # ------------------------------------------
-# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS (COM PARADAS DE MANUTENÇÃO)
+# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS (COM PARADAS E CORRETIVAS OTIMIZADAS)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
     st.caption("Central de importação e exportação de dados mestres em formato Excel (.xlsx)")
 
-    tab_fusos_db, tab_correias_db, tab_paradas_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛠️ Paradas de Manutenção", "🛡️ Histórico de Backups"])
+    tab_fusos_db, tab_correias_db, tab_paradas_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛠️ Corretivas & Paradas", "🛡️ Histórico de Backups"])
 
     # Aba Fusos: 1 único arquivo com todos os 12 meses do ano
     with tab_fusos_db:
@@ -1368,50 +1367,40 @@ elif tela == "Banco de Dados":
                     except Exception as erro_proc:
                         st.error(f"Erro ao processar o arquivo de correias: {erro_proc}")
 
-    # Aba Paradas de Manutenção (NOVO)
+    # Aba Corretivas & Paradas (ESTRITAMENTE EVENTOS OCORRIDOS)
     with tab_paradas_db:
-        st.markdown("### 🛠️ Gestão de Paradas de Manutenção")
-        st.caption("Registe intervenções, tipos de manutenção, serviços executados e horas paradas via planilha Excel.")
+        st.markdown("### 🛠️ Gestão de Manutenções Corretivas")
+        st.caption("Registe apenas as manutenções corretivas que de fato aconteceram. Máquinas e dias sem registro são considerados sem intervenção.")
 
         col_d_par, col_u_par = st.columns([1.5, 2.5])
 
         with col_d_par:
-            st.markdown("#### 📥 Descarregar Histórico / Modelo")
-            st.caption("Descarrega a planilha (.xlsx) com as paradas de manutenção registradas ou modelo limpo.")
+            st.markdown("#### 📥 Descarregar Registos")
+            st.caption("Descarrega o ficheiro .xlsx contendo apenas as manutenções corretivas apontadas.")
 
             filtro_setor_par = st.selectbox(
-                "Filtrar Setor para Exportação:",
+                "Filtrar Setor:",
                 ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()),
                 key="sel_export_setor_parada"
             )
 
+            # Exporta estritamente os eventos ocorridos
             df_export_par = df_paradas if filtro_setor_par == "Todos os Setores" else df_paradas[df_paradas["Setor"] == filtro_setor_par]
             
-            # Se a base estiver vazia, gera modelo com as máquinas do setor
+            # Se não houver nada, baixa apenas o cabeçalho oficial
             if df_export_par.empty:
-                linhas_modelo_p = []
-                setores_alvo_p = list(DICIONARIO_SETORES.keys()) if filtro_setor_par == "Todos os Setores" else [filtro_setor_par]
-                for s_p in setores_alvo_p:
-                    for m_p in obter_maquinas_setor(s_p, df_correias, df_fusos):
-                        linhas_modelo_p.append({
-                            "Data": date.today().strftime("%Y-%m-%d"),
-                            "Setor": s_p,
-                            "Maquina_TAG": m_p,
-                            "Tipo_Manutencao": "Corretiva",
-                            "Descricao_Servico": "",
-                            "Tempo_Parado_Horas": 0.0,
-                            "Responsavel": "",
-                        })
-                df_export_par = pd.DataFrame(linhas_modelo_p)
+                df_export_par = pd.DataFrame(columns=COLUNAS_PARADAS)
+            else:
+                df_export_par = df_export_par[COLUNAS_PARADAS]
 
             buf_down_p = io.BytesIO()
             with pd.ExcelWriter(buf_down_p, engine="openpyxl") as writer_p:
-                df_export_par.to_excel(writer_p, index=False, sheet_name="Paradas")
+                df_export_par.to_excel(writer_p, index=False, sheet_name="Corretivas")
             buf_down_p.seek(0)
 
-            nome_arq_par = f"manutencao_paradas_{date.today().strftime('%Y%m%d')}.xlsx"
+            nome_arq_par = f"manutencoes_corretivas_{date.today().strftime('%Y%m%d')}.xlsx"
             st.download_button(
-                label="📥 Baixar Planilha de Paradas (.xlsx)",
+                label="📥 Baixar Planilha de Corretivas (.xlsx)",
                 data=buf_down_p,
                 file_name=nome_arq_par,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1420,11 +1409,11 @@ elif tela == "Banco de Dados":
             )
 
         with col_u_par:
-            st.markdown("#### 📤 Enviar Paradas Atualizadas")
-            st.caption("Suba o ficheiro Excel (.xlsx) contendo as colunas: `Data`, `Setor`, `Maquina_TAG`, `Tipo_Manutencao`, `Descricao_Servico`, `Tempo_Parado_Horas`, `Responsavel`.")
+            st.markdown("#### 📤 Enviar Registos de Corretivas")
+            st.caption("Envie a planilha preenchida (.xlsx). É permitido múltiplas corretivas para a mesma máquina no mesmo dia.")
 
             up_arquivo_par = st.file_uploader(
-                "Carregar planilha de paradas (.xlsx)",
+                "Carregar planilha de corretivas (.xlsx)",
                 type=["xlsx"],
                 key="uploader_novas_paradas",
             )
@@ -1432,14 +1421,14 @@ elif tela == "Banco de Dados":
             modo_gravacao_par = st.radio(
                 "Modo de Gravação:",
                 [
-                    "Adicionar aos Registos Existentes (Incrementar histórico)",
-                    "Substituição Completa (Sobrescrever histórico de paradas)"
+                    "Incrementar Registos (Adicionar ao histórico atual)",
+                    "Substituição Completa (Sobrescrever histórico de corretivas)"
                 ],
                 key="radio_modo_up_par"
             )
 
             if up_arquivo_par is not None:
-                if st.button("🚀 Confirmar e Atualizar Paradas", type="primary", key="btn_executar_up_par"):
+                if st.button("🚀 Confirmar e Atualizar Corretivas", type="primary", key="btn_executar_up_par"):
                     try:
                         df_novo_p = pd.read_excel(up_arquivo_par)
 
@@ -1456,10 +1445,8 @@ elif tela == "Banco de Dados":
                                 mapa_cols_up_p[c] = "Tipo_Manutencao"
                             elif "servico" in c_norm or "desc" in c_norm:
                                 mapa_cols_up_p[c] = "Descricao_Servico"
-                            elif "tempo" in c_norm or "hora" in c_norm:
+                            elif "tempo" in c_norm or "hora" in c_norm or "parado" in c_norm:
                                 mapa_cols_up_p[c] = "Tempo_Parado_Horas"
-                            elif "resp" in c_norm or "tecnico" in c_norm:
-                                mapa_cols_up_p[c] = "Responsavel"
 
                         df_novo_p.rename(columns=mapa_cols_up_p, inplace=True)
 
@@ -1484,8 +1471,11 @@ elif tela == "Banco de Dados":
 
                             df_novo_p["Data"] = df_novo_p["Data"].apply(tratar_data_p)
                             df_novo_p["Tempo_Parado_Horas"] = pd.to_numeric(df_novo_p["Tempo_Parado_Horas"], errors="coerce").fillna(0.0)
+                            
+                            # Garante que o tipo seja "Corretiva" caso não especificado
+                            df_novo_p["Tipo_Manutencao"] = df_novo_p["Tipo_Manutencao"].replace({"": "Corretiva"}).fillna("Corretiva")
 
-                            # Mantém apenas linhas que tenham horas paradas ou descrição de serviço
+                            # Mantém apenas registros que tenham descrição ou tempo de parada preenchido
                             df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
 
                             gerar_backup_seguro(ARQUIVO_PARADAS)
@@ -1496,11 +1486,11 @@ elif tela == "Banco de Dados":
                                 df_final_p = pd.concat([df_paradas, df_novo_p[COLUNAS_PARADAS]], ignore_index=True)
 
                             df_final_p.to_excel(ARQUIVO_PARADAS, index=False)
-                            st.success(f"✅ Base de Paradas atualizada com sucesso! ({len(df_novo_p)} lançamentos processados)")
+                            st.success(f"✅ {len(df_novo_p)} manutenções corretivas registradas com sucesso!")
                             st.rerun()
 
                     except Exception as erro_proc_p:
-                        st.error(f"Erro ao processar o arquivo de paradas: {erro_proc_p}")
+                        st.error(f"Erro ao processar o arquivo de corretivas: {erro_proc_p}")
 
     # Aba Backups Automáticos
     with tab_backups_db:
