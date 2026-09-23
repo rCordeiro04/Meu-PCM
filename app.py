@@ -535,7 +535,7 @@ st.markdown(
 # ==========================================
 with st.sidebar:
     st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 10px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
-    is_lancto = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
+    is_lancto = st.session_state.pagina_atual in ["Correias", "Preventiva", "Máquinas"]
     modo = st.radio("Modo", ["📊 Painéis", "📝 Lançamentos"], index=1 if is_lancto else 0, label_visibility="collapsed")
 
     if modo == "📊 Painéis":
@@ -547,12 +547,11 @@ with st.sidebar:
             st.rerun()
     else:
         st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>APONTAMENTOS</p>", unsafe_allow_html=True)
-        st.button("🔩 Fechamento de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Lançamento Fusos" else "secondary", on_click=navegar, args=("Lançamento Fusos",))
         st.button("🔄 Gestão de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Correias" else "secondary", on_click=navegar, args=("Correias",))
         st.button("🛠️ Preventiva", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Preventiva" else "secondary", on_click=navegar, args=("Preventiva",))
         st.button("🏭 Máquinas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Máquinas" else "secondary", on_click=navegar, args=("Máquinas",))
         if not is_lancto:
-            st.session_state.pagina_atual = "Lançamento Fusos"
+            st.session_state.pagina_atual = "Correias"
             st.rerun()
 
     st.markdown("---")
@@ -712,7 +711,7 @@ elif tela == "Correias":
         st.rerun()
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE FUSOS (COM GRÁFICOS RESTAURADOS)
+# 3. PAINEL GERENCIAL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
     cf_t, cf_a = st.columns([3.8, 1.4])
@@ -972,68 +971,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 4. LANÇAMENTO DE FUSOS (MATRIZ DIÁRIA)
-# ------------------------------------------
-elif tela == "Lançamento Fusos":
-    st.title("🔩 Lançamento: Apontamento Diário de Fusos")
-    c_ano, c_set = st.columns([1.2, 2])
-    ano_sel = c_ano.selectbox("Ano", [2024, 2025, 2026, 2027], index=2)
-    setor_sel = c_set.selectbox("Setor", list(DICIONARIO_SETORES.keys()))
-
-    abas_m = st.tabs(LISTA_MESES_PUROS)
-    maqs_f = obter_maquinas_setor(setor_sel, df_correias, df_fusos)
-
-    for idx, m_nome in enumerate(LISTA_MESES_PUROS):
-        with abas_m[idx]:
-            _, dias_no_mes = calendar.monthrange(int(ano_sel), idx + 1)
-            cols_d = [f"{d:02d}" for d in range(1, dias_no_mes + 1)]
-
-            df_sub_f = df_fusos[(df_fusos["Ano"] == ano_sel) & (df_fusos["Mes"] == m_nome) & (df_fusos["Setor"] == setor_sel)]
-            grade_f = []
-            for m in maqs_f:
-                reg_m = df_sub_f[df_sub_f["Maquina_TAG"] == m]
-                tipo = str(reg_m.iloc[0]["Tipo_Fuso"]) if not reg_m.empty and reg_m.iloc[0]["Tipo_Fuso"] in OPCOES_TIPO_FUSO else OPCOES_TIPO_FUSO[0]
-                linha = {"Máquina": m, "Tipo de Fuso": tipo}
-                for d in range(1, dias_no_mes + 1):
-                    r_d = reg_m[reg_m["Dia"] == d]
-                    linha[f"{d:02d}"] = int(r_d.iloc[0]["Quantidade_Quebras"]) if not r_d.empty else 0
-                grade_f.append(linha)
-
-            cfg = {
-                "Máquina": st.column_config.TextColumn(disabled=True, width="small"),
-                "Tipo de Fuso": st.column_config.SelectboxColumn(options=OPCOES_TIPO_FUSO, width="medium"),
-            }
-            for cd in cols_d:
-                cfg[cd] = st.column_config.NumberColumn(cd, min_value=0, step=1, format="%d", width="small")
-
-            ed_f = st.data_editor(
-                pd.DataFrame(grade_f)[["Máquina", "Tipo de Fuso"] + cols_d],
-                column_config=cfg,
-                hide_index=True,
-                use_container_width=True,
-                height=420,
-                key=f"ed_f_{ano_sel}_{setor_sel}_{m_nome}"
-            )
-
-            if st.button(f"💾 Salvar Apontamentos ({m_nome})", key=f"btn_s_{ano_sel}_{setor_sel}_{m_nome}", type="primary"):
-                df_limpo = df_fusos[~((df_fusos["Ano"] == ano_sel) & (df_fusos["Mes"] == m_nome) & (df_fusos["Setor"] == setor_sel))]
-                novos_f = []
-                for _, r in ed_f.iterrows():
-                    for d in range(1, dias_no_mes + 1):
-                        novos_f.append({
-                            "Ano": int(ano_sel), "Mes": m_nome, "Dia": d,
-                            "Setor": setor_sel, "Maquina_TAG": r["Máquina"],
-                            "Quantidade_Quebras": int(r[f"{d:02d}"]),
-                            "Tipo_Fuso": str(r["Tipo de Fuso"]),
-                        })
-                df_final_f = pd.concat([df_limpo, pd.DataFrame(novos_f)], ignore_index=True)
-                gerar_backup_seguro(ARQUIVO_FUSOS)
-                df_final_f.to_excel(ARQUIVO_FUSOS, index=False)
-                st.success(f"Apontamentos de {m_nome} salvos com sucesso!")
-                st.rerun()
-
-# ------------------------------------------
-# 5. BANCO DE DADOS & GESTÃO DE ARQUIVOS (12 MESES EM 1 ARQUIVO)
+# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (12 MESES EM 1 ARQUIVO)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
@@ -1114,7 +1052,6 @@ elif tela == "Banco de Dados":
                         fuso_padrao = "FAG" if setor_db_fuso == "Setor A" else "TEP" if setor_db_fuso == "Setor B" else "M4BA" if setor_db_fuso == "Setor Látex" else "MENEGATTO"
 
                         for nome_mes_oficial in LISTA_MESES_PUROS:
-                            # Busca aba que coincida (ex: 'Janeiro' ou 'janeiro')
                             aba_alvo = None
                             for sh in abas_encontradas:
                                 if sh.strip().lower() == nome_mes_oficial.lower():
@@ -1156,7 +1093,6 @@ elif tela == "Banco de Dados":
                                             })
 
                         if novos_registros_ano:
-                            # Remove os dados antigos dos meses que vieram na planilha
                             df_limpo_fusos = df_fusos[
                                 ~(
                                     (df_fusos["Ano"] == int(ano_db_fuso))
