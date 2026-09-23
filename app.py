@@ -70,7 +70,6 @@ MAPA_MES_ABREV = {
 }
 ORDEM_MESES_ABREV = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
 
-# Mapeamento Oficial dos Ativos
 DICIONARIO_SETORES = {
     "Setor A": [f"L-{i:02d}" for i in range(1, 29)],
     "Setor B": [
@@ -111,263 +110,77 @@ def formatar_modelo(val):
         return f"{partes[0]}.{p_dec}"
     return v_str
 
-# ==========================================
-# 1. INICIALIZAÇÃO DA BASE DE FUSOS
-# ==========================================
-df_fusos = None
-if os.path.exists(ARQUIVO_FUSOS):
-    try:
-        df_fusos = pd.read_excel(ARQUIVO_FUSOS)
-        if "Dia" not in df_fusos.columns:
-            df_fusos["Dia"] = 1
-        for col in COLUNAS_FUSOS:
-            if col not in df_fusos.columns:
-                df_fusos[col] = 0 if col == "Quantidade_Quebras" else ""
-    except Exception:
-        df_fusos = pd.DataFrame(columns=COLUNAS_FUSOS)
-        df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-else:
-    df_fusos = pd.DataFrame(columns=COLUNAS_FUSOS)
-    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-
-# ==========================================
-# 2. INICIALIZAÇÃO DA BASE DE CORREIAS
-# ==========================================
-df_correias = None
-if os.path.exists(ARQUIVO_CORREIAS):
-    try:
-        df_correias = pd.read_excel(ARQUIVO_CORREIAS)
-    except Exception:
-        df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
-        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-else:
-    df_correias = pd.DataFrame(columns=COLUNAS_CORREIAS)
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
-for col in COLUNAS_CORREIAS:
-    if col not in df_correias.columns:
-        df_correias[col] = ""
-    df_correias[col] = df_correias[col].astype(object)
-
-# ==========================================
-# 3. INICIALIZAÇÃO DA BASE DE PARADAS / CORRETIVAS
-# ==========================================
-df_paradas = None
-if os.path.exists(ARQUIVO_PARADAS):
-    try:
-        df_paradas = pd.read_excel(ARQUIVO_PARADAS)
-        for col in COLUNAS_PARADAS:
-            if col not in df_paradas.columns:
-                df_paradas[col] = 0.0 if col == "Tempo_Parado_Horas" else ""
-    except Exception:
-        df_paradas = pd.DataFrame(columns=COLUNAS_PARADAS)
-        df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
-else:
-    df_paradas = pd.DataFrame(columns=COLUNAS_PARADAS)
-    df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
-
-# ==========================================
-# 4. INICIALIZAÇÃO DA BASE DE PENDÊNCIAS
-# ==========================================
-df_pendencias = None
-if os.path.exists(ARQUIVO_PENDENCIAS):
-    try:
-        df_pendencias = pd.read_excel(ARQUIVO_PENDENCIAS)
-        for col in COLUNAS_PENDENCIAS:
-            if col not in df_pendencias.columns:
-                df_pendencias[col] = ""
-    except Exception:
-        df_pendencias = pd.DataFrame(columns=COLUNAS_PENDENCIAS)
-        df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
-else:
-    df_pendencias = pd.DataFrame(columns=COLUNAS_PENDENCIAS)
-    df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
-
 # =========================================================================
-# 5. CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS
+# LEITURA OTIMIZADA COM CACHE
 # =========================================================================
-DADOS_HISTORICOS_CORREIAS = [
-    # Setor A
-    ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
-    ("Setor A", "L-02", "", "", "", ""),
-    ("Setor A", "L-03", "36.100", "2026-05-04", "", ""),
-    ("Setor A", "L-04", "36.100", "2025-01-07", "", ""),
-    ("Setor A", "L-05", "36.100", "2026-05-27", "", ""),
-    ("Setor A", "L-06", "36.100", "2024-11-19", "", ""),
-    ("Setor A", "L-07", "36.100", "2025-11-25", "", ""),
-    ("Setor A", "L-08", "36.100", "2025-05-20", "", ""),
-    ("Setor A", "L-09", "36.100", "2026-05-13", "", ""),
-    ("Setor A", "L-10", "36.100", "2025-10-08", "", ""),
-    ("Setor A", "L-11", "19.500", "2025-01-27", "18.050", "2026-08-21"),
-    ("Setor A", "L-12", "19.500", "2026-01-17", "18.050", "2026-01-17"),
-    ("Setor A", "L-13", "", "", "18.050", "2025-08-11"),
-    ("Setor A", "L-14", "19.500", "2025-02-02", "18.050", "2026-03-26"),
-    ("Setor A", "L-15", "36.100", "2025-03-07", "", ""),
-    ("Setor A", "L-16", "36.100", "2025-02-12", "", ""),
-    ("Setor A", "L-17", "36.100", "2025-08-20", "", ""),
-    ("Setor A", "L-18", "36.100", "2026-08-24", "", ""),
-    ("Setor A", "L-19", "36.100", "2025-04-12", "", ""),
-    ("Setor A", "L-20", "36.100", "2025-07-01", "", ""),
-    ("Setor A", "L-21", "36.100", "2026-05-20", "", ""),
-    ("Setor A", "L-22", "36.100", "2026-05-19", "", ""),
-    ("Setor A", "L-23", "36.100", "2025-09-01", "", ""),
-    ("Setor A", "L-24", "36.100", "2025-10-27", "", ""),
-    ("Setor A", "L-25", "36.100", "2026-06-29", "", ""),
-    ("Setor A", "L-26", "", "", "18.050", "2026-09-14"),
-    ("Setor A", "L-27", "", "", "18.050", "2025-03-13"),
-    ("Setor A", "L-28", "19.500", "2025-03-22", "", ""),
-
-    # Setor B
-    ("Setor B", "L-29", "36.100", "2025-11-13", "", ""),
-    ("Setor B", "L-30", "36.100", "2026-09-10", "", ""),
-    ("Setor B", "L-31", "36.100", "2026-08-24", "", ""),
-    ("Setor B", "L-33", "36.100", "2026-03-20", "", ""),
-    ("Setor B", "L-34", "36.100", "2026-08-06", "", ""),
-    ("Setor B", "L-36", "36.100", "2026-02-26", "", ""),
-    ("Setor B", "L-38", "36.100", "2025-10-02", "", ""),
-    ("Setor B", "L-39", "36.100", "2025-03-21", "", ""),
-    ("Setor B", "L-40", "36.100", "2026-03-11", "", ""),
-    ("Setor B", "L-42", "", "", "34.870", "2025-10-02"),
-    ("Setor B", "L-43", "", "", "34.870", "2025-08-05"),
-    ("Setor B", "L-44", "", "", "34.870", "2025-08-08"),
-    ("Setor B", "L-50", "19.500", "2026-07-28", "18.050", "2026-03-05"),
-    ("Setor B", "L-51", "36.100", "2026-06-30", "", ""),
-
-    # Setor Látex
-    ("Setor Látex", "B-72", "33.990", "2026-01-02", "", ""),
-    ("Setor Látex", "B-73", "33.990", "2026-06-13", "34.870", "2026-06-13"),
-    ("Setor Látex", "B-74", "33.990", "2026-03-10", "34.870", "2025-02-15"),
-    ("Setor Látex", "B-78", "", "", "34.870", "2025-12-29"),
-    ("Setor Látex", "B-79", "", "", "34.870", "2024-11-30"),
-
-    # Setor Menegatto
-    ("Setor Menegatto", "B-93", "", "", "38.740", "2025-04-16"),
-    ("Setor Menegatto", "B-94", "", "", "38.740", "2025-05-01"),
-    ("Setor Menegatto", "B-95", "", "", "38.740", "2025-04-17"),
-    ("Setor Menegatto", "B-96", "", "", "38.740", "2026-06-25"),
-    ("Setor Menegatto", "B-97", "", "", "38.740", "2025-05-05"),
-    ("Setor Menegatto", "B-98", "", "", "38.740", "2024-12-11"),
-    ("Setor Menegatto", "B-99", "", "", "38.740", "2024-12-06"),
-    ("Setor Menegatto", "B-100", "", "2025-05-27", "38.740", "2025-12-04"),
-    ("Setor Menegatto", "B-101", "", "2025-10-04", "38.740", "2026-04-03"),
-]
-
-salvar_cor_init = False
-for s_cor, tag_cor, m1_cor, dt1_cor, m2_cor, dt2_cor in DADOS_HISTORICOS_CORREIAS:
-    mask = (df_correias["Setor"] == s_cor) & (df_correias["Maquina_TAG"] == tag_cor)
-    if not mask.any():
-        novo = {
-            "Setor": s_cor, "Maquina_TAG": tag_cor,
-            "Tipo_Correia_1": str(m1_cor), "Data_Instalacao_1": str(dt1_cor),
-            "Tipo_Correia_2": str(m2_cor), "Data_Instalacao_2": str(dt2_cor),
-        }
-        df_correias = pd.concat([df_correias, pd.DataFrame([novo])], ignore_index=True)
-        salvar_cor_init = True
+@st.cache_data(show_spinner=False)
+def carregar_dados():
+    # 1. Fusos
+    if os.path.exists(ARQUIVO_FUSOS):
+        try:
+            df_f = pd.read_excel(ARQUIVO_FUSOS)
+            if "Dia" not in df_f.columns:
+                df_f["Dia"] = 1
+        except Exception:
+            df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
     else:
-        idx = df_correias[mask].index[0]
-        if m1_cor and str(df_correias.loc[idx, "Tipo_Correia_1"]).strip() in ["", "nan", "None"]:
-            df_correias.loc[idx, "Tipo_Correia_1"] = str(m1_cor)
-            df_correias.loc[idx, "Data_Instalacao_1"] = str(dt1_cor)
-            salvar_cor_init = True
-        if m2_cor and str(df_correias.loc[idx, "Tipo_Correia_2"]).strip() in ["", "nan", "None"]:
-            df_correias.loc[idx, "Tipo_Correia_2"] = str(m2_cor)
-            df_correias.loc[idx, "Data_Instalacao_2"] = str(dt2_cor)
-            salvar_cor_init = True
+        df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
+        df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-if salvar_cor_init:
-    gerar_backup_seguro(ARQUIVO_CORREIAS)
-    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+    # 2. Correias
+    if os.path.exists(ARQUIVO_CORREIAS):
+        try:
+            df_c = pd.read_excel(ARQUIVO_CORREIAS)
+        except Exception:
+            df_c = pd.DataFrame(columns=COLUNAS_CORREIAS)
+    else:
+        df_c = pd.DataFrame(columns=COLUNAS_CORREIAS)
+        df_c.to_excel(ARQUIVO_CORREIAS, index=False)
 
-df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].apply(formatar_modelo)
-df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
-df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
-df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
+    for col in COLUNAS_CORREIAS:
+        if col not in df_c.columns:
+            df_c[col] = ""
+        df_c[col] = df_c[col].astype(object)
 
-# =========================================================================
-# 6. CARGA FIXA HISTÓRICA CONSOLIDADA DE FUSOS
-# =========================================================================
-dados_janeiro_b = [("L-29", 1), ("L-30", 13), ("L-31", 10), ("L-32", 7), ("L-33", 5), ("L-34", 2), ("L-35", 2), ("L-36", 8), ("L-37", 2), ("L-38", 1), ("L-39", 1), ("L-40", 4), ("L-50", 7), ("L-51", 0), ("L-41", 1), ("L-42", 2), ("L-43", 0), ("L-44", 3), ("L-45", 0), ("L-46", 2), ("L-52", 3), ("L-53", 6)]
-dados_fevereiro_b = [("L-29", 4), ("L-30", 23), ("L-31", 9), ("L-32", 34), ("L-33", 22), ("L-34", 19), ("L-35", 42), ("L-36", 22), ("L-37", 7), ("L-38", 4), ("L-39", 5), ("L-40", 11), ("L-50", 45), ("L-51", 2), ("L-41", 1), ("L-42", 2), ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 1), ("L-52", 2), ("L-53", 5)]
-dados_marco_b = [("L-29", 1), ("L-30", 15), ("L-31", 4), ("L-32", 8), ("L-33", 14), ("L-34", 6), ("L-35", 8), ("L-36", 9), ("L-37", 18), ("L-38", 2), ("L-39", 5), ("L-40", 6), ("L-50", 0), ("L-51", 4), ("L-41", 1), ("L-42", 1), ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 0), ("L-52", 3), ("L-53", 6)]
-dados_abril_b = [("L-29", 2), ("L-30", 3), ("L-31", 1), ("L-32", 2), ("L-33", 17), ("L-34", 8), ("L-35", 7), ("L-36", 15), ("L-37", 17), ("L-38", 5), ("L-39", 12), ("L-40", 3), ("L-50", 2), ("L-51", 3), ("L-41", 3), ("L-42", 4), ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 1), ("L-52", 1), ("L-53", 4)]
-dados_maio_b = [("L-29", 0), ("L-30", 5), ("L-31", 8), ("L-32", 0), ("L-33", 6), ("L-34", 2), ("L-35", 7), ("L-36", 10), ("L-37", 12), ("L-38", 2), ("L-39", 5), ("L-40", 3), ("L-50", 1), ("L-51", 0), ("L-41", 2), ("L-42", 1), ("L-43", 8), ("L-44", 1), ("L-45", 0), ("L-46", 2), ("L-52", 5), ("L-53", 5)]
-dados_junho_b = [("L-29", 6), ("L-30", 16), ("L-31", 35), ("L-32", 4), ("L-33", 10), ("L-34", 4), ("L-35", 8), ("L-36", 11), ("L-37", 6), ("L-38", 1), ("L-39", 9), ("L-40", 11), ("L-50", 1), ("L-51", 1), ("L-41", 6), ("L-42", 1), ("L-43", 2), ("L-44", 0), ("L-45", 0), ("L-46", 0), ("L-52", 1), ("L-53", 2)]
-dados_julho_b = [("L-29", 0), ("L-30", 31), ("L-31", 4), ("L-32", 13), ("L-33", 26), ("L-34", 7), ("L-35", 14), ("L-36", 2), ("L-37", 14), ("L-38", 0), ("L-39", 2), ("L-40", 11), ("L-50", 2), ("L-51", 6), ("L-41", 3), ("L-42", 2), ("L-43", 3), ("L-44", 5), ("L-45", 0), ("L-46", 0), ("L-52", 6), ("L-53", 4)]
+    df_c["Tipo_Correia_1"] = df_c["Tipo_Correia_1"].apply(formatar_modelo)
+    df_c["Data_Instalacao_1"] = df_c["Data_Instalacao_1"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
+    df_c["Tipo_Correia_2"] = df_c["Tipo_Correia_2"].apply(formatar_modelo)
+    df_c["Data_Instalacao_2"] = df_c["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
 
-mapa_cargas_setor_b = [
-    ("Janeiro", dados_janeiro_b), ("Fevereiro", dados_fevereiro_b), ("Março", dados_marco_b),
-    ("Abril", dados_abril_b), ("Maio", dados_maio_b), ("Junho", dados_junho_b), ("Julho", dados_julho_b),
-]
+    # 3. Paradas
+    if os.path.exists(ARQUIVO_PARADAS):
+        try:
+            df_p = pd.read_excel(ARQUIVO_PARADAS)
+        except Exception:
+            df_p = pd.DataFrame(columns=COLUNAS_PARADAS)
+    else:
+        df_p = pd.DataFrame(columns=COLUNAS_PARADAS)
+        df_p.to_excel(ARQUIVO_PARADAS, index=False)
 
-dados_janeiro_a = [("L-01", 8), ("L-02", 9), ("L-03", 2), ("L-04", 3), ("L-05", 3), ("L-06", 13), ("L-07", 6), ("L-08", 4), ("L-09", 8), ("L-10", 9), ("L-11", 3), ("L-12", 6), ("L-13", 5), ("L-14", 8), ("L-15", 9), ("L-16", 4), ("L-17", 2), ("L-18", 3), ("L-19", 10), ("L-20", 5), ("L-21", 4), ("L-22", 4), ("L-23", 6), ("L-24", 10), ("L-25", 4), ("L-26", 3), ("L-27", 4), ("L-28", 3)]
-dados_fevereiro_a = [("L-01", 3), ("L-02", 6), ("L-03", 4), ("L-04", 4), ("L-05", 2), ("L-06", 5), ("L-07", 7), ("L-08", 3), ("L-09", 4), ("L-10", 2), ("L-11", 4), ("L-12", 14), ("L-13", 14), ("L-14", 13), ("L-15", 4), ("L-16", 10), ("L-17", 1), ("L-18", 4), ("L-19", 0), ("L-20", 6), ("L-21", 7), ("L-22", 4), ("L-23", 3), ("L-24", 4), ("L-25", 4), ("L-26", 0), ("L-27", 0), ("L-28", 8)]
-dados_marco_a = [("L-01", 4), ("L-02", 7), ("L-03", 6), ("L-04", 3), ("L-05", 1), ("L-06", 5), ("L-07", 10), ("L-08", 2), ("L-09", 12), ("L-10", 8), ("L-11", 10), ("L-12", 9), ("L-13", 9), ("L-14", 9), ("L-15", 12), ("L-16", 3), ("L-17", 8), ("L-18", 20), ("L-19", 10), ("L-20", 3), ("L-21", 4), ("L-22", 5), ("L-23", 3), ("L-24", 8), ("L-25", 4), ("L-26", 9), ("L-27", 2), ("L-28", 2)]
-dados_abril_a = [("L-01", 1), ("L-02", 8), ("L-03", 3), ("L-04", 6), ("L-05", 2), ("L-06", 7), ("L-07", 8), ("L-08", 0), ("L-09", 2), ("L-10", 6), ("L-11", 9), ("L-12", 6), ("L-13", 5), ("L-14", 2), ("L-15", 2), ("L-16", 7), ("L-17", 5), ("L-18", 8), ("L-19", 2), ("L-20", 5), ("L-21", 3), ("L-22", 12), ("L-23", 5), ("L-24", 9), ("L-25", 2), ("L-26", 7), ("L-27", 5), ("L-28", 2)]
-dados_maio_a = [("L-01", 8), ("L-02", 5), ("L-03", 11), ("L-04", 1), ("L-05", 5), ("L-06", 7), ("L-07", 6), ("L-08", 2), ("L-09", 8), ("L-10", 1), ("L-11", 4), ("L-12", 1), ("L-13", 2), ("L-14", 6), ("L-15", 6), ("L-16", 10), ("L-17", 4), ("L-18", 5), ("L-19", 7), ("L-20", 13), ("L-21", 3), ("L-22", 4), ("L-23", 9), ("L-24", 7), ("L-25", 1), ("L-26", 2), ("L-27", 4), ("L-28", 4)]
-dados_junho_a = [("L-01", 5), ("L-02", 2), ("L-03", 4), ("L-04", 4), ("L-05", 5), ("L-06", 3), ("L-07", 8), ("L-08", 1), ("L-09", 6), ("L-10", 5), ("L-11", 9), ("L-12", 5), ("L-13", 8), ("L-14", 3), ("L-15", 2), ("L-16", 5), ("L-17", 2), ("L-18", 4), ("L-19", 3), ("L-20", 5), ("L-21", 5), ("L-22", 3), ("L-23", 4), ("L-24", 4), ("L-25", 3), ("L-26", 9), ("L-27", 3), ("L-28", 1)]
-dados_julho_a = [("L-01", 5), ("L-02", 3), ("L-03", 3), ("L-04", 10), ("L-05", 2), ("L-06", 6), ("L-07", 11), ("L-08", 8), ("L-09", 11), ("L-10", 7), ("L-11", 5), ("L-12", 3), ("L-13", 2), ("L-14", 7), ("L-15", 6), ("L-16", 9), ("L-17", 4), ("L-18", 8), ("L-19", 8), ("L-20", 5), ("L-21", 11), ("L-22", 18), ("L-23", 9), ("L-24", 10), ("L-25", 7), ("L-26", 9), ("L-27", 3), ("L-28", 9)]
-dados_agosto_a = [("L-01", 5), ("L-02", 8), ("L-03", 3), ("L-04", 5), ("L-05", 11), ("L-06", 8), ("L-07", 15), ("L-08", 5), ("L-09", 14), ("L-10", 6), ("L-11", 9), ("L-12", 5), ("L-13", 7), ("L-14", 9), ("L-15", 11), ("L-16", 5), ("L-17", 6), ("L-18", 12), ("L-19", 10), ("L-20", 10), ("L-21", 9), ("L-22", 16), ("L-23", 11), ("L-24", 8), ("L-25", 4), ("L-26", 2), ("L-27", 5), ("L-28", 10)]
-dados_setembro_a = [("L-01", 1), ("L-02", 2), ("L-03", 2), ("L-04", 4), ("L-05", 1), ("L-06", 0), ("L-07", 1), ("L-08", 0), ("L-09", 3), ("L-10", 4), ("L-11", 7), ("L-12", 2), ("L-13", 4), ("L-14", 3), ("L-15", 1), ("L-16", 0), ("L-17", 1), ("L-18", 1), ("L-19", 4), ("L-20", 4), ("L-21", 2), ("L-22", 3), ("L-23", 1), ("L-24", 5), ("L-25", 1), ("L-26", 0), ("L-27", 2), ("L-28", 4)]
+    for col in COLUNAS_PARADAS:
+        if col not in df_p.columns:
+            df_p[col] = 0.0 if col == "Tempo_Parado_Horas" else ""
 
-mapa_cargas_setor_a = [
-    ("Janeiro", dados_janeiro_a), ("Fevereiro", dados_fevereiro_a), ("Março", dados_marco_a),
-    ("Abril", dados_abril_a), ("Maio", dados_maio_a), ("Junho", dados_junho_a),
-    ("Julho", dados_julho_a), ("Agosto", dados_agosto_a), ("Setembro", dados_setembro_a),
-]
+    # 4. Pendências
+    if os.path.exists(ARQUIVO_PENDENCIAS):
+        try:
+            df_pend = pd.read_excel(ARQUIVO_PENDENCIAS)
+        except Exception:
+            df_pend = pd.DataFrame(columns=COLUNAS_PENDENCIAS)
+    else:
+        df_pend = pd.DataFrame(columns=COLUNAS_PENDENCIAS)
+        df_pend.to_excel(ARQUIVO_PENDENCIAS, index=False)
 
-dados_janeiro_latex = [("B-71", 7), ("B-72", 10), ("B-73", 13), ("B-74", 18), ("B-75", 4), ("B-76", 9), ("B-77", 10), ("B-78", 5), ("B-79", 1), ("B-80", 0), ("B-83", 6), ("B-84", 7), ("B-85", 9), ("B-86", 5), ("B-87", 5), ("B-88", 10), ("B-89", 1), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_fevereiro_latex = [("B-71", 1), ("B-72", 2), ("B-73", 5), ("B-74", 0), ("B-75", 0), ("B-76", 1), ("B-77", 2), ("B-78", 3), ("B-79", 4), ("B-80", 0), ("B-83", 1), ("B-84", 2), ("B-85", 4), ("B-86", 4), ("B-87", 2), ("B-88", 0), ("B-89", 0), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_marco_latex = [("B-71", 5), ("B-72", 7), ("B-73", 2), ("B-74", 1), ("B-75", 0), ("B-76", 3), ("B-77", 4), ("B-78", 4), ("B-79", 0), ("B-80", 1), ("B-83", 9), ("B-84", 18), ("B-85", 9), ("B-86", 9), ("B-87", 14), ("B-88", 0), ("B-89", 8), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_abril_latex = [("B-71", 5), ("B-72", 9), ("B-73", 3), ("B-74", 5), ("B-75", 2), ("B-76", 4), ("B-77", 5), ("B-78", 3), ("B-79", 0), ("B-80", 0), ("B-83", 10), ("B-84", 18), ("B-85", 8), ("B-86", 12), ("B-87", 9), ("B-88", 0), ("B-89", 10), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_maio_latex = [("B-71", 1), ("B-72", 4), ("B-73", 7), ("B-74", 5), ("B-75", 2), ("B-76", 4), ("B-77", 1), ("B-78", 0), ("B-79", 0), ("B-80", 0), ("B-83", 15), ("B-84", 18), ("B-85", 6), ("B-86", 12), ("B-87", 7), ("B-88", 0), ("B-89", 17), ("B-102", 0), ("B-103", 0), ("B-104", 1)]
-dados_junho_latex = [("B-71", 1), ("B-72", 1), ("B-73", 7), ("B-74", 0), ("B-75", 7), ("B-76", 1), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0), ("B-83", 9), ("B-84", 7), ("B-85", 10), ("B-86", 13), ("B-87", 5), ("B-88", 1), ("B-89", 8), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_julho_latex = [("B-71", 3), ("B-72", 1), ("B-73", 3), ("B-74", 0), ("B-75", 0), ("B-76", 0), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0), ("B-83", 8), ("B-84", 10), ("B-85", 7), ("B-86", 9), ("B-87", 10), ("B-88", 0), ("B-89", 7), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
-dados_agosto_latex = [("B-71", 5), ("B-72", 1), ("B-73", 0), ("B-74", 0), ("B-75", 0), ("B-76", 0), ("B-77", 0), ("B-78", 0), ("B-79", 0), ("B-80", 0), ("B-83", 1), ("B-84", 3), ("B-85", 6), ("B-86", 1), ("B-87", 1), ("B-88", 0), ("B-89", 1), ("B-102", 0), ("B-103", 0), ("B-104", 0)]
+    for col in COLUNAS_PENDENCIAS:
+        if col not in df_pend.columns:
+            df_pend[col] = ""
 
-mapa_cargas_setor_latex = [
-    ("Janeiro", dados_janeiro_latex), ("Fevereiro", dados_fevereiro_latex), ("Março", dados_marco_latex),
-    ("Abril", dados_abril_latex), ("Maio", dados_maio_latex), ("Junho", dados_junho_latex),
-    ("Julho", dados_julho_latex), ("Agosto", dados_agosto_latex),
-]
+    return df_f, df_c, df_p, df_pend
 
-dados_janeiro_menegatto = [("B-47", 4), ("B-48", 3), ("B-49", 5), ("B-81", 3), ("B-82", 3), ("B-93", 10), ("B-94", 9), ("B-95", 4), ("B-96", 6), ("B-97", 4), ("B-98", 1), ("B-99", 6), ("B-100", 6), ("B-101", 5), ("B-107", 0), ("B-108", 0)]
-dados_fevereiro_menegatto = [("B-47", 4), ("B-48", 3), ("B-49", 2), ("B-81", 2), ("B-82", 0), ("B-93", 1), ("B-94", 0), ("B-95", 3), ("B-96", 4), ("B-97", 6), ("B-98", 1), ("B-99", 6), ("B-100", 16), ("B-101", 1), ("B-107", 0), ("B-108", 0)]
-dados_marco_menegatto = [("B-47", 0), ("B-48", 5), ("B-49", 2), ("B-81", 3), ("B-82", 3), ("B-93", 3), ("B-94", 7), ("B-95", 12), ("B-96", 2), ("B-97", 5), ("B-98", 1), ("B-99", 9), ("B-100", 0), ("B-101", 3), ("B-107", 0), ("B-108", 0)]
-dados_abril_menegatto = [("B-47", 9), ("B-48", 8), ("B-49", 3), ("B-81", 8), ("B-82", 5), ("B-93", 3), ("B-94", 2), ("B-95", 25), ("B-96", 5), ("B-97", 3), ("B-98", 2), ("B-99", 14), ("B-100", 2), ("B-101", 4), ("B-107", 0), ("B-108", 0)]
-dados_maio_menegatto = [("B-47", 5), ("B-48", 9), ("B-49", 1), ("B-81", 7), ("B-82", 1), ("B-93", 1), ("B-94", 0), ("B-95", 4), ("B-96", 0), ("B-97", 9), ("B-98", 0), ("B-99", 1), ("B-100", 4), ("B-101", 3), ("B-107", 0), ("B-108", 0)]
-dados_junho_menegatto = [("B-47", 4), ("B-48", 6), ("B-49", 1), ("B-81", 1), ("B-82", 3), ("B-93", 5), ("B-94", 7), ("B-95", 15), ("B-96", 5), ("B-97", 9), ("B-98", 0), ("B-99", 6), ("B-100", 3), ("B-101", 1), ("B-107", 0), ("B-108", 0)]
-dados_julho_menegatto = [("B-47", 11), ("B-48", 5), ("B-49", 7), ("B-81", 6), ("B-82", 5), ("B-93", 1), ("B-94", 0), ("B-95", 1), ("B-96", 3), ("B-97", 1), ("B-98", 1), ("B-99", 3), ("B-100", 2), ("B-101", 5), ("B-107", 1), ("B-108", 0)]
-dados_agosto_menegatto = [("B-47", 7), ("B-48", 1), ("B-49", 4), ("B-81", 0), ("B-82", 3), ("B-93", 2), ("B-94", 0), ("B-95", 1), ("B-96", 2), ("B-97", 3), ("B-98", 0), ("B-99", 0), ("B-100", 1), ("B-101", 2), ("B-107", 0), ("B-108", 0)]
+df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 
-mapa_cargas_setor_menegatto = [
-    ("Janeiro", dados_janeiro_menegatto), ("Fevereiro", dados_fevereiro_menegatto), ("Março", dados_marco_menegatto),
-    ("Abril", dados_abril_menegatto), ("Maio", dados_maio_menegatto), ("Junho", dados_junho_menegatto),
-    ("Julho", dados_julho_menegatto), ("Agosto", dados_agosto_menegatto),
-]
-
-precisa_salvar_fusos = False
-
-for s_alvo, mapa_c, fuso_padrao in [
-    ("Setor B", mapa_cargas_setor_b, "TEP"),
-    ("Setor A", mapa_cargas_setor_a, "FAG"),
-    ("Setor Látex", mapa_cargas_setor_latex, "M4BA"),
-    ("Setor Menegatto", mapa_cargas_setor_menegatto, "MENEGATTO"),
-]:
-    for nome_mes, lista_d in mapa_c:
-        mask_m = (df_fusos["Ano"] == 2026) & (df_fusos["Mes"] == nome_mes) & (df_fusos["Setor"] == s_alvo)
-        sub = df_fusos[mask_m]
-        if sub.empty or sub["Quantidade_Quebras"].sum() == 0:
-            df_fusos = df_fusos[~mask_m]
-            novos = [
-                {"Ano": 2026, "Mes": nome_mes, "Dia": 1, "Setor": s_alvo, "Maquina_TAG": mq, "Quantidade_Quebras": int(q), "Tipo_Fuso": fuso_padrao}
-                for mq, q in lista_d
-            ]
-            df_fusos = pd.concat([df_fusos, pd.DataFrame(novos)], ignore_index=True)
-            precisa_salvar_fusos = True
-
-if precisa_salvar_fusos:
-    gerar_backup_seguro(ARQUIVO_FUSOS)
-    df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
+def invalidar_cache():
+    st.cache_data.clear()
 
 def obter_maquinas_setor(setor_nome, df_c=None, df_f=None):
     base = set(DICIONARIO_SETORES.get(setor_nome, []))
@@ -400,7 +213,7 @@ def navegar(p):
     st.session_state.pagina_atual = p
 
 # ==========================================
-# PROCESSAMENTO DE CORREIAS
+# PROCESSAMENTO DE CORREIAS OTIMIZADO
 # ==========================================
 data_hoje = date.today()
 dados_maquinas = {}
@@ -429,15 +242,20 @@ for s_nome in DICIONARIO_SETORES.keys():
         if m not in todas_maquinas_totais:
             todas_maquinas_totais.append(m)
 
+# Dicionário indexado para busca O(1) ultra rápida
+ult_correias_dict = {}
+if not df_correias.empty:
+    for (s_idx, m_idx), sub_c in df_correias.groupby(["Setor", "Maquina_TAG"]):
+        ult_correias_dict[(s_idx, m_idx)] = sub_c.iloc[-1]
+
 for maq_tag in todas_maquinas_totais:
     setor_m = mapa_setor_maquina.get(maq_tag, "Setor A")
-    reg_maq = df_correias[(df_correias["Setor"] == setor_m) & (df_correias["Maquina_TAG"] == maq_tag)]
+    ult = ult_correias_dict.get((setor_m, maq_tag))
 
     t1, d1_str, t1_uso, c1_score, tem_c1 = "Não informada", "Sem registro", "Sem histórico", None, False
     t2, d2_str, t2_uso, c2_score, tem_c2 = "Não informada", "Sem registro", "Sem histórico", None, False
 
-    if not reg_maq.empty:
-        ult = reg_maq.iloc[-1]
+    if ult is not None:
         v1, dt1_raw = formatar_modelo(ult.get("Tipo_Correia_1", "")), str(ult.get("Data_Instalacao_1", "")).strip()
         if v1 or (dt1_raw not in ["", "nan", "NaT", "None"]):
             t1 = v1 or "Não informada"
@@ -489,7 +307,6 @@ st.markdown(
             border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
         }
 
-        /* Estilização dos botões das máquinas */
         div.stButton > button {
             background: #ffffff !important;
             color: #0f172a !important;
@@ -1256,7 +1073,8 @@ elif tela == "Banco de Dados":
                             df_atualizado_fusos = pd.concat([df_limpo_fusos, pd.DataFrame(novos_registros_ano)], ignore_index=True)
                             gerar_backup_seguro(ARQUIVO_FUSOS)
                             df_atualizado_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-                            st.success(f"✅ {len(meses_atualizados)} meses atualizados com sucesso ({', '.join(meses_atualizados[:4])}...)!")
+                            invalidar_cache()
+                            st.success(f"✅ {len(meses_atualizados)} meses atualizados com sucesso!")
                             st.rerun()
                         else:
                             st.warning("Nenhuma aba com nome de mês correspondente ou coluna 'MAQUINA' foi encontrada.")
@@ -1408,6 +1226,7 @@ elif tela == "Banco de Dados":
                                 df_final_up_c = pd.concat([df_base_restante, df_novo_cor], ignore_index=True)
 
                             df_final_up_c.to_excel(ARQUIVO_CORREIAS, index=False)
+                            invalidar_cache()
                             st.success(f"✅ Base de Correias atualizada com sucesso! ({len(df_novo_cor)} máquinas processadas)")
                             st.rerun()
 
@@ -1529,13 +1348,14 @@ elif tela == "Banco de Dados":
                                 df_final_p = pd.concat([df_paradas, df_novo_p[COLUNAS_PARADAS]], ignore_index=True)
 
                             df_final_p.to_excel(ARQUIVO_PARADAS, index=False)
+                            invalidar_cache()
                             st.success(f"✅ {len(df_novo_p)} manutenções corretivas registradas com sucesso!")
                             st.rerun()
 
                     except Exception as erro_proc_p:
                         st.error(f"Erro ao processar o arquivo de corretivas: {erro_proc_p}")
 
-    # Aba Manutenções Pendentes (NOVO - SEM DATA)
+    # Aba Manutenções Pendentes (SEM DATA - OTIMIZADA)
     with tab_pendencias_db:
         st.markdown("### 📋 Gestão de Manutenções Pendentes")
         st.caption("Cadastre pendências e manutenções a realizar sem necessidade de data fixa. Acompanhe o backlog de intervenções futuras.")
@@ -1574,7 +1394,7 @@ elif tela == "Banco de Dados":
                 use_container_width=True,
             )
 
-        with col_u_par:
+        with col_u_pend:
             st.markdown("#### 📤 Enviar Backlog de Pendências")
             st.caption("Envie a planilha de pendências (.xlsx). Colunas esperadas: `Setor`, `Maquina_TAG`, `Descricao_Pendencia`, `Prioridade` e `Status`.")
 
@@ -1628,7 +1448,6 @@ elif tela == "Banco de Dados":
                             df_novo_pend["Prioridade"] = df_novo_pend["Prioridade"].replace({"": "Média"}).fillna("Média")
                             df_novo_pend["Status"] = df_novo_pend["Status"].replace({"": "Pendente"}).fillna("Pendente")
 
-                            # Mantém apenas registros com descrição válida
                             df_novo_pend = df_novo_pend[df_novo_pend["Descricao_Pendencia"].astype(str).str.strip() != ""]
 
                             gerar_backup_seguro(ARQUIVO_PENDENCIAS)
@@ -1639,6 +1458,7 @@ elif tela == "Banco de Dados":
                                 df_final_pend = pd.concat([df_pendencias, df_novo_pend[COLUNAS_PENDENCIAS]], ignore_index=True)
 
                             df_final_pend.to_excel(ARQUIVO_PENDENCIAS, index=False)
+                            invalidar_cache()
                             st.success(f"✅ {len(df_novo_pend)} pendências atualizadas com sucesso!")
                             st.rerun()
 
@@ -1665,13 +1485,12 @@ elif tela == "Banco de Dados":
             st.info("Pasta de backups ainda não inicializada.")
 
 # ------------------------------------------
-# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS - LIMPO E MODELADO)
+# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS)
 # ------------------------------------------
 elif tela == "Gestao Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
     st.caption("Parametrize os ativos: configure o tipo de fuso, quantidade de correias e dados instalados.")
 
-    # 1. Filtros Limpos de Seleção Interdependentes
     c_f_set, c_f_maq = st.columns([1.5, 2.0])
     with c_f_set:
         setores_disponiveis = list(DICIONARIO_SETORES.keys())
@@ -1682,7 +1501,6 @@ elif tela == "Gestao Maquinas":
     with c_f_maq:
         maq_selecionada = st.selectbox("Máquina (TAG):", maquinas_do_setor, key="sel_maq_gestao_maq")
 
-    # 2. Recuperação dos Dados Atuais da Máquina Selecionada
     fuso_atual = "FAG"
     sub_fuso = df_fusos[(df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)]
     if not sub_fuso.empty:
@@ -1720,7 +1538,6 @@ elif tela == "Gestao Maquinas":
 
     st.markdown("---")
 
-    # 3. Formulário de Modelagem e Edição do Ativo
     with st.container(border=True):
         st.markdown(f"#### ⚙️ Parâmetros do Ativo: **{maq_selecionada}** ({setor_selecionado})")
         
@@ -1765,7 +1582,6 @@ elif tela == "Gestao Maquinas":
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
         if st.button("💾 Salvar Parâmetros da Máquina", type="primary", key=f"btn_salvar_param_{maq_selecionada}"):
-            # 1. Atualiza Fuso na base de Fusos
             mask_fusos_maq = (df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)
             if mask_fusos_maq.any():
                 df_fusos.loc[mask_fusos_maq, "Tipo_Fuso"] = novo_fuso
@@ -1779,7 +1595,6 @@ elif tela == "Gestao Maquinas":
             gerar_backup_seguro(ARQUIVO_FUSOS)
             df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-            # 2. Atualiza Correias na base de Correias
             m1_fmt = formatar_modelo(novo_mod1)
             d1_fmt = str(nova_dt1) if nova_dt1 is not None else ""
             m2_fmt = formatar_modelo(novo_mod2)
@@ -1805,6 +1620,6 @@ elif tela == "Gestao Maquinas":
 
             gerar_backup_seguro(ARQUIVO_CORREIAS)
             df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
+            invalidar_cache()
             st.success(f"✅ Configurações da máquina {maq_selecionada} atualizadas com sucesso!")
             st.rerun()
