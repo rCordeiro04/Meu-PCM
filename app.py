@@ -965,7 +965,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (12 MESES EM 1 ARQUIVO)
+# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (CONSOLIDADO E OTIMIZADO)
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
@@ -1104,48 +1104,6 @@ elif tela == "Banco de Dados":
 
                     except Exception as erro_up:
                         st.error(f"Erro ao processar o ficheiro anual: {erro_up}")
-
-        st.markdown("---")
-        st.markdown("#### 👁️ Pré-visualização das Abas do Ano Selecionado:")
-        abas_visualizador = st.tabs(LISTA_MESES_PUROS)
-        for idx_m, nome_mes_vis in enumerate(LISTA_MESES_PUROS):
-            with abas_visualizador[idx_m]:
-                num_mes = idx_m + 1
-                _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), num_mes)
-                cols_dias_vis = [str(d) for d in range(1, dias_no_mes + 1)]
-
-                df_mes_fuso = df_fusos[
-                    (df_fusos["Ano"] == int(ano_db_fuso))
-                    & (df_fusos["Mes"] == nome_mes_vis)
-                    & (df_fusos["Setor"] == setor_db_fuso)
-                ]
-
-                grade_vis = []
-                for maq in maquinas_set_db:
-                    sub_maq = df_mes_fuso[df_mes_fuso["Maquina_TAG"] == maq]
-                    linha_vis = {"MAQUINA": maq}
-                    for d in range(1, dias_no_mes + 1):
-                        sub_d = sub_maq[sub_maq["Dia"] == d]
-                        linha_vis[str(d)] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
-                    grade_vis.append(linha_vis)
-
-                df_grid_vis = pd.DataFrame(grade_vis)[["MAQUINA"] + cols_dias_vis]
-                tot_mes_vis = sum([df_grid_vis[c].sum() for c in cols_dias_vis])
-                st.caption(f"Total de quebras em **{nome_mes_vis}**: **{int(tot_mes_vis)} un.**")
-                st.dataframe(df_grid_vis, use_container_width=True, height=300)
-
-        st.markdown("---")
-        st.markdown("#### 📦 Base Geral de Fusos Completa (Todos os Anos)")
-        if os.path.exists(ARQUIVO_FUSOS):
-            with open(ARQUIVO_FUSOS, "rb") as f_down_full:
-                st.download_button(
-                    "📥 Baixar Base Geral de Fusos Completa (.xlsx)",
-                    data=f_down_full,
-                    file_name=f"base_completa_fusos_{date.today().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="btn_down_full_fusos",
-                    use_container_width=True,
-                )
 
     # Aba Correias
     with tab_correias_db:
