@@ -251,7 +251,7 @@ df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_mod
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
 
 # ==========================================
-# DADOS HISTÓRICOS DE FUSOS (INJEÇÃO ANTES DA TELA)
+# DADOS HISTÓRICOS DE FUSOS
 # ==========================================
 dados_janeiro_b = [("L-29", 1), ("L-30", 13), ("L-31", 10), ("L-32", 7), ("L-33", 5), ("L-34", 2), ("L-35", 2), ("L-36", 8), ("L-37", 2), ("L-38", 1), ("L-39", 1), ("L-40", 4), ("L-50", 7), ("L-51", 0), ("L-41", 1), ("L-42", 2), ("L-43", 0), ("L-44", 3), ("L-45", 0), ("L-46", 2), ("L-52", 3), ("L-53", 6)]
 dados_fevereiro_b = [("L-29", 4), ("L-30", 23), ("L-31", 9), ("L-32", 34), ("L-33", 22), ("L-34", 19), ("L-35", 42), ("L-36", 22), ("L-37", 7), ("L-38", 4), ("L-39", 5), ("L-40", 11), ("L-50", 45), ("L-51", 2), ("L-41", 1), ("L-42", 2), ("L-43", 4), ("L-44", 2), ("L-45", 0), ("L-46", 1), ("L-52", 2), ("L-53", 5)]
@@ -335,378 +335,6 @@ for s_alvo, mapa_c, fuso_padrao in [
 if precisa_salvar_fusos:
     gerar_backup_seguro(ARQUIVO_FUSOS)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
-
-def obter_maquinas_setor(setor_nome, df_c=None, df_f=None):
-    base = set(DICIONARIO_SETORES.get(setor_nome, []))
-    if df_c is not None and not df_c.empty:
-        base.update(df_c[df_c["Setor"] == setor_nome]["Maquina_TAG"].dropna().unique())
-    if df_f is not None and not df_f.empty:
-        base.update(df_f[df_f["Setor"] == setor_nome]["Maquina_TAG"].dropna().unique())
-    return sorted(list(base))
-
-mapa_setor_maquina = {}
-for s_nome, lista_m in DICIONARIO_SETORES.items():
-    for m in lista_m:
-        mapa_setor_maquina[m] = s_nome
-
-for _, r in df_correias.iterrows():
-    if pd.notna(r.get("Maquina_TAG")) and pd.notna(r.get("Setor")):
-        mapa_setor_maquina[str(r["Maquina_TAG"]).strip()] = str(r["Setor"]).strip()
-for _, r in df_fusos.iterrows():
-    if pd.notna(r.get("Maquina_TAG")) and pd.notna(r.get("Setor")):
-        mapa_setor_maquina[str(r["Maquina_TAG"]).strip()] = str(r["Setor"]).strip()
-
-if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "Painel Fusos"
-if "maq_clicada_cor" not in st.session_state:
-    st.session_state.maq_clicada_cor = None
-if "card_selecionado_kpi" not in st.session_state:
-    st.session_state.card_selecionado_kpi = None
-if "aba_setor_fuso" not in st.session_state:
-    st.session_state.aba_setor_fuso = "Geral"
-
-def navegar(p):
-    st.session_state.pagina_atual = p
-
-# ==========================================
-# PROCESSAMENTO DE CORREIAS
-# ==========================================
-data_hoje = date.today()
-dados_maquinas = {}
-css_botoes = []
-
-lista_correias_todas = []
-lista_correias_novas = []
-lista_correias_meia = []
-lista_correias_criticas = []
-
-def avaliar_correia(dt_val):
-    if not dt_val or str(dt_val).strip() in ["", "nan", "NaT", "None"]:
-        return None, "Sem registro", "Sem histórico"
-    try:
-        dt_inst = pd.to_datetime(dt_val).date()
-        dt_fmt = dt_inst.strftime("%d/%m/%Y")
-        dias = (data_hoje - dt_inst).days
-        meses = round(dias / 30.4, 1)
-        tempo_str = f"{meses}m ({dias}d)"
-        return (1 if dias <= 365 else 2 if dias <= 547 else 3), dt_fmt, tempo_str
-    except Exception:
-        return None, str(dt_val), "Data inválida"
-
-todas_maquinas_totais = []
-for s_nome in DICIONARIO_SETORES.keys():
-    for m in obter_maquinas_setor(s_nome, df_correias, df_fusos):
-        if m not in todas_maquinas_totais:
-            todas_maquinas_totais.append(m)
-
-for maq_tag in todas_maquinas_totais:
-    setor_m = mapa_setor_maquina.get(maq_tag, "Setor A")
-    reg_maq = df_correias[(df_correias["Setor"] == setor_m) & (df_correias["Maquina_TAG"] == maq_tag)]
-
-    t1, d1_str, t1_uso, c1_score, tem_c1 = "Não informada", "Sem registro", "Sem histórico", None, False
-    t2, d2_str, t2_uso, c2_score, tem_c2 = "Não informada", "Sem registro", "Sem histórico", None, False
-
-    if not reg_maq.empty:
-        ult = reg_maq.iloc[-1]
-        v1, dt1_raw = formatar_modelo(ult.get("Tipo_Correia_1", "")), str(ult.get("Data_Instalacao_1", "")).strip()
-        if v1 or (dt1_raw not in ["", "nan", "NaT", "None"]):
-            t1 = v1 or "Não informada"
-            c1_score, d1_str, t1_uso = avaliar_correia(dt1_raw)
-            tem_c1 = True
-            r1 = {"tag": maq_tag, "pos": "Superior", "modelo": t1, "data": d1_str, "uso": t1_uso, "setor": setor_m}
-            lista_correias_todas.append(r1)
-            (lista_correias_novas if c1_score == 1 else lista_correias_meia if c1_score == 2 else lista_correias_criticas).append(r1)
-
-        v2, dt2_raw = formatar_modelo(ult.get("Tipo_Correia_2", "")), str(ult.get("Data_Instalacao_2", "")).strip()
-        if v2 or (dt2_raw not in ["", "nan", "NaT", "None"]):
-            t2 = v2 or "Não informada"
-            c2_score, d2_str, t2_uso = avaliar_correia(dt2_raw)
-            tem_c2 = True
-            r2 = {"tag": maq_tag, "pos": "Inferior", "modelo": t2, "data": d2_str, "uso": t2_uso, "setor": setor_m}
-            lista_correias_todas.append(r2)
-            (lista_correias_novas if c2_score == 1 else lista_correias_meia if c2_score == 2 else lista_correias_criticas).append(r2)
-
-    scores = [s for s in [c1_score, c2_score] if s is not None]
-    if scores:
-        pior = max(scores)
-        classe_card = "status-verde" if pior == 1 else "status-amarelo" if pior == 2 else "status-vermelho"
-        cor_grad = "linear-gradient(135deg, #10b981, #059669)" if pior == 1 else "linear-gradient(135deg, #f59e0b, #d97706)" if pior == 2 else "linear-gradient(135deg, #ef4444, #dc2626)"
-        cor_borda = "#047857" if pior == 1 else "#b45309" if pior == 2 else "#b91c1c"
-        status_label = "Nova" if pior == 1 else "Meia-Vida" if pior == 2 else "Troca Necessária"
-    else:
-        classe_card, cor_grad, cor_borda, status_label = "status-cinza", "linear-gradient(135deg, #64748b, #475569)", "#334155", "Sem Dados"
-
-    dados_maquinas[maq_tag] = {
-        "setor": setor_m, "t1": t1, "d1": d1_str, "uso1": t1_uso, "tem_c1": tem_c1,
-        "t2": t2, "d2": d2_str, "uso2": t2_uso, "tem_c2": tem_c2,
-        "status_label": status_label, "classe_card": classe_card
-    }
-
-    chave_btn = f"btn_q_{maq_tag.replace('-', '_')}"
-    css_botoes.append(f"""
-        button[key="{chave_btn}"], div.st-key-{chave_btn} button {{
-            background: {cor_grad} !important; color: #ffffff !important; border: 1px solid {cor_borda} !important;
-        }}
-    """)
-
-regras_css_botoes = "\n".join(css_botoes)
-
-st.markdown(
-    f"""
-    <style>
-        .block-container {{ padding: 4.4rem 2rem 1rem 2rem !important; }}
-        [data-testid="stSidebar"] {{ background-color: #0f172a !important; border-right: 1px solid #1e293b !important; }}
-        [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span {{ color: #f8fafc; }}
-        
-        [data-testid="stSidebar"] div[data-testid="stRadio"] {{ background: #1e293b; padding: 4px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 12px; }}
-        [data-testid="stSidebar"] div[data-testid="stRadio"] > div {{ flex-direction: row; justify-content: space-between; }}
-        [data-testid="stSidebar"] div[data-testid="stRadio"] label p {{ color: #f1f5f9 !important; font-weight: 700 !important; }}
-        
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
-            background-color: #1e293b !important; color: #e2e8f0 !important; border: 1px solid #334155 !important;
-            border-radius: 8px !important; font-weight: 700 !important; height: 38px !important;
-        }}
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"] p {{ color: #e2e8f0 !important; }}
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {{ background-color: #334155 !important; }}
-        
-        [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
-            background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #ffffff !important;
-            border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
-        }}
-        [data-testid="stSidebar"] .stButton > button[kind="primary"] p {{ color: #ffffff !important; }}
-        
-        div[data-testid="column"] {{ padding: 1px !important; margin: 0px !important; }}
-        div[data-testid="stHorizontalBlock"] {{ gap: 4px !important; margin-bottom: 4px !important; }}
-        div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions {{ display: none !important; }}
-        div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{ overscroll-behavior: contain; }}
-        
-        div[data-testid="stButton"] button {{
-            padding: 0px !important; font-size: 0.8rem !important; height: 33px !important;
-            min-height: 33px !important; line-height: 31px !important; border-radius: 7px !important;
-        }}
-        {regras_css_botoes}
-        
-        .card-kpi-bonito {{
-            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px;
-            display: flex; align-items: center; justify-content: space-between; height: 64px; box-sizing: border-box;
-            position: relative; overflow: hidden;
-        }}
-        .card-kpi-bonito::after {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }}
-        .card-kpi-bonito.c-total::after {{ background: #475569; }}
-        .card-kpi-bonito.c-ok::after {{ background: #10b981; }}
-        .card-kpi-bonito.c-warn::after {{ background: #f59e0b; }}
-        .card-kpi-bonito.c-crit::after {{ background: #ef4444; }}
-        .kpi-val {{ font-size: 1.35rem; font-weight: 800; line-height: 1; font-family: ui-monospace, monospace; }}
-        .kpi-lbl {{ font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }}
-        
-        .alerta-manutencao {{
-            background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
-            padding: 8px 14px; margin: 6px 0 10px 0; font-size: 0.83rem; font-weight: 600; color: #991b1b;
-        }}
-        .chip-critico {{ background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 5px; font-weight: 800; }}
-        .hud-detalhe {{
-            background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 18px; margin: 6px 0 12px 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #64748b;
-        }}
-        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
-        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
-        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
-        
-        .tag-pill {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; color: #334155; }}
-        .badge-status {{ padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }}
-        .badge-verde {{ background: #d1fae5; color: #065f46; }}
-        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
-        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
-        
-        .pill-legenda {{ display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px; }}
-        .dot-legenda {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ==========================================
-# BARRA LATERAL (SIDEBAR)
-# ==========================================
-with st.sidebar:
-    st.markdown("<h2 style='font-size:1.6rem; font-weight:900; margin:0 0 10px 0;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
-    is_lancto = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
-    modo = st.radio("Modo", ["📊 Painéis", "📝 Lançamentos"], index=1 if is_lancto else 0, label_visibility="collapsed")
-
-    if modo == "📊 Painéis":
-        st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
-        st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
-        st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
-        if is_lancto:
-            st.session_state.pagina_atual = "Painel Fusos"
-            st.rerun()
-    else:
-        st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>APONTAMENTOS</p>", unsafe_allow_html=True)
-        st.button("🔩 Fechamento de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Lançamento Fusos" else "secondary", on_click=navegar, args=("Lançamento Fusos",))
-        st.button("🔄 Gestão de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Correias" else "secondary", on_click=navegar, args=("Correias",))
-        st.button("🛠️ Preventiva", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Preventiva" else "secondary", on_click=navegar, args=("Preventiva",))
-        st.button("🏭 Máquinas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Máquinas" else "secondary", on_click=navegar, args=("Máquinas",))
-        if not is_lancto:
-            st.session_state.pagina_atual = "Lançamento Fusos"
-            st.rerun()
-
-    st.markdown("---")
-    st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:6px 0;'>SISTEMA & DADOS</p>", unsafe_allow_html=True)
-    st.button(
-        "🗄️ Banco de Dados",
-        key="btn_nav_banco_dados",
-        use_container_width=True,
-        type="primary" if st.session_state.pagina_atual == "Banco de Dados" else "secondary",
-        on_click=navegar,
-        args=("Banco de Dados",),
-    )
-
-    st.markdown("---")
-    st.markdown("<p style='font-size:0.72rem; font-weight:800; color:#94a3b8; margin:4px 0;'>📥 BACKUP DAS BASES</p>", unsafe_allow_html=True)
-    if os.path.exists(ARQUIVO_CORREIAS):
-        with open(ARQUIVO_CORREIAS, "rb") as fc:
-            st.download_button("Baixar Correias (.xlsx)", fc, "lancamentos_correias.xlsx", use_container_width=True)
-    if os.path.exists(ARQUIVO_FUSOS):
-        with open(ARQUIVO_FUSOS, "rb") as ff:
-            st.download_button("Baixar Fusos (.xlsx)", ff, "lancamentos_fusos.xlsx", use_container_width=True)
-
-# ==========================================
-# ÁREA PRINCIPAL
-# ==========================================
-tela = st.session_state.pagina_atual
-
-# ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS
-# ------------------------------------------
-if tela == "Painel Correias":
-    c_t, c_f1, c_f2, c_leg = st.columns([3.2, 1.4, 1.4, 5.0])
-    with c_t:
-        st.markdown("<h2 style='margin:0; font-weight:900;'>Dashboard Correias</h2>", unsafe_allow_html=True)
-    with c_f1:
-        filtro_setor = st.selectbox("Setor", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), label_visibility="collapsed")
-    with c_f2:
-        mods_un = sorted(list({r["modelo"] for r in lista_correias_todas if r["modelo"] and r["modelo"] != "Não informada"}))
-        filtro_modelo = st.selectbox("Tipo", ["Todos os Tipos"] + mods_un, label_visibility="collapsed")
-    with c_leg:
-        st.markdown("""
-            <div style="height:40px; display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia (1-1.5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Urgente (&gt; 1.5a)</span>
-            </div>
-        """, unsafe_allow_html=True)
-
-    k1, k2, k3, k4 = st.columns(4)
-    k1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Correias</div><div class='kpi-val'>{len(lista_correias_todas)}</div></div><div>📦</div></div>", unsafe_allow_html=True)
-    k2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Novas</div><div class='kpi-val' style='color:#059669;'>{len(lista_correias_novas)}</div></div><div>🟢</div></div>", unsafe_allow_html=True)
-    k3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Meia-Vida</div><div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div></div><div>🟡</div></div>", unsafe_allow_html=True)
-    k4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Críticas</div><div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div></div><div>🔴</div></div>", unsafe_allow_html=True)
-
-    if lista_correias_criticas:
-        chips = " ".join([f"<span class='chip-critico'>🏷️ {k}: <b>{v} un.</b></span>" for k, v in pd.DataFrame(lista_correias_criticas)["modelo"].value_counts().items()])
-        st.markdown(f"<div class='alerta-manutencao'>🚨 <b>Alerta de Troca Necessária:</b> &nbsp; {chips}</div>", unsafe_allow_html=True)
-
-    if st.session_state.maq_clicada_cor:
-        sel = st.session_state.maq_clicada_cor
-        b_cor = "badge-verde" if sel["status_label"] == "Nova" else "badge-amarelo" if sel["status_label"] == "Meia-Vida" else "badge-vermelho" if sel["status_label"] == "Troca Necessária" else "badge-cinza"
-        c_hud, c_cls = st.columns([6.2, 0.8])
-        with c_hud:
-            st.markdown(f"""
-                <div class="hud-detalhe {sel['classe_card']}">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span class="tag-pill" style="background:#0f172a; color:#ffffff;">⚙️ {sel['tag']} - {sel['setor']}</span>
-                        <span class="badge-status {b_cor}">{sel['status_label']}</span>
-                    </div>
-                    <div style="display:flex; gap:8px;">
-                        <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {sel['t1']} | {sel['d1']} | {sel['uso1']}</span>
-                        <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {sel['t2']} | {sel['d2']} | {sel['uso2']}</span>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-        with c_cls:
-            if st.button("✖ Fechar", key="btn_cls_hud"):
-                st.session_state.maq_clicada_cor = None
-                st.rerun()
-
-    maqs_grid = []
-    for s in DICIONARIO_SETORES.keys():
-        if filtro_setor != "Todos os Setores" and s != filtro_setor:
-            continue
-        for m in obter_maquinas_setor(s, df_correias, df_fusos):
-            if filtro_modelo != "Todos os Tipos":
-                r_m = df_correias[(df_correias["Setor"] == s) & (df_correias["Maquina_TAG"] == m)]
-                if r_m.empty:
-                    continue
-                ult_m = r_m.iloc[-1]
-                if formatar_modelo(ult_m.get("Tipo_Correia_1")) != filtro_modelo and formatar_modelo(ult_m.get("Tipo_Correia_2")) != filtro_modelo:
-                    continue
-            maqs_grid.append(m)
-
-    cols_g = 12
-    for chunk in [maqs_grid[i:i + cols_g] for i in range(0, len(maqs_grid), cols_g)]:
-        cols = st.columns(cols_g)
-        for i, m in enumerate(chunk):
-            if cols[i].button(m, key=f"btn_q_{m.replace('-', '_')}", use_container_width=True):
-                st.session_state.maq_clicada_cor = {"tag": m, **dados_maquinas[m]}
-                st.rerun()
-
-# ------------------------------------------
-# 2. LANÇAMENTO DE CORREIAS
-# ------------------------------------------
-elif tela == "Correias":
-    st.title("🔄 Lançamento: Gestão de Correias")
-    setor_sel = st.selectbox("Setor Operacional", list(DICIONARIO_SETORES.keys()))
-    df_cur_c = pd.read_excel(ARQUIVO_CORREIAS)
-    maqs_s = obter_maquinas_setor(setor_sel, df_cur_c, df_fusos)
-
-    grade = []
-    for m in maqs_s:
-        reg = df_cur_c[(df_cur_c["Setor"] == setor_sel) & (df_cur_c["Maquina_TAG"] == m)]
-        t1, dt1, t2, dt2 = "", None, "", None
-        if not reg.empty:
-            u = reg.iloc[-1]
-            t1 = formatar_modelo(u.get("Tipo_Correia_1"))
-            try:
-                dt1 = pd.to_datetime(u.get("Data_Instalacao_1")).date()
-            except Exception:
-                pass
-            t2 = formatar_modelo(u.get("Tipo_Correia_2"))
-            try:
-                dt2 = pd.to_datetime(u.get("Data_Instalacao_2")).date()
-            except Exception:
-                pass
-        grade.append({"Máquina": m, "Modelo (Superior / Cabeceira)": t1, "Data (Superior / Cabeceira)": dt1, "Modelo (Inferior / Traseira)": t2, "Data (Inferior / Traseira)": dt2})
-
-    editado = st.data_editor(
-        pd.DataFrame(grade),
-        column_config={
-            "Máquina": st.column_config.TextColumn(disabled=True),
-            "Data (Superior / Cabeceira)": st.column_config.DateColumn(format="DD/MM/YYYY"),
-            "Data (Inferior / Traseira)": st.column_config.DateColumn(format="DD/MM/YYYY"),
-        },
-        hide_index=True,
-        use_container_width=True,
-        height=450
-    )
-
-    if st.button("💾 Salvar Correias", type="primary"):
-        limpo = df_cur_c[df_cur_c["Setor"] != setor_sel]
-        novos = []
-        for _, r in editado.iterrows():
-            novos.append({
-                "Setor": setor_sel, "Maquina_TAG": r["Máquina"],
-                "Tipo_Correia_1": formatar_modelo(r["Modelo (Superior / Cabeceira)"]),
-                "Data_Instalacao_1": str(r["Data (Superior / Cabeceira)"]) if pd.notna(r["Data (Superior / Cabeceira)"]) else "",
-                "Tipo_Correia_2": formatar_modelo(r["Modelo (Inferior / Traseira)"]),
-                "Data_Instalacao_2": str(r["Data (Inferior / Traseira)"]) if pd.notna(r["Data (Inferior / Traseira)"]) else "",
-            })
-        final = pd.concat([limpo, pd.DataFrame(novos)], ignore_index=True)
-        gerar_backup_seguro(ARQUIVO_CORREIAS)
-        final.to_excel(ARQUIVO_CORREIAS, index=False)
-        st.success("Salvo com sucesso!")
-        st.rerun()
 
 # ------------------------------------------
 # 3. PAINEL GERENCIAL DE FUSOS
@@ -1041,7 +669,7 @@ elif tela == "Banco de Dados":
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
-    # Aba Fusos com seleção de Ano e visualização de todos os meses
+    # Aba Fusos com o modelo exato da imagem: Coluna MAQUINA + Dias 1..N
     with tab_fusos_db:
         st.markdown("### 📅 Gestão de Fusos por Período")
         c_ano_db, c_set_db = st.columns([1.5, 2.5])
@@ -1059,7 +687,8 @@ elif tela == "Banco de Dados":
             with abas_meses_db[idx_m]:
                 num_mes = idx_m + 1
                 _, dias_no_mes_db = calendar.monthrange(int(ano_db_fuso), num_mes)
-                cols_dias_db = [f"{d:02d}" for d in range(1, dias_no_mes_db + 1)]
+                # Colunas numéricas 1, 2, ..., N exatamente como na imagem
+                cols_dias_db = [str(d) for d in range(1, dias_no_mes_db + 1)]
 
                 df_mes_fuso = df_fusos[
                     (df_fusos["Ano"] == int(ano_db_fuso))
@@ -1072,14 +701,13 @@ elif tela == "Banco de Dados":
                 grade_db = []
                 for maq in maquinas_set_db:
                     sub_maq = df_mes_fuso[df_mes_fuso["Maquina_TAG"] == maq]
-                    tipo_cad = str(sub_maq.iloc[0]["Tipo_Fuso"]) if not sub_maq.empty and sub_maq.iloc[0]["Tipo_Fuso"] in OPCOES_TIPO_FUSO else OPCOES_TIPO_FUSO[0]
-                    linha_db = {"Setor": setor_db_fuso, "Máquina": maq, "Tipo de Fuso": tipo_cad}
+                    linha_db = {"MAQUINA": maq}
                     for d in range(1, dias_no_mes_db + 1):
                         sub_d = sub_maq[sub_maq["Dia"] == d]
-                        linha_db[f"{d:02d}"] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
+                        linha_db[str(d)] = int(sub_d.iloc[0]["Quantidade_Quebras"]) if not sub_d.empty else 0
                     grade_db.append(linha_db)
 
-                df_grade_exportar = pd.DataFrame(grade_db)[["Setor", "Máquina", "Tipo de Fuso"] + cols_dias_db]
+                df_grade_exportar = pd.DataFrame(grade_db)[["MAQUINA"] + cols_dias_db]
 
                 c_m1, c_m2, c_m3 = st.columns(3)
                 total_mes_db = sum([df_grade_exportar[c].sum() for c in cols_dias_db])
@@ -1097,7 +725,7 @@ elif tela == "Banco de Dados":
                     buffer_excel.seek(0)
 
                     st.download_button(
-                        f"📥 Baixar Dados ({nome_mes_db}/{ano_db_fuso})",
+                        f"📥 Baixar Modelo/Dados ({nome_mes_db})",
                         data=buffer_excel,
                         file_name=f"fusos_{setor_db_fuso.replace(' ', '_')}_{nome_mes_db}_{ano_db_fuso}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1115,23 +743,28 @@ elif tela == "Banco de Dados":
                         if st.button(f"Confirmar Envio ({nome_mes_db}/{ano_db_fuso})", key=f"btn_conf_up_{ano_db_fuso}_{setor_db_fuso}_{nome_mes_db}", type="primary"):
                             try:
                                 df_novo_up = pd.read_excel(upload_mes)
-                                col_maq = "Máquina" if "Máquina" in df_novo_up.columns else "Maquina_TAG"
-                                col_tipo = "Tipo de Fuso" if "Tipo de Fuso" in df_novo_up.columns else "Tipo_Fuso"
+                                col_maq = None
+                                for cand in ["MAQUINA", "Máquina", "Maquina", "Maquina_TAG"]:
+                                    if cand in df_novo_up.columns:
+                                        col_maq = cand
+                                        break
 
-                                if col_maq not in df_novo_up.columns:
-                                    st.error("O arquivo enviado precisa ter a coluna 'Máquina'.")
+                                if not col_maq:
+                                    st.error("O arquivo enviado precisa ter a coluna 'MAQUINA'.")
                                 else:
                                     novos_registros_up = []
                                     for _, r_up in df_novo_up.iterrows():
                                         m_val = str(r_up[col_maq]).strip()
-                                        t_val = str(r_up.get(col_tipo, OPCOES_TIPO_FUSO[0]))
                                         for d in range(1, dias_no_mes_db + 1):
-                                            c_d_str = f"{d:02d}"
                                             qtd_val = 0
-                                            if c_d_str in df_novo_up.columns:
-                                                qtd_val = int(r_up[c_d_str]) if pd.notna(r_up[c_d_str]) else 0
-                                            elif d in df_novo_up.columns:
+                                            # Suporta colunas como 1, '1', '01'
+                                            if d in df_novo_up.columns:
                                                 qtd_val = int(r_up[d]) if pd.notna(r_up[d]) else 0
+                                            elif str(d) in df_novo_up.columns:
+                                                qtd_val = int(r_up[str(d)]) if pd.notna(r_up[str(d)]) else 0
+                                            elif f"{d:02d}" in df_novo_up.columns:
+                                                qtd_val = int(r_up[f"{d:02d}"]) if pd.notna(r_up[f"{d:02d}"]) else 0
+
                                             novos_registros_up.append({
                                                 "Ano": int(ano_db_fuso),
                                                 "Mes": nome_mes_db,
@@ -1139,7 +772,7 @@ elif tela == "Banco de Dados":
                                                 "Setor": setor_db_fuso,
                                                 "Maquina_TAG": m_val,
                                                 "Quantidade_Quebras": qtd_val,
-                                                "Tipo_Fuso": t_val,
+                                                "Tipo_Fuso": "FAG" if setor_db_fuso == "Setor A" else "TEP" if setor_db_fuso == "Setor B" else "M4BA" if setor_db_fuso == "Setor Látex" else "MENEGATTO",
                                             })
 
                                     df_limpo_fusos = df_fusos[
