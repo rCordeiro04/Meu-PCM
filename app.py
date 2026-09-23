@@ -761,15 +761,18 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES (COM FILTRO POR SETOR)
+# 3. PAINEL GERENCIAL DE SETORES (COM FILTRO POR SETOR E FILTRO DE MÊS)
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2 = st.columns([3.5, 2.0])
+    c_ts1, c_ts2, c_ts3 = st.columns([2.5, 1.8, 1.8])
     with c_ts1:
         st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
+    with c_ts3:
+        meses_filtro_painel = ["Todos os Meses"] + LISTA_MESES_PUROS
+        mes_selecionado_exec = st.selectbox("Filtrar Mês:", meses_filtro_painel, label_visibility="collapsed")
 
     st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
 
@@ -778,12 +781,24 @@ elif tela == "Painel Setores":
     dados_resumo_setores = []
     for s_nome in setores_alvo_exec:
         maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
-        tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
+        
+        # Filtro de Fusos por mês se selecionado
+        df_fusos_filtrado = df_fusos[df_fusos["Setor"] == s_nome] if not df_fusos.empty else pd.DataFrame()
+        if mes_selecionado_exec != "Todos os Meses" and not df_fusos_filtrado.empty:
+            df_fusos_filtrado = df_fusos_filtrado[df_fusos_filtrado["Mes"] == mes_selecionado_exec]
+        tot_q_fusos = int(df_fusos_filtrado["Quantidade_Quebras"].sum()) if not df_fusos_filtrado.empty else 0
         
         crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
         novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
         meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
-        tot_horas_s = float(df_paradas[df_paradas["Setor"] == s_nome]["Tempo_Parado_Horas"].sum()) if not df_paradas.empty else 0.0
+        
+        # Filtro de Paradas por mês se selecionado
+        df_paradas_filtrado = df_paradas[df_paradas["Setor"] == s_nome] if not df_paradas.empty else pd.DataFrame()
+        if mes_selecionado_exec != "Todos os Meses" and not df_paradas_filtrado.empty:
+            df_paradas_filtrado["Mes_Nome"] = pd.to_datetime(df_paradas_filtrado["Data"], errors="coerce").dt.month.map(lambda x: LISTA_MESES_PUROS[x-1] if pd.notna(x) and 1 <= x <= 12 else "")
+            df_paradas_filtrado = df_paradas_filtrado[df_paradas_filtrado["Mes_Nome"] == mes_selecionado_exec]
+        tot_horas_s = float(df_paradas_filtrado["Tempo_Parado_Horas"].sum()) if not df_paradas_filtrado.empty else 0.0
+
         tot_pend_s = len(df_pendencias[(df_pendencias["Setor"] == s_nome) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")])
 
         dados_resumo_setores.append({
@@ -805,7 +820,7 @@ elif tela == "Painel Setores":
     tot_crit_sel = df_res_setores["Correias Críticas"].sum()
 
     cs1, cs2, cs3, cs4 = st.columns(4)
-    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor(es) Analisados</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_exec}</div></div><div>🏢</div></div>", unsafe_allow_html=True)
+    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor / Período</div><div class='kpi-val' style='font-size:0.95rem;'>{setor_selecionado_exec} ({mes_selecionado_exec})</div></div><div>🏢</div></div>", unsafe_allow_html=True)
     cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{tot_maqs_sel}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
     cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div>🔩</div></div>", unsafe_allow_html=True)
     cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div>🚨</div></div>", unsafe_allow_html=True)
@@ -816,7 +831,7 @@ elif tela == "Painel Setores":
         c_gset1, c_gset2 = st.columns(2)
         with c_gset1:
             with st.container(border=True):
-                st.markdown("<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🔩 Total de Quebras de Fusos por Setor ({mes_selecionado_exec})</div>", unsafe_allow_html=True)
                 chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#2563eb").encode(
                     x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0, labelFontWeight="bold")),
                     y=alt.Y("Quebras Fusos:Q", title="Quebras"),
@@ -838,7 +853,7 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:6px;'>📋 Matriz de Desempenho Operacional — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:6px;'>📋 Matriz de Desempenho Operacional — {setor_selecionado_exec} ({mes_selecionado_exec})</div>", unsafe_allow_html=True)
         st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
