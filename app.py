@@ -668,7 +668,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-        # ADICIONANDO O MAPA DE CALOR EM TONS DE AZUL COM FILTRO DE TIPO DE FUSO
+        # MAPA DE CALOR COM ESCALA VERDE-VERMELHO E FILTRO DE FUSO
         with st.container(border=True):
             ch_col1, ch_col2 = st.columns([2.5, 1.5])
             with ch_col1:
@@ -691,14 +691,14 @@ elif tela == "Painel Fusos":
             rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
-                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 2, 5, 10], range=["#f8fafc", "#93c5fd", "#3b82f6", "#1d4ed8"]), legend=alt.Legend(title="Quebras")),
+                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
                 tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
             )
             txt = alt.Chart(m_calor).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                 y=alt.Y("MAQ:N", sort=maqs_setor),
                 text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
-                color=alt.condition("datum.Quantidade_Quebras >= 6", alt.value("#ffffff"), alt.value("#0f172a")),
+                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
             )
             st.altair_chart((rect + txt).properties(height=max(220, len(maqs_setor) * 23)), use_container_width=True)
 
