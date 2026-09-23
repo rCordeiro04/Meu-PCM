@@ -660,7 +660,7 @@ elif tela == "Painel Fusos":
                     st.info(f"Sem registros de tipos de fuso para {s_ativo} em {ano_f}.")
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES (ATUALIZADO COM GRÁFICOS DINÂMICOS E ROSCAS)
+# 3. PAINEL GERENCIAL DE SETORES (ATUALIZADO COM GRÁFICOS DE ROSCA DE ALTA VISIBILIDADE)
 # ------------------------------------------
 elif tela == "Painel Setores":
     c_ts1, c_ts2, c_ts3 = st.columns([2.2, 1.8, 1.8])
@@ -715,11 +715,8 @@ elif tela == "Painel Setores":
         top_corretivas = pd.DataFrame(columns=["Máquina", "Horas Paradas"])
 
     # 6. Preventivas: Realizados vs Não Realizados (Último 1 Ano)
-    # Supõe-se que na tabela de paradas/manutenções o Tipo_Manutencao possa ser "Preventiva" ou "Corretiva"
-    # Vamos calcular os realizados e não realizados com base nas manutenções preventivas cadastradas vs uma meta estimada ou contagem
     if not df_p_1ano.empty:
         preventivas_realizadas = len(df_p_1ano[df_p_1ano["Tipo_Manutencao"].astype(str).str.lower().str.contains("preventiva")])
-        # Meta estimada: digamos que cada máquina do setor deveria ter 1 preventiva por mês (12 por ano)
         meta_preventivas_ano = qtd_maqs_setor * 12
         preventivas_nao_realizadas = max(0, meta_preventivas_ano - preventivas_realizadas)
     else:
@@ -740,7 +737,7 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    # Primeira Linha de Gráficos: Fusos (Evolução ou Por Máquina) + Condições de Correias (Rosca)
+    # Primeira Linha de Gráficos: Fusos (Evolução ou Por Máquina) + Condições de Correias (Rosca Alta Visibilidade)
     cg_s1, cg_s2 = st.columns(2)
 
     with cg_s1:
@@ -759,7 +756,7 @@ elif tela == "Painel Setores":
                     txt_fs = bar_fs.mark_text(dy=-8, fontSize=11, fontWeight=700).encode(
                         text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
                     )
-                    st.altair_chart((bar_fs + txt_fs).properties(height=240), use_container_width=True)
+                    st.altair_chart((bar_fs + txt_fs).properties(height=260), use_container_width=True)
                 else:
                     st.info(f"Sem registros de fusos para o {s_nome}.")
             else:
@@ -775,55 +772,61 @@ elif tela == "Painel Setores":
                     txt_mq = bar_mq.mark_text(dy=-6, fontSize=10, fontWeight=700).encode(
                         text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
                     )
-                    st.altair_chart((bar_mq + txt_mq).properties(height=240), use_container_width=True)
+                    st.altair_chart((bar_mq + txt_mq).properties(height=260), use_container_width=True)
                 else:
                     st.info(f"Sem quebras de fusos registradas no {s_nome} em {mes_selecionado_exec}.")
 
     with cg_s2:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Condições das Correias — {s_nome}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Condições das Correias — {s_nome}[cite: 5]</div>", unsafe_allow_html=True)
             if total_cor_s > 0:
                 df_donut_s = pd.DataFrame([
                     {"Condicao": "Novas (≤ 1a)", "Quantidade": novas_s},
                     {"Condicao": "Meia-Vida (1-1.5a)", "Quantidade": meia_s},
                     {"Condicao": "Troca Urgente (> 1.5a)", "Quantidade": crit_s},
                 ])
-                chart_don_s = alt.Chart(df_donut_s).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
+                base_don_s = alt.Chart(df_donut_s).encode(
                     theta=alt.Theta("Quantidade:Q", stack=True),
-                    color=alt.Color("Condicao:N", scale=alt.Scale(domain=["Novas (≤ 1a)", "Meia-Vida (1-1.5a)", "Troca Urgente (> 1.5a)"], range=["#10b981", "#f59e0b", "#ef4444"]), legend=alt.Legend(orient="right")),
+                    color=alt.Color("Condicao:N", scale=alt.Scale(domain=["Novas (≤ 1a)", "Meia-Vida (1-1.5a)", "Troca Urgente (> 1.5a)"], range=["#10b981", "#f59e0b", "#ef4444"]), legend=alt.Legend(orient="right", title="Condição")),
                     tooltip=["Condicao", "Quantidade"]
-                ).properties(height=240)
-                st.altair_chart(chart_don_s, use_container_width=True)
+                )
+                arc_s = base_don_s.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
+                text_s = base_don_s.mark_text(radius=92, fontSize=12, fontWeight=800, fill="#ffffff").encode(text=alt.Text("Quantidade:Q"))
+                st.altair_chart((arc_s + text_s).properties(height=260), use_container_width=True)
             else:
                 st.info(f"Sem dados de correias cadastradas para o {s_nome}.")
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    # Segunda Linha de Gráficos: Rosca de Top Corretivas + Rosca de Preventivas (Realizadas x Não Realizados)
+    # Segunda Linha de Gráficos: Rosca de Top Corretivas + Rosca de Preventivas (Realizados x Não Realizados)
     cg_s3, cg_s4 = st.columns(2)
 
     with cg_s3:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Top Máquinas com Mais Horas Corretivas</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Top Máquinas com Mais Horas Corretivas[cite: 5]</div>", unsafe_allow_html=True)
             if not top_corretivas.empty and top_corretivas["Horas Paradas"].sum() > 0:
-                chart_don_cor = alt.Chart(top_corretivas).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
+                base_cor = alt.Chart(top_corretivas).encode(
                     theta=alt.Theta("Horas Paradas:Q", stack=True),
-                    color=alt.Color("Máquina:N", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right")),
+                    color=alt.Color("Máquina:N", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right", title="Máquina")),
                     tooltip=["Máquina", "Horas Paradas"]
-                ).properties(height=240)
-                st.altair_chart(chart_don_cor, use_container_width=True)
+                )
+                arc_cor = base_cor.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
+                text_cor = base_cor.mark_text(radius=92, fontSize=12, fontWeight=800, fill="#ffffff").encode(text=alt.Text("Horas Paradas:Q"))
+                st.altair_chart((arc_cor + text_cor).properties(height=260), use_container_width=True)
             else:
                 st.info("Nenhuma manutenção corretiva registrada neste setor.")
 
     with cg_s4:
         with st.container(border=True):
             st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Preventivas: Realizados vs Não Realizados (Último 1 Ano)[cite: 5]</div>", unsafe_allow_html=True)
-            chart_don_prev = alt.Chart(df_prev_donut).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
+            base_prev = alt.Chart(df_prev_donut).encode(
                 theta=alt.Theta("Total:Q", stack=True),
-                color=alt.Color("Status:N", scale=alt.Scale(domain=["Realizados", "Não Realizados"], range=["#10b981", "#cbd5e1"]), legend=alt.Legend(orient="right")),
+                color=alt.Color("Status:N", scale=alt.Scale(domain=["Realizados", "Não Realizados"], range=["#10b981", "#cbd5e1"]), legend=alt.Legend(orient="right", title="Status")),
                 tooltip=["Status", "Total"]
-            ).properties(height=240)
-            st.altair_chart(chart_don_prev, use_container_width=True)
+            )
+            arc_prev = base_prev.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
+            text_prev = base_prev.mark_text(radius=92, fontSize=12, fontWeight=800, fill="#1e293b").encode(text=alt.Text("Total:Q"))
+            st.altair_chart((arc_prev + text_prev).properties(height=260), use_container_width=True)
 
 # ------------------------------------------
 # 4. PAINEL GERENCIAL DE MÁQUINAS
