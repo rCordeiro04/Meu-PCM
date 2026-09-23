@@ -36,7 +36,7 @@ colunas_correias = [
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
 # ==========================================
-# LEITURA E RECUPERAÇÃO AUTOMÁTICA DAS BASES (BLINDAGEM CONTRA BADZIPFILE)
+# LEITURA E RECUPERAÇÃO AUTOMÁTICA DAS BASES
 # ==========================================
 df_fusos = None
 if os.path.exists(ARQUIVO_FUSOS):
@@ -53,7 +53,65 @@ else:
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
 # ==========================================
-# DADOS HISTÓRICOS: SETOR B (JAN A JUL/2026)
+# RECUPERAÇÃO ROBUSTA DA BASE DE CORREIAS
+# ==========================================
+def formatar_modelo(val):
+    if val is None or pd.isna(val):
+        return ""
+    v_str = str(val).strip()
+    if v_str.lower() in ["", "nan", "none", "nat"]:
+        return ""
+    if "." in v_str:
+        partes = v_str.split(".")
+        parte_inteira = partes[0]
+        parte_decimal = partes[1]
+        if len(parte_decimal) < 3:
+            parte_decimal = parte_decimal.ljust(3, "0")
+        elif len(parte_decimal) > 3:
+            parte_decimal = parte_decimal[:3]
+        return f"{parte_inteira}.{parte_decimal}"
+    return v_str
+
+
+df_correias = pd.DataFrame(columns=colunas_correias)
+
+# Procura nos ficheiros v4, v3 ou backups anteriores
+ficheiros_busca_correias = ["lancamentos_correias_v4.xlsx", "lancamentos_correias_v3.xlsx", "lancamentos_correias.xlsx"]
+registos_encontrados = []
+
+for fich in ficheiros_busca_correias:
+    if os.path.exists(fich):
+        try:
+            df_temp = pd.read_excel(fich)
+            if not df_temp.empty:
+                # Normaliza colunas
+                if "Tipo_Correia" in df_temp.columns and "Tipo_Correia_1" not in df_temp.columns:
+                    df_temp["Tipo_Correia_1"] = df_temp["Tipo_Correia"]
+                if "Data_Instalacao" in df_temp.columns and "Data_Instalacao_1" not in df_temp.columns:
+                    df_temp["Data_Instalacao_1"] = df_temp["Data_Instalacao"]
+                for c in colunas_correias:
+                    if c not in df_temp.columns:
+                        df_temp[c] = ""
+                registos_encontrados.append(df_temp[colunas_correias])
+        except Exception:
+            pass
+
+if registos_encontrados:
+    df_correias = pd.concat(registos_encontrados, ignore_index=True)
+    # Limpa duplicados mantendo a linha com mais dados preenchidos
+    df_correias.drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last", inplace=True)
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+else:
+    df_correias = pd.DataFrame(columns=colunas_correias)
+    df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
+
+df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].apply(formatar_modelo)
+df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
+df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
+df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
+
+# ==========================================
+# DADOS HISTÓRICOS: SETOR B (FUSOS)
 # ==========================================
 dados_janeiro_setor_b = [
     ("L-29", 1), ("L-30", 13), ("L-31", 10), ("L-32", 7),
@@ -129,7 +187,7 @@ mapa_cargas_setor_b = [
 ]
 
 # ==========================================
-# DADOS HISTÓRICOS: SETOR A (JAN A SET/2026)
+# DADOS HISTÓRICOS: SETOR A (FUSOS)
 # ==========================================
 dados_janeiro_setor_a = [
     ("L-01", 8), ("L-02", 9), ("L-03", 2), ("L-04", 3), ("L-05", 3),
@@ -224,9 +282,9 @@ mapa_cargas_setor_a = [
     ("Setembro", dados_setembro_setor_a),
 ]
 
-# =========================================================================
-# DADOS HISTÓRICOS: SETOR LÁTEX (JAN A AGO/2026) - 20 MÁQUINAS OFICIAIS
-# =========================================================================
+# ==========================================
+# DADOS HISTÓRICOS: SETOR LÁTEX (FUSOS)
+# ==========================================
 dados_janeiro_setor_latex = [
     ("B-71", 7), ("B-72", 10), ("B-73", 13), ("B-74", 18), ("B-75", 4),
     ("B-76", 9), ("B-77", 10), ("B-78", 5), ("B-79", 1), ("B-80", 0),
@@ -294,9 +352,9 @@ mapa_cargas_setor_latex = [
     ("Agosto", dados_agosto_setor_latex),
 ]
 
-# =========================================================================
-# DADOS HISTÓRICOS: SETOR MENEGATTO (JAN A AGO/2026)
-# =========================================================================
+# ==========================================
+# DADOS HISTÓRICOS: SETOR MENEGATTO (FUSOS)
+# ==========================================
 dados_janeiro_setor_menegatto = [
     ("B-47", 4), ("B-48", 3), ("B-49", 5), ("B-81", 3), ("B-82", 3),
     ("B-93", 10), ("B-94", 9), ("B-95", 4), ("B-96", 6), ("B-97", 4),
@@ -366,7 +424,6 @@ mapa_cargas_setor_menegatto = [
 
 precisa_salvar_fusos = False
 
-# Injeção Setor B
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_b:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
@@ -395,7 +452,6 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_b:
         df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
         precisa_salvar_fusos = True
 
-# Injeção Setor A
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
@@ -424,7 +480,6 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_a:
         df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
         precisa_salvar_fusos = True
 
-# Injeção Setor Látex
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
@@ -453,7 +508,6 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_latex:
         df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_reg)], ignore_index=True)
         precisa_salvar_fusos = True
 
-# Injeção Setor Menegatto
 for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_menegatto:
     linhas_mes = df_fusos[
         (df_fusos["Ano"] == 2026)
@@ -485,61 +539,6 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_menegatto:
 if precisa_salvar_fusos:
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias com blindagem contra corrupção
-df_correias = None
-if os.path.exists(ARQUIVO_CORREIAS):
-    try:
-        df_correias = pd.read_excel(ARQUIVO_CORREIAS)
-    except Exception:
-        df_correias = pd.DataFrame(columns=colunas_correias)
-        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-else:
-    if os.path.exists("lancamentos_correias_v3.xlsx"):
-        try:
-            df_antigo = pd.read_excel("lancamentos_correias_v3.xlsx")
-            df_migrado = pd.DataFrame(columns=colunas_correias)
-            df_migrado["Setor"] = df_antigo.get("Setor", "")
-            df_migrado["Maquina_TAG"] = df_antigo.get("Maquina_TAG", "")
-            df_migrado["Tipo_Correia_1"] = df_antigo.get("Tipo_Correia", "")
-            df_migrado["Data_Instalacao_1"] = df_antigo.get("Data_Instalacao", "")
-            df_migrado["Tipo_Correia_2"] = ""
-            df_migrado["Data_Instalacao_2"] = ""
-            df_migrado.to_excel(ARQUIVO_CORREIAS, index=False)
-            df_correias = df_migrado
-        except Exception:
-            df_correias = pd.DataFrame(columns=colunas_correias)
-            df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-    else:
-        df_correias = pd.DataFrame(columns=colunas_correias)
-        df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
-
-for col in colunas_correias:
-    if col not in df_correias.columns:
-        df_correias[col] = ""
-
-
-# Função de formatação para garantir sempre 3 dígitos após o ponto (ex: 36.100)
-def formatar_modelo(val):
-    if not val or str(val).strip() in ["", "nan", "None"]:
-        return ""
-    v_str = str(val).strip()
-    if "." in v_str:
-        partes = v_str.split(".")
-        parte_inteira = partes[0]
-        parte_decimal = partes[1]
-        if len(parte_decimal) < 3:
-            parte_decimal = parte_decimal.ljust(3, "0")
-        elif len(parte_decimal) > 3:
-            parte_decimal = parte_decimal[:3]
-        return f"{parte_inteira}.{parte_decimal}"
-    return v_str
-
-
-df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].apply(formatar_modelo)
-df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
-df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
-df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
-
 # Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
@@ -567,7 +566,6 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
-# Função auxiliar para obter todas as máquinas de um setor
 def obter_maquinas_setor(setor_nome, df_ref_correias=None, df_ref_fusos=None):
     lista_base = list(DICIONARIO_SETORES.get(setor_nome, []))
     extras = set()
@@ -629,7 +627,7 @@ lista_correias_criticas = []
 
 
 def avaliar_correia(dt_val):
-    if not dt_val or dt_val == "nan" or dt_val.strip() == "":
+    if not dt_val or dt_val == "nan" or str(dt_val).strip() in ["", "NaT", "None"]:
         return None, "Sem registro", "Sem histórico"
     try:
         dt_inst = pd.to_datetime(dt_val).date()
@@ -645,7 +643,7 @@ def avaliar_correia(dt_val):
         else:
             return 3, dt_fmt, tempo_str
     except Exception:
-        return None, dt_val, "Data inválida"
+        return None, str(dt_val), "Data inválida"
 
 
 for maq_tag in todas_as_maquinas:
@@ -664,8 +662,8 @@ for maq_tag in todas_as_maquinas:
         ultimo = reg_maq.iloc[-1]
         v1 = formatar_modelo(ultimo.get("Tipo_Correia_1", ""))
         dt1_raw = str(ultimo.get("Data_Instalacao_1", "")).strip()
-        if (v1 and v1 != "nan") or (dt1_raw and dt1_raw != "nan"):
-            t1 = v1 if (v1 and v1 != "nan") else "Não informada"
+        if (v1 and v1 != "") or (dt1_raw and dt1_raw not in ["", "nan", "NaT", "None"]):
+            t1 = v1 if v1 != "" else "Não informada"
             c1_score, d1_str, t1_uso = avaliar_correia(dt1_raw)
             tem_c1 = True
             reg_c1 = {"tag": maq_tag, "pos": "Superior", "modelo": t1, "data": d1_str, "uso": t1_uso, "setor": setor_m}
@@ -679,8 +677,8 @@ for maq_tag in todas_as_maquinas:
 
         v2 = formatar_modelo(ultimo.get("Tipo_Correia_2", ""))
         dt2_raw = str(ultimo.get("Data_Instalacao_2", "")).strip()
-        if (v2 and v2 != "nan") or (dt2_raw and dt2_raw != "nan"):
-            t2 = v2 if (v2 and v2 != "nan") else "Não informada"
+        if (v2 and v2 != "") or (dt2_raw and dt2_raw not in ["", "nan", "NaT", "None"]):
+            t2 = v2 if v2 != "" else "Não informada"
             c2_score, d2_str, t2_uso = avaliar_correia(dt2_raw)
             tem_c2 = True
             reg_c2 = {"tag": maq_tag, "pos": "Inferior", "modelo": t2, "data": d2_str, "uso": t2_uso, "setor": setor_m}
@@ -766,8 +764,6 @@ st.markdown(
             padding-left: 2rem !important;
             padding-right: 2rem !important;
         }}
-
-        /* Otimização da Barra Lateral */
         [data-testid="stSidebar"] {{
             background-color: #0f172a !important;
             border-right: 1px solid #1e293b !important;
@@ -810,7 +806,6 @@ st.markdown(
             margin: 10px 0 !important;
             border-color: #1e293b !important;
         }}
-
         div[data-testid="column"] {{
             padding: 1px !important;
             margin: 0px !important;
@@ -819,7 +814,6 @@ st.markdown(
             gap: 4px !important;
             margin-bottom: 4px !important;
         }}
-
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {{
             display: none !important;
@@ -827,11 +821,6 @@ st.markdown(
         div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
             overscroll-behavior: contain;
         }}
-        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {{
-            resize: none !important;
-        }}
-
-        /* Botões do mosaico de máquinas */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -841,10 +830,7 @@ st.markdown(
             border-radius: 7px !important;
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
-
         {regras_css_botoes}
-
-        /* Overlay Invisível */
         div.st-key-btn_inv_total,
         div.st-key-btn_inv_novas,
         div.st-key-btn_inv_meia,
@@ -861,8 +847,6 @@ st.markdown(
             width: 100% !important;
             cursor: pointer !important;
         }}
-
-        /* Cards KPI Estilizados */
         .card-kpi-bonito {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -910,8 +894,6 @@ st.markdown(
             letter-spacing: 0.5px;
             margin-bottom: 3px;
         }}
-
-        /* Alerta de Manutenção */
         .alerta-manutencao {{
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -938,50 +920,6 @@ st.markdown(
             display: inline-block;
             margin-right: 4px;
         }}
-
-        .hud-detalhe {{
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin: 6px 0 12px 0;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-            border-left: 6px solid #64748b;
-            animation: fadeIn 0.15s ease-in;
-        }}
-        @keyframes fadeIn {{
-            from {{ opacity: 0; transform: translateY(-4px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
-        }}
-        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
-        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
-        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
-        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
-
-        .tag-pill {{
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #334155;
-            display: inline-block;
-            margin-right: 8px;
-        }}
-        .badge-status {{
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }}
-        .badge-verde {{ background: #d1fae5; color: #065f46; }}
-        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
-        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
-        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
-
         .pill-legenda {{
             display: inline-flex;
             align-items: center;
@@ -1000,7 +938,6 @@ st.markdown(
             border-radius: 50%;
             display: inline-block;
         }}
-
         .chart-header-row {{
             display: flex;
             align-items: center;
@@ -1028,7 +965,7 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) OTIMIZADA E ELEGANTE
+# BARRA LATERAL (SIDEBAR)
 # ==========================================
 with st.sidebar:
     st.markdown(
@@ -1143,7 +1080,7 @@ MAPA_MES_ABREV = {
 ORDEM_MESES_ABREV = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (BLINDADO)
+# 1. PAINEL GERENCIAL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
     col_t, col_f1, col_f2, col_leg = st.columns([3.2, 1.4, 1.4, 5.0])
@@ -1353,7 +1290,7 @@ if tela == "Painel Correias":
         st.info("Nenhuma máquina encontrada com os filtros selecionados.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (SUPERIOR / INFERIOR - BLINDADO)
+# 2. LANÇAMENTOS: CORREIAS (COM PRESERVAÇÃO DE DADOS)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -1369,7 +1306,6 @@ elif tela == "Correias":
         df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
         maquinas_do_setor = obter_maquinas_setor(setor_selecionado, df_atual_cor, df_fusos)
 
-        # Inserção de Nova Máquina
         with col_add:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>➕ Adicionar Máquina</div>", unsafe_allow_html=True)
             c_input_add, c_btn_add = st.columns([1.5, 1.0])
@@ -1396,7 +1332,6 @@ elif tela == "Correias":
                     else:
                         st.warning("Informe o código da máquina.")
 
-        # Exclusão de Máquina
         with col_del:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>🗑️ Excluir Máquina</div>", unsafe_allow_html=True)
             c_sel_del, c_btn_del = st.columns([1.5, 1.0])
@@ -1427,12 +1362,11 @@ elif tela == "Correias":
 
         if not reg_existente.empty:
             ultimo = reg_existente.iloc[-1]
-            
             c1 = formatar_modelo(ultimo.get("Tipo_Correia_1", ""))
             t1 = c1 if c1 != "nan" else ""
             d1_val = ultimo.get("Data_Instalacao_1", "")
             try:
-                if pd.notna(d1_val) and str(d1_val).strip() not in ["", "nan"]:
+                if pd.notna(d1_val) and str(d1_val).strip() not in ["", "nan", "NaT", "None"]:
                     dt1 = pd.to_datetime(d1_val).date()
             except Exception:
                 dt1 = None
@@ -1441,7 +1375,7 @@ elif tela == "Correias":
             t2 = c2 if c2 != "nan" else ""
             d2_val = ultimo.get("Data_Instalacao_2", "")
             try:
-                if pd.notna(d2_val) and str(d2_val).strip() not in ["", "nan"]:
+                if pd.notna(d2_val) and str(d2_val).strip() not in ["", "nan", "NaT", "None"]:
                     dt2 = pd.to_datetime(d2_val).date()
             except Exception:
                 dt2 = None
@@ -1490,7 +1424,7 @@ elif tela == "Correias":
         for _, linha in tabela_editada_cor.iterrows():
             d1 = linha["Data (Superior / Cabeceira)"]
             dt1_str = ""
-            if pd.notna(d1) and d1 is not None and str(d1).strip() != "":
+            if pd.notna(d1) and d1 is not None and str(d1).strip() not in ["", "NaT"]:
                 try:
                     dt1_str = pd.to_datetime(d1).strftime("%Y-%m-%d")
                 except Exception:
@@ -1498,14 +1432,14 @@ elif tela == "Correias":
 
             d2 = linha["Data (Inferior / Traseira)"]
             dt2_str = ""
-            if pd.notna(d2) and d2 is not None and str(d2).strip() != "":
+            if pd.notna(d2) and d2 is not None and str(d2).strip() not in ["", "NaT"]:
                 try:
                     dt2_str = pd.to_datetime(d2).strftime("%Y-%m-%d")
                 except Exception:
                     dt2_str = ""
 
-            m1 = formatar_modelo(linha["Modelo (Superior / Cabeceira)"]) if pd.notna(linha["Modelo (Superior / Cabeceira)"]) and str(linha["Modelo (Superior / Cabeceira)"]).strip() != "None" else ""
-            m2 = formatar_modelo(linha["Modelo (Inferior / Traseira)"]) if pd.notna(linha["Modelo (Inferior / Traseira)"]) and str(linha["Modelo (Inferior / Traseira)"]).strip() != "None" else ""
+            m1 = formatar_modelo(linha["Modelo (Superior / Cabeceira)"])
+            m2 = formatar_modelo(linha["Modelo (Inferior / Traseira)"])
 
             novos_registros_cor.append(
                 {
@@ -1545,9 +1479,6 @@ elif tela == "Painel Fusos":
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
         ano_painel = st.selectbox("Ano", lista_anos_painel, index=2, key="filtro_ano_fusos_dash", label_visibility="collapsed")
 
-    # ==========================================
-    # CÁLCULO DINÂMICO DE MESES TRANSCORRIDOS
-    # ==========================================
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
     mes_atual_num_ref = data_hoje_ref.month
@@ -1602,9 +1533,7 @@ elif tela == "Painel Fusos":
     df_dados_fusos = pd.read_excel(ARQUIVO_FUSOS)
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
-    # ==========================================
-    # CASO 1: ABA GERAL (FÁBRICA COMPLETA)
-    # ==========================================
+    # ABA GERAL
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
         media_mensal_fabrica = round(total_geral_quebras / meses_divisor, 1)
@@ -1784,15 +1713,12 @@ elif tela == "Painel Fusos":
                 )
                 st.altair_chart(chart_men, use_container_width=True)
 
-    # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR
-    # ==========================================
+    # VISÃO POR SETOR
     else:
         setor_ativo = st.session_state.aba_setor_fuso
         df_setor = df_fuso_ano[df_fuso_ano["Setor"] == setor_ativo].copy()
 
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
-        
         maquinas_setor_lista = obter_maquinas_setor(setor_ativo, df_correias, df_fusos)
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
@@ -1973,7 +1899,6 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
@@ -2058,7 +1983,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # 2. DIAGNÓSTICO POR TIPO DE FUSO
+        # DIAGNÓSTICO POR TIPO DE FUSO
         tipos_disponiveis_setor = sorted(df_setor["Tipo_Fuso"].dropna().unique().tolist()) if not df_setor.empty else []
         if not tipos_disponiveis_setor:
             tipos_disponiveis_setor = OPCOES_TIPO_FUSO
@@ -2253,7 +2178,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart(chart_calor_tipo_final, use_container_width=True)
 
 # ------------------------------------------
-# 4. LANÇAMENTOS: FUSOS (COM INSERÇÃO E EXCLUSÃO)
+# 4. LANÇAMENTOS: FUSOS
 # ------------------------------------------
 elif tela == "Lançamento Fusos":
     st.title("🔩 Lançamento: Fechamento Mensal de Fusos")
@@ -2273,7 +2198,6 @@ elif tela == "Lançamento Fusos":
         df_atual_fuso_ctrl = pd.read_excel(ARQUIVO_FUSOS)
         maquinas_do_setor_f = obter_maquinas_setor(setor_selecionado, df_correias, df_atual_fuso_ctrl)
 
-        # Inserção de Máquina em Fusos
         with col_add_f:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>➕ Adicionar Máquina</div>", unsafe_allow_html=True)
             c_inp_af, c_btn_af = st.columns([1.5, 1.0])
@@ -2303,7 +2227,6 @@ elif tela == "Lançamento Fusos":
                     else:
                         st.warning("Informe o código da máquina.")
 
-        # Exclusão de Máquina em Fusos
         with col_del_f:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>🗑️ Excluir Máquina</div>", unsafe_allow_html=True)
             c_sel_df, c_btn_df = st.columns([1.5, 1.0])
@@ -2433,7 +2356,6 @@ elif tela == "Lançamento Fusos":
                 f"Total de fusos apontados no {setor_selecionado} em {nome_mes}: **{total_mes} unid.**"
             )
 
-# DEMAIS TELAS MANTIDAS
 elif tela == "Preventiva":
     st.header("🛠️ Lançamentos: Preventiva")
 elif tela == "Máquinas":
