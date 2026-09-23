@@ -702,6 +702,64 @@ elif tela == "Painel Fusos":
             )
             st.altair_chart((rect + txt).properties(height=max(320, len(maqs_setor) * 23)), use_container_width=True)
 
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+        tipos_disp = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else OPCOES_TIPO_FUSO
+        if not tipos_disp:
+            tipos_disp = OPCOES_TIPO_FUSO
+
+        with st.container(border=True):
+            c_dt1, c_dt2 = st.columns([2.5, 1.5])
+            with c_dt1:
+                st.markdown(f"<div style='font-size:1.02rem; font-weight:800;'>🔬 Desempenho Operacional por Tipo de Fuso — {s_ativo}</div>", unsafe_allow_html=True)
+            with c_dt2:
+                tipo_sel_analise = st.selectbox("Selecione o Tipo de Fuso:", tipos_disp, key=f"sel_tipo_diag_{s_ativo}")
+
+            df_tipo_esp = df_sa[df_sa["Tipo_Fuso"] == tipo_sel_analise].copy()
+            tot_f_tipo = int(df_tipo_esp["Quantidade_Quebras"].sum()) if not df_tipo_esp.empty else 0
+            med_f_tipo = round(tot_f_tipo / div_meses, 1)
+
+            maqs_tipo = sorted(df_tipo_esp["Maquina_TAG"].unique().tolist()) if not df_tipo_esp.empty else []
+            falhas_tipo = df_tipo_esp[df_tipo_esp["Quantidade_Quebras"] > 0]
+            maqs_falharam_tipo = falhas_tipo["Maquina_TAG"].nunique()
+
+            if not falhas_tipo.empty:
+                agrup_top_t = falhas_tipo.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().sort_values(ascending=False)
+                top_maq_t = agrup_top_t.index[0]
+                qtd_top_t = int(agrup_top_t.iloc[0])
+            else:
+                top_maq_t, qtd_top_t = "Nenhuma", 0
+
+            cf_k1, cf_k2, cf_k3, cf_k4 = st.columns(4)
+            cf_k1.markdown(f"<div class='card-kpi-bonito c-total' style='height:58px;'><div><div class='kpi-lbl'>Total ({tipo_sel_analise})</div><div class='kpi-val'>{tot_f_tipo} un.</div></div><div>🏷️</div></div>", unsafe_allow_html=True)
+            cf_k2.markdown(f"<div class='card-kpi-bonito c-ok' style='height:58px;'><div><div class='kpi-lbl'>Média Mensal</div><div class='kpi-val' style='color:#059669;'>{med_f_tipo} /mês</div></div><div>📉</div></div>", unsafe_allow_html=True)
+            cf_k3.markdown(f"<div class='card-kpi-bonito c-warn' style='height:58px;'><div><div class='kpi-lbl'>Máquinas Atreladas</div><div class='kpi-val' style='color:#d97706;'>{maqs_falharam_tipo} falharam / {len(maqs_tipo)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
+            cf_k4.markdown(f"<div class='card-kpi-bonito c-crit' style='height:58px;'><div><div class='kpi-lbl'>Maior Ofensor</div><div class='kpi-val' style='color:#dc2626; font-size:1.05rem;'>{top_maq_t} ({qtd_top_t})</div></div><div>🚨</div></div>", unsafe_allow_html=True)
+
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+            if not maqs_tipo:
+                st.info(f"Nenhuma máquina possui registros vinculados ao fuso {tipo_sel_analise} no {s_ativo} em {ano_f}.")
+            else:
+                grid_tipo = pd.MultiIndex.from_product([maqs_tipo, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
+                grid_tipo["MES"] = grid_tipo["Mes"].map(MAPA_MES_ABREV)
+                agrup_esp = df_tipo_esp.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
+                m_calor_esp = pd.merge(grid_tipo, agrup_esp, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
+
+                rect_t = alt.Chart(m_calor_esp).mark_rect(stroke="#fff", strokeWidth=1).encode(
+                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
+                    y=alt.Y("MAQ:N", sort=maqs_tipo, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
+                    color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
+                    tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
+                )
+                txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
+                    x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
+                    y=alt.Y("MAQ:N", sort=maqs_tipo),
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
+                    color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
+                )
+                st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
+
 # ------------------------------------------
 # 3. PAINEL GERENCIAL DE SETORES (COM FILTRO POR SETOR)
 # ------------------------------------------
@@ -715,7 +773,6 @@ elif tela == "Painel Setores":
 
     st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
 
-    # Consolida dados filtrando caso não seja "Todos"
     setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
     
     dados_resumo_setores = []
@@ -742,7 +799,6 @@ elif tela == "Painel Setores":
 
     df_res_setores = pd.DataFrame(dados_resumo_setores)
 
-    # Cards superiores resumidos
     tot_maqs_sel = df_res_setores["Total Máquinas"].sum()
     tot_fusos_sel = df_res_setores["Quebras Fusos"].sum()
     tot_horas_sel = df_res_setores["Horas Paradas (Corretivas)"].sum()
@@ -1123,7 +1179,7 @@ elif tela == "Banco de Dados":
                                 return ""
 
                         df_novo_cor["Tipo_Correia_1"] = df_novo_cor["Tipo_Correia_1"].apply(formatar_modelo)
-                        df_novo_cor["Data_Instalacao_1"] = df_novo_cor["Data_Instalacao_1"].apply(tr tratar_data_str if 'tratar_data_str' in globals() else lambda x: str(x))
+                        df_novo_cor["Data_Instalacao_1"] = df_novo_cor["Data_Instalacao_1"].apply(tratar_data_str)
                         df_novo_cor["Tipo_Correia_2"] = df_novo_cor["Tipo_Correia_2"].apply(formatar_modelo)
                         df_novo_cor["Data_Instalacao_2"] = df_novo_cor["Data_Instalacao_2"].apply(tratar_data_str)
 
