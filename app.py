@@ -666,6 +666,31 @@ elif tela == "Painel Fusos":
                 else:
                     st.info(f"Sem registros de tipos de fuso para {s_ativo} em {ano_f}.")
 
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+
+        # ADICIONANDO O MAPA DE CALOR DIDÁTICO NO PAINEL DE FUSOS POR SETOR
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🔥 Mapa de Calor Operacional — Quebras por Máquina x Mês ({s_ativo} - {ano_f})</div>", unsafe_allow_html=True)
+            
+            idx_grid = pd.MultiIndex.from_product([maqs_setor, LISTA_MESES_PUROS], names=["MAQ", "Mes"]).to_frame().reset_index(drop=True)
+            idx_grid["MES"] = idx_grid["Mes"].map(MAPA_MES_ABREV)
+            agrup_c = df_sa.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
+            m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
+
+            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1).encode(
+                x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title="Mês", axis=alt.Axis(orient="top", labelAngle=0, labelFontWeight="bold")),
+                y=alt.Y("MAQ:N", sort=maqs_setor, title="Máquina", axis=alt.Axis(labelFontWeight="bold")),
+                color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#dc2626"]), legend=alt.Legend(title="Quebras")),
+                tooltip=[alt.Tooltip("MAQ:N", title="Máquina"), alt.Tooltip("MES:N", title="Mês"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
+            )
+            txt = alt.Chart(m_calor).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
+                x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
+                y=alt.Y("MAQ:N", sort=maqs_setor),
+                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
+                color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a")),
+            )
+            st.altair_chart((rect + txt).properties(height=max(220, len(maqs_setor) * 23)), use_container_width=True)
+
 # ------------------------------------------
 # 3. PAINEL GERENCIAL DE SETORES (COM LEGENDA AMPLIADA E VISÍVEL)
 # ------------------------------------------
