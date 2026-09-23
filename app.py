@@ -1,11 +1,11 @@
-import os
-import shutil
 import calendar
 import io
+import os
+import shutil
 from datetime import date, datetime
+import altair as alt
 import pandas as pd
 import streamlit as st
-import altair as alt
 
 st.set_page_config(
     page_title="Portal PCM - Gestão de Manutenção",
@@ -1105,38 +1105,177 @@ elif tela == "Banco de Dados":
                     except Exception as erro_up:
                         st.error(f"Erro ao processar o ficheiro anual: {erro_up}")
 
-    # Aba Correias
+    # Aba Correias: Exportação e importação inteligente
     with tab_correias_db:
-        c1_c, c2_c, c3_c = st.columns([2, 2, 2])
-        c1_c.metric("Total de Linhas (Correias)", len(df_correias))
-        c2_c.metric("Máquinas Vinculadas", df_correias["Maquina_TAG"].nunique() if not df_correias.empty else 0)
-        c3_c.metric("Setores com Dados", df_correias["Setor"].nunique() if not df_correias.empty else 0)
+        st.markdown("### 🔄 Gestão e Troca de Dados de Correias")
+        st.caption("Exporte a planilha atual para edição externa e reenvie o arquivo preenchido para atualizar o sistema.")
 
-        filtro_setor_cor_db = st.selectbox("Filtrar visualização por Setor:", ["Todos"] + list(DICIONARIO_SETORES.keys()), key="f_setor_db_c")
-        df_exibir_c = df_correias if filtro_setor_cor_db == "Todos" else df_correias[df_correias["Setor"] == filtro_setor_cor_db]
+        m1_c, m2_c, m3_c = st.columns(3)
+        m1_c.metric("Total de Registros", len(df_correias))
+        m2_c.metric("Máquinas Cadastradas", df_correias["Maquina_TAG"].nunique() if not df_correias.empty else 0)
+        m3_c.metric("Setores com Dados", df_correias["Setor"].nunique() if not df_correias.empty else 0)
 
-        st.dataframe(df_exibir_c, use_container_width=True, height=380)
+        st.markdown("---")
 
-        col_d_c, col_u_c = st.columns(2)
-        with col_d_c:
-            if os.path.exists(ARQUIVO_CORREIAS):
-                with open(ARQUIVO_CORREIAS, "rb") as f_down_cor:
-                    st.download_button(
-                        "📥 Baixar Base de Correias (.xlsx)",
-                        data=f_down_cor,
-                        file_name=f"backup_correias_{date.today().strftime('%Y%m%d')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                    )
-        with col_u_c:
-            up_correia = st.file_uploader("Restaurar Base de Correias (.xlsx)", type=["xlsx"], key="up_cor_db")
-            if up_correia is not None:
-                if st.button("Substituir Base de Correias por este Arquivo", type="primary", key="btn_subst_cor"):
-                    gerar_backup_seguro(ARQUIVO_CORREIAS)
-                    with open(ARQUIVO_CORREIAS, "wb") as f_out_c:
-                        f_out_c.write(up_correia.getbuffer())
-                    st.success("✅ Base de Correias substituída com sucesso! Backup anterior gerado.")
-                    st.rerun()
+        col_d_cor, col_u_cor = st.columns([1.5, 2.5])
+
+        # -------------------------------------------------------------
+        # 1. DOWNLOAD DA BASE DE CORREIAS
+        # -------------------------------------------------------------
+        with col_d_cor:
+            st.markdown("#### 📥 Descarregar Dados")
+            st.caption("Gera um ficheiro .xlsx pronto para preenchimento com todas as máquinas.")
+
+            filtro_export_setor = st.selectbox(
+                "Exportar Setor:",
+                ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()),
+                key="sel_export_setor_cor"
+            )
+
+            setores_alvo = list(DICIONARIO_SETORES.keys()) if filtro_export_setor == "Todos os Setores" else [filtro_export_setor]
+            linhas_export = []
+
+            for s_nome in setores_alvo:
+                maqs_set = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+                for maq in maqs_set:
+                    reg = df_correias[(df_correias["Setor"] == s_nome) & (df_correias["Maquina_TAG"] == maq)]
+                    t1, d1, t2, d2 = "", "", "", ""
+                    if not reg.empty:
+                        ult = reg.iloc[-1]
+                        t1 = formatar_modelo(ult.get("Tipo_Correia_1", ""))
+                        d1 = str(ult.get("Data_Instalacao_1", "")).replace("nan", "").replace("NaT", "").strip()
+                        t2 = formatar_modelo(ult.get("Tipo_Correia_2", ""))
+                        d2 = str(ult.get("Data_Instalacao_2", "")).replace("nan", "").replace("NaT", "").strip()
+
+                    linhas_export.append({
+                        "Setor": s_nome,
+                        "Maquina_TAG": maq,
+                        "Tipo_Correia_1": t1,
+                        "Data_Instalacao_1": d1,
+                        "Tipo_Correia_2": t2,
+                        "Data_Instalacao_2": d2,
+                    })
+
+            df_export_pronto = pd.DataFrame(linhas_export)
+            buf_down_cor = io.BytesIO()
+            with pd.ExcelWriter(buf_down_cor, engine="openpyxl") as writer_cor:
+                df_export_pronto.to_excel(writer_cor, index=False, sheet_name="Correias")
+            buf_down_cor.seek(0)
+
+            nome_arquivo_down = (
+                f"correias_fabrica_completa_{date.today().strftime('%Y%m%d')}.xlsx"
+                if filtro_export_setor == "Todos os Setores"
+                else f"correias_{filtro_export_setor.replace(' ', '_')}_{date.today().strftime('%Y%m%d')}.xlsx"
+            )
+
+            st.download_button(
+                label="📥 Baixar Planilha de Correias (.xlsx)",
+                data=buf_down_cor,
+                file_name=nome_arquivo_down,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_down_base_correias",
+                use_container_width=True,
+            )
+
+        # -------------------------------------------------------------
+        # 2. UPLOAD E ATUALIZAÇÃO DA BASE DE CORREIAS
+        # -------------------------------------------------------------
+        with col_u_cor:
+            st.markdown("#### 📤 Enviar Dados Atualizados")
+            st.caption("Suba o arquivo Excel (.xlsx) contendo as colunas: `Setor`, `Maquina_TAG`, `Tipo_Correia_1`, `Data_Instalacao_1`, `Tipo_Correia_2`, `Data_Instalacao_2`.")
+
+            up_arquivo_cor = st.file_uploader(
+                "Carregar nova planilha de correias (.xlsx)",
+                type=["xlsx"],
+                key="uploader_novas_correias",
+            )
+
+            modo_gravacao = st.radio(
+                "Modo de Atualização:",
+                [
+                    "Mesclar e Atualizar (Preserva outras máquinas e atualiza as enviadas)",
+                    "Substituição Completa (Sobrescreve toda a base atual)"
+                ],
+                key="radio_modo_up_cor"
+            )
+
+            if up_arquivo_cor is not None:
+                if st.button("🚀 Confirmar e Atualizar Base de Correias", type="primary", key="btn_executar_up_cor"):
+                    try:
+                        df_novo_cor = pd.read_excel(up_arquivo_cor)
+
+                        mapa_cols_upload = {}
+                        for c in df_novo_cor.columns:
+                            c_norm = str(c).strip().lower().replace(" ", "_")
+                            if "setor" in c_norm:
+                                mapa_cols_upload[c] = "Setor"
+                            elif "maquina" in c_norm or "tag" in c_norm:
+                                mapa_cols_upload[c] = "Maquina_TAG"
+                            elif "tipo" in c_norm and ("1" in c_norm or "sup" in c_norm or "cab" in c_norm):
+                                mapa_cols_upload[c] = "Tipo_Correia_1"
+                            elif "data" in c_norm and ("1" in c_norm or "sup" in c_norm or "cab" in c_norm):
+                                mapa_cols_upload[c] = "Data_Instalacao_1"
+                            elif "tipo" in c_norm and ("2" in c_norm or "inf" in c_norm or "tras" in c_norm):
+                                mapa_cols_upload[c] = "Tipo_Correia_2"
+                            elif "data" in c_norm and ("2" in c_norm or "inf" in c_norm or "tras" in c_norm):
+                                mapa_cols_upload[c] = "Data_Instalacao_2"
+
+                        df_novo_cor.rename(columns=mapa_cols_upload, inplace=True)
+
+                        colunas_obrigatorias = ["Setor", "Maquina_TAG"]
+                        if not all(col in df_novo_cor.columns for col in colunas_obrigatorias):
+                            st.error("❌ O arquivo precisa conter pelo menos as colunas 'Setor' e 'Maquina_TAG' (ou 'Máquina').")
+                        else:
+                            for c in COLUNAS_CORREIAS:
+                                if c not in df_novo_cor.columns:
+                                    df_novo_cor[c] = ""
+
+                            df_novo_cor["Setor"] = df_novo_cor["Setor"].astype(str).str.strip()
+                            df_novo_cor["Maquina_TAG"] = df_novo_cor["Maquina_TAG"].astype(str).str.strip().str.upper()
+
+                            def tratar_data_str(val):
+                                if pd.isna(val) or val is None or str(val).strip().lower() in ["", "nan", "nat", "none"]:
+                                    return ""
+                                try:
+                                    return pd.to_datetime(val).strftime("%Y-%m-%d")
+                                except Exception:
+                                    return ""
+
+                            df_novo_cor["Tipo_Correia_1"] = df_novo_cor["Tipo_Correia_1"].apply(formatar_modelo)
+                            df_novo_cor["Data_Instalacao_1"] = df_novo_cor["Data_Instalacao_1"].apply(tratar_data_str)
+                            df_novo_cor["Tipo_Correia_2"] = df_novo_cor["Tipo_Correia_2"].apply(formatar_modelo)
+                            df_novo_cor["Data_Instalacao_2"] = df_novo_cor["Data_Instalacao_2"].apply(tratar_data_str)
+
+                            df_novo_cor = df_novo_cor[COLUNAS_CORREIAS].drop_duplicates(subset=["Setor", "Maquina_TAG"], keep="last")
+
+                            gerar_backup_seguro(ARQUIVO_CORREIAS)
+
+                            if "Substituição Completa" in modo_gravacao:
+                                df_final_up_c = df_novo_cor
+                            else:
+                                chaves_enviadas = set(zip(df_novo_cor["Setor"], df_novo_cor["Maquina_TAG"]))
+                                mascara_manter = [
+                                    (r["Setor"], r["Maquina_TAG"]) not in chaves_enviadas
+                                    for _, r in df_correias.iterrows()
+                                ]
+                                df_base_restante = df_correias[mascara_manter]
+                                df_final_up_c = pd.concat([df_base_restante, df_novo_cor], ignore_index=True)
+
+                            df_final_up_c.to_excel(ARQUIVO_CORREIAS, index=False)
+                            st.success(f"✅ Base de Correias atualizada com sucesso! ({len(df_novo_cor)} máquinas processadas)")
+                            st.rerun()
+
+                    except Exception as erro_proc:
+                        st.error(f"Erro ao processar o arquivo de correias: {erro_proc}")
+
+        # -------------------------------------------------------------
+        # 3. PRÉ-VISUALIZAÇÃO DA BASE VIGENTE
+        # -------------------------------------------------------------
+        st.markdown("---")
+        st.markdown("#### 👁️ Pré-visualização dos Dados Atuais")
+        filtro_prev_setor = st.selectbox("Filtrar pré-visualização:", ["Todos"] + list(DICIONARIO_SETORES.keys()), key="f_prev_db_c")
+        df_exibir_db = df_correias if filtro_prev_setor == "Todos" else df_correias[df_correias["Setor"] == filtro_prev_setor]
+        st.dataframe(df_exibir_db, use_container_width=True, height=280)
 
     # Aba Backups Automáticos
     with tab_backups_db:
