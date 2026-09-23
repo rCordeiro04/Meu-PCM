@@ -69,15 +69,26 @@ DICIONARIO_SETORES = {
 # ==========================================
 # FUNÇÕES DE SUPORTE & CACHE
 # ==========================================
+def obter_fuso_padrao(maq_tag, setor_nome):
+    maq_str = str(maq_tag).strip().upper()
+    MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
+    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
+    
+    if maq_str in MAQUINAS_FAG: return "FAG"
+    if maq_str in MAQUINAS_MENEGATTO: return "MENEGATTO"
+    
+    if setor_nome == "Setor A": return "FAG"
+    elif setor_nome == "Setor B": return "TEP"
+    elif setor_nome == "Setor Látex": return "M4BA"
+    return "MENEGATTO"
+
 def gerar_backup_seguro(caminho_arquivo):
     if os.path.exists(caminho_arquivo):
         os.makedirs("backups", exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         nome_arq = os.path.basename(caminho_arquivo)
-        try:
-            shutil.copy2(caminho_arquivo, os.path.join("backups", f"{ts}_{nome_arq}"))
-        except Exception:
-            pass
+        try: shutil.copy2(caminho_arquivo, os.path.join("backups", f"{ts}_{nome_arq}"))
+        except: pass
 
 def formatar_modelo(val):
     if val is None or pd.isna(val): return ""
@@ -101,20 +112,24 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
-    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
-    
     if not df_f.empty:
-        alterou = False
-        mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
-        if mask_fag_init.any() and (df_f.loc[mask_fag_init, "Tipo_Fuso"] != "FAG").any():
-            df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
-            alterou = True
-        mask_men_init = df_f["Maquina_TAG"].isin(MAQUINAS_MENEGATTO)
-        if mask_men_init.any() and (df_f.loc[mask_men_init, "Tipo_Fuso"] != "MENEGATTO").any():
-            df_f.loc[mask_men_init, "Tipo_Fuso"] = "MENEGATTO"
-            alterou = True
-        if alterou: df_f.to_excel(ARQUIVO_FUSOS, index=False)
+        def force_fuso(row):
+            t = str(row.get("Tipo_Fuso", "")).strip()
+            m = str(row.get("Maquina_TAG", "")).strip().upper()
+            s = str(row.get("Setor", "")).strip()
+            
+            MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
+            MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
+            
+            if m in MAQUINAS_FAG: return "FAG"
+            if m in MAQUINAS_MENEGATTO: return "MENEGATTO"
+            if t in OPCOES_TIPO_FUSO: return t
+            return obter_fuso_padrao(m, s)
+
+        novo_tipo = df_f.apply(force_fuso, axis=1)
+        if not df_f["Tipo_Fuso"].equals(novo_tipo):
+            df_f["Tipo_Fuso"] = novo_tipo
+            df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
     # CORREIAS
     if os.path.exists(ARQUIVO_CORREIAS):
@@ -250,55 +265,34 @@ for maq_tag in todas_maquinas_totais:
 st.markdown(
     """
     <style>
-        /* Tipografia e Fundo */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        html, body, [class*="css"]  {
-            font-family: 'Inter', sans-serif !important;
-        }
-        
-        /* Container Principal Otimizado */
+        html, body, [class*="css"]  { font-family: 'Inter', sans-serif !important; }
         .block-container { padding: 3rem 2rem 1.5rem 2rem !important; max-width: 1400px; }
-        
-        /* Sidebar Moderna */
-        [data-testid="stSidebar"] { 
-            background-color: #0b1120 !important; 
-            border-right: 1px solid #1e293b !important; 
-        }
+        [data-testid="stSidebar"] { background-color: #0b1120 !important; border-right: 1px solid #1e293b !important; }
         [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: #f8fafc; }
-        
         [data-testid="stSidebar"] .stButton > button[kind="secondary"] {
             background-color: transparent !important; color: #94a3b8 !important; border: 1px solid transparent !important;
             border-radius: 8px !important; font-weight: 600 !important; height: 42px !important; justify-content: flex-start; padding-left: 14px; transition: all 0.2s;
         }
         [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover { background-color: #1e293b !important; color: #f8fafc !important; }
-        
         [data-testid="stSidebar"] .stButton > button[kind="primary"] {
             background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; color: #ffffff !important;
             border: 1px solid transparent !important; border-radius: 8px !important; font-weight: 800 !important; height: 42px !important; justify-content: flex-start; padding-left: 14px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
         }
-
-        /* Botões de Máquinas (Matriz) */
         div.stButton > button {
             background: #ffffff !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important;
             padding: 0px 4px !important; font-size: 0.85rem !important; font-weight: 800 !important;
             height: 32px !important; min-height: 32px !important; line-height: 28px !important;
-            border-radius: 6px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
-            transition: all 0.15s ease-in-out !important;
+            border-radius: 6px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important; transition: all 0.15s ease-in-out !important;
         }
-        div.stButton > button:hover {
-            border-color: #3b82f6 !important; background: #f8fafc !important; color: #1d4ed8 !important; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-        }
-        
+        div.stButton > button:hover { border-color: #3b82f6 !important; background: #f8fafc !important; color: #1d4ed8 !important; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
         div[data-testid="column"] { padding: 0 6px !important; margin: 0px !important; }
         div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 4px !important; }
         div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
-        
-        /* Cards KPI com Elevação e Efeito Glassmorphism Leve */
         .card-kpi-bonito {
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px;
             display: flex; align-items: center; justify-content: space-between; height: 72px; box-sizing: border-box;
-            position: relative; overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .card-kpi-bonito:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); }
         .card-kpi-bonito::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
@@ -308,15 +302,11 @@ st.markdown(
         .card-kpi-bonito.c-crit::after { background: #ef4444; }
         .kpi-val { font-size: 1.45rem; font-weight: 900; line-height: 1; font-family: 'Inter', sans-serif; color: #0f172a;}
         .kpi-lbl { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-        
-        /* Alertas e Tags */
         .alerta-manutencao {
             background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
-            padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
+            padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
         }
         .chip-critico { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; }
-        
         .hud-detalhe {
             background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 16px; margin: 4px 0 12px 0;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 6px solid #64748b; transition: all 0.2s;
@@ -325,17 +315,14 @@ st.markdown(
         .hud-detalhe.status-amarelo { border-left-color: #f59e0b; }
         .hud-detalhe.status-vermelho { border-left-color: #ef4444; }
         .hud-detalhe.status-cinza { border-left-color: #94a3b8; }
-        
         .tag-pill { background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; color: #334155; }
         .badge-status { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;}
         .badge-verde { background: #d1fae5; color: #065f46; }
         .badge-amarelo { background: #fef3c7; color: #92400e; }
         .badge-vermelho { background: #fee2e2; color: #991b1b; }
         .badge-cinza { background: #e2e8f0; color: #475569; }
-        
         .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
         .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-
         .header-setor-dash {
             font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
             padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
@@ -549,7 +536,7 @@ elif tela == "Painel Fusos":
 
         ks1, ks2, ks3, ks4 = st.columns(4)
         ks1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Quebras ({s_ativo})</div><div class='kpi-val'>{tot_s}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-        ks2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal</div><div class='kpi-val' style='color:#059669;'>{med_s}</div></div><div style='font-size:1.8rem;'>📅</div></div>", unsafe_allow_html=True)
+        ks2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_s}</div></div><div style='font-size:1.8rem;'>📅</div></div>", unsafe_allow_html=True)
         ks3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Tx Falha/Máq ({ult_mes_s})</div><div class='kpi-val' style='color:#d97706;'>{quebras_por_maq}</div></div><div style='font-size:1.8rem;'>⚙️</div></div>", unsafe_allow_html=True)
         ks4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Maior Ofensor ({ult_mes_s})</div><div class='kpi-val' style='color:#dc2626; font-size:1.2rem;'>{top_maq_s} ({qtd_top_s})</div></div><div style='font-size:1.8rem;'>⚠️</div></div>", unsafe_allow_html=True)
 
@@ -568,7 +555,7 @@ elif tela == "Painel Fusos":
         with c_rosca:
             with st.container(border=True):
                 cr_col1, cr_col2 = st.columns([2.0, 1.5])
-                with cr_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800;'>🍩 Perfil de Fusos Quebrados</div>", unsafe_allow_html=True)
+                with cr_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
                 with cr_col2: mes_filtro_rosca_fuso = st.selectbox("Mês:", ["Todos os Meses"] + LISTA_MESES_PUROS, key=f"sel_mes_rosca_fuso_{s_ativo}", label_visibility="collapsed")
 
                 df_sa_rosca = df_sa.copy()
@@ -710,8 +697,8 @@ elif tela == "Painel Maquinas":
         cm1, cm2, cm3, cm4 = st.columns(4)
         cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_maq}</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
         cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.1rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'S/ Dados')}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Corretivas)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências Abertas</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -817,7 +804,6 @@ elif tela == "Banco de Dados":
                         excel_importado = pd.ExcelFile(upload_ano)
                         abas_encontradas = excel_importado.sheet_names
                         novos_registros_ano, meses_atualizados = [], []
-                        fuso_padrao = "FAG" if setor_db_fuso == "Setor A" else "MENEGATTO"
 
                         for nome_mes_oficial in LISTA_MESES_PUROS:
                             aba_alvo = next((sh for sh in abas_encontradas if sh.strip().lower() == nome_mes_oficial.lower()), None)
@@ -828,7 +814,8 @@ elif tela == "Banco de Dados":
                                     _, dias_no_mes = calendar.monthrange(int(ano_db_fuso), LISTA_MESES_PUROS.index(nome_mes_oficial) + 1)
                                     meses_atualizados.append(nome_mes_oficial)
                                     for _, r_up in df_aba.iterrows():
-                                        m_val = str(r_up[col_maq]).strip()
+                                        m_val = str(r_up[col_maq]).strip().upper()
+                                        fuso_padrao = obter_fuso_padrao(m_val, setor_db_fuso)
                                         for d in range(1, dias_no_mes + 1):
                                             qtd_val = 0
                                             if d in df_aba.columns: qtd_val = int(r_up[d]) if pd.notna(r_up[d]) else 0
@@ -876,7 +863,6 @@ elif tela == "Banco de Dados":
                 if st.button("🚀 Atualizar Base de Correias", type="primary"):
                     try:
                         df_novo_cor = pd.read_excel(up_arquivo_cor)
-                        # mapeamento simplificado
                         mapa = {c: "Setor" if "setor" in c.lower() else "Maquina_TAG" if "maq" in c.lower() or "tag" in c.lower() else "Tipo_Correia_1" if "tipo" in c.lower() and "1" in c.lower() else "Data_Instalacao_1" if "data" in c.lower() and "1" in c.lower() else "Tipo_Correia_2" if "tipo" in c.lower() and "2" in c.lower() else "Data_Instalacao_2" if "data" in c.lower() and "2" in c.lower() else c for c in df_novo_cor.columns}
                         df_novo_cor.rename(columns=mapa, inplace=True)
                         for c in COLUNAS_CORREIAS: 
@@ -987,6 +973,9 @@ elif tela == "Gestao Maquinas":
     if not sub_fuso.empty:
         val_fuso = str(sub_fuso.iloc[-1].get("Tipo_Fuso", "")).strip()
         if val_fuso in OPCOES_TIPO_FUSO: fuso_atual = val_fuso
+        else: fuso_atual = obter_fuso_padrao(maq_selecionada, setor_selecionado)
+    else:
+        fuso_atual = obter_fuso_padrao(maq_selecionada, setor_selecionado)
 
     sub_cor = df_correias[(df_correias["Setor"] == setor_selecionado) & (df_correias["Maquina_TAG"] == maq_selecionada)]
     mod1_atual, dt1_atual, mod2_atual, dt2_atual = "", None, "", None
