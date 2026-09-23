@@ -540,7 +540,7 @@ df_correias["Data_Instalacao_1"] = df_correias["Data_Instalacao_1"].astype(str)
 df_correias["Tipo_Correia_2"] = df_correias["Tipo_Correia_2"].apply(formatar_modelo)
 df_correias["Data_Instalacao_2"] = df_correias["Data_Instalacao_2"].astype(str)
 
-# Mapeamento oficial de ativos por setor (atualizado com novas tags do Menegatto)
+# Mapeamento oficial de ativos por setor
 maquinas_setor_a = [f"L-{i:02d}" for i in range(1, 29)]
 
 maquinas_setor_b = [
@@ -567,7 +567,7 @@ DICIONARIO_SETORES = {
     "Setor Menegatto": maquinas_setor_menegatto,
 }
 
-# Função auxiliar para obter todas as máquinas de um setor (base estática + adicionadas)
+# Função auxiliar para obter todas as máquinas de um setor
 def obter_maquinas_setor(setor_nome, df_ref_correias=None, df_ref_fusos=None):
     lista_base = list(DICIONARIO_SETORES.get(setor_nome, []))
     extras = set()
@@ -585,7 +585,6 @@ for setor_nome, lista_m in DICIONARIO_SETORES.items():
     for m in lista_m:
         mapa_setor_maquina[m] = setor_nome
 
-# Atualiza mapa de setor com registos do excel caso haja novas máquinas
 for _, r in df_correias.iterrows():
     if pd.notna(r.get("Maquina_TAG")) and pd.notna(r.get("Setor")):
         mapa_setor_maquina[str(r["Maquina_TAG"]).strip()] = str(r["Setor"]).strip()
@@ -766,6 +765,50 @@ st.markdown(
             padding-bottom: 1rem !important;
             padding-left: 2rem !important;
             padding-right: 2rem !important;
+        }}
+
+        /* Otimização da Barra Lateral */
+        [data-testid="stSidebar"] {{
+            background-color: #0f172a !important;
+            border-right: 1px solid #1e293b !important;
+        }}
+        [data-testid="stSidebar"] * {{
+            color: #f8fafc;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stRadio"] {{
+            background: #1e293b;
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            margin-bottom: 12px;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stRadio"] > div {{
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 4px;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stRadio"] label {{
+            background: transparent;
+            border-radius: 7px;
+            padding: 5px 12px;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
+            background: rgba(255, 255, 255, 0.05);
+        }}
+        [data-testid="stSidebar"] .stButton > button {{
+            border-radius: 8px !important;
+            font-weight: 700 !important;
+            font-size: 0.88rem !important;
+            height: 38px !important;
+            transition: all 0.15s ease;
+        }}
+        [data-testid="stSidebar"] hr {{
+            margin: 10px 0 !important;
+            border-color: #1e293b !important;
         }}
 
         div[data-testid="column"] {{
@@ -985,39 +1028,30 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR) OTIMIZADA
+# BARRA LATERAL (SIDEBAR) OTIMIZADA E ELEGANTE
 # ==========================================
 with st.sidebar:
     st.markdown(
         """
-        <div style="margin-top: -2rem; margin-bottom: -0.5rem;">
-            <h1 style="font-size: 1.6rem; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                <span>⚙️</span> Portal PCM
-            </h1>
+        <div style="margin-top: -1.8rem; margin-bottom: 0.6rem;">
+            <h2 style="font-size: 1.65rem; font-weight: 900; margin: 0; color: #ffffff; letter-spacing: -0.5px;">
+                ⚙️ Portal PCM
+            </h2>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     is_lancamento = st.session_state.pagina_atual in ["Lançamento Fusos", "Correias", "Preventiva", "Máquinas"]
+    modo_selecionado = st.radio(
+        "Modo de Operação",
+        options=["📊 Painéis", "📝 Lançamentos"],
+        index=1 if is_lancamento else 0,
+        label_visibility="collapsed"
+    )
 
-    # Dois botões lado a lado logo abaixo do título
-    col_b1, col_b2 = st.columns(2)
-    with col_b1:
-        if st.button("📊 Painéis", use_container_width=True, type="primary" if not is_lancamento else "secondary"):
-            if is_lancamento:
-                st.session_state.pagina_atual = "Painel Fusos"
-                st.rerun()
-    with col_b2:
-        if st.button("📝 Lançar", use_container_width=True, type="primary" if is_lancamento else "secondary"):
-            if not is_lancamento:
-                st.session_state.pagina_atual = "Lançamento Fusos"
-                st.rerun()
-
-    st.markdown("---")
-
-    if not is_lancamento:
-        st.subheader("📊 Painéis Disponíveis")
+    if modo_selecionado == "📊 Painéis":
+        st.markdown("<p style='font-size:0.72rem; font-weight:800; text-transform:uppercase; color:#94a3b8; margin: 6px 0 4px 2px; letter-spacing:0.6px;'>Painéis Gerenciais</p>", unsafe_allow_html=True)
         tipo_painel_fusos = "primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary"
         st.button(
             "🔩 Painel de Fusos",
@@ -1037,8 +1071,13 @@ with st.sidebar:
             on_click=navegar,
             args=("Painel Correias",),
         )
+        
+        if is_lancamento:
+            st.session_state.pagina_atual = "Painel Fusos"
+            st.rerun()
+
     else:
-        st.subheader("📝 Módulos de Apontamento")
+        st.markdown("<p style='font-size:0.72rem; font-weight:800; text-transform:uppercase; color:#94a3b8; margin: 6px 0 4px 2px; letter-spacing:0.6px;'>Módulos de Apontamento</p>", unsafe_allow_html=True)
         tipo_fusos = "primary" if st.session_state.pagina_atual == "Lançamento Fusos" else "secondary"
         st.button(
             "🔩 Fechamento de Fusos",
@@ -1078,9 +1117,13 @@ with st.sidebar:
             on_click=navegar,
             args=("Máquinas",),
         )
+        
+        if not is_lancamento:
+            st.session_state.pagina_atual = "Lançamento Fusos"
+            st.rerun()
 
     st.markdown("---")
-    st.caption("PCM • Versão Gerencial")
+    st.markdown("<div style='text-align:center; font-size:0.72rem; color:#64748b;'>PCM • Versão Gerencial</div>", unsafe_allow_html=True)
 
 # ==========================================
 # ÁREA PRINCIPAL
@@ -1283,61 +1326,6 @@ if tela == "Painel Correias":
             """,
             unsafe_allow_html=True,
         )
-
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-
-    if st.session_state.maq_clicada_cor is not None:
-        maq_sel = st.session_state.maq_clicada_cor
-        classe_badge = (
-            "badge-verde" if maq_sel["status_label"] == "Nova"
-            else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
-            else "badge-vermelho" if maq_sel["status_label"] == "Troca Necessária"
-            else "badge-cinza"
-        )
-
-        c_box, c_close = st.columns([6.2, 0.8])
-        with c_box:
-            html_linhas = ""
-            if maq_sel["tem_c1"]:
-                html_linhas += f"""
-                <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {formatar_modelo(maq_sel['t1'])} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
-                """
-            else:
-                html_linhas += """
-                <span class="tag-pill" style="opacity:0.75;">🔼 <b>Superior / Cabeceira:</b> Sem registro</span>
-                """
-
-            if maq_sel["tem_c2"]:
-                html_linhas += f"""
-                <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {formatar_modelo(maq_sel['t2'])} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
-                """
-            else:
-                html_linhas += """
-                <span class="tag-pill" style="opacity:0.75;">🔽 <b>Inferior / Traseira:</b> Sem registro</span>
-                """
-
-            st.markdown(
-                f"""
-                <div class="hud-detalhe {maq_sel['classe_card']}">
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
-                        <div>
-                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff; border-color:#0f172a;">⚙️ {maq_sel['tag']}</span>
-                            <span class="tag-pill" style="background:#e2e8f0;">🏭 {maq_sel['setor']}</span>
-                        </div>
-                        <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                        {html_linhas}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with c_close:
-            st.write("")
-            if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
-                st.session_state.maq_clicada_cor = None
-                st.rerun()
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
@@ -1621,7 +1609,6 @@ elif tela == "Painel Fusos":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
         media_mensal_fabrica = round(total_geral_quebras / meses_divisor, 1)
 
-        # Identificar o último mês que possui apontamentos na fábrica
         ultimo_mes_fabrica = "Nenhum"
         total_quebras_mes_atual = 0
         setor_ofensor_mes = "Nenhum"
@@ -1810,7 +1797,6 @@ elif tela == "Painel Fusos":
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
 
-        # Identificação do último mês com apontamentos no setor ativo
         ultimo_mes_nome = "Nenhum"
         top_maq_ultimo_mes = "Nenhuma"
         qtd_top_ultimo_mes = 0
@@ -1841,7 +1827,6 @@ elif tela == "Painel Fusos":
         lbl_quebras_maq = f"Quebras / Máquina ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Quebras / Máquina"
         lbl_maior_quebra = f"Maior Quebra ({ultimo_mes_nome})" if ultimo_mes_nome != "Nenhum" else "Maior Quebra"
 
-        # Cards KPI do Setor
         ks1, ks2, ks3, ks4 = st.columns(4)
         with ks1:
             st.markdown(
@@ -1898,7 +1883,6 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-        # Gráfico de Colunas Mensal do Setor + Gráfico de Rosca por Tipo de Fuso
         c_linha_s, c_tipo_s = st.columns([1.55, 1.45])
 
         with c_linha_s:
@@ -1989,9 +1973,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # =========================================================
-        # 1. MAPA DE CALOR: QUEBRAS POR MÁQUINA X MÊS (GERAL DO SETOR)
-        # =========================================================
+        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
@@ -2076,9 +2058,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # =========================================================
-        # 2. DIAGNÓSTICO POR TIPO DE FUSO: CARDS + MAPA DE CALOR DO TIPO ESCOLHIDO
-        # =========================================================
+        # 2. DIAGNÓSTICO POR TIPO DE FUSO
         tipos_disponiveis_setor = sorted(df_setor["Tipo_Fuso"].dropna().unique().tolist()) if not df_setor.empty else []
         if not tipos_disponiveis_setor:
             tipos_disponiveis_setor = OPCOES_TIPO_FUSO
@@ -2106,7 +2086,6 @@ elif tela == "Painel Fusos":
 
             st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 
-            # Filtra o setor pelo tipo de fuso escolhido
             df_tipo_especifico = df_setor[df_setor["Tipo_Fuso"] == fuso_selecionado_analise].copy()
 
             tot_fuso_sel = int(df_tipo_especifico["Quantidade_Quebras"].sum()) if not df_tipo_especifico.empty else 0
@@ -2115,7 +2094,7 @@ elif tela == "Painel Fusos":
             maqs_vinculadas = sorted(df_tipo_especifico["Maquina_TAG"].unique().tolist())
             qtd_maqs_vinculadas = len(maqs_vinculadas)
             
-            df_tipo_falhas = df_tipo_especifico[df_tipo_especifico["Quantidade_Quebras"] > 0]
+            df_tipo falhas = df_tipo_especifico[df_tipo_especifico["Quantidade_Quebras"] > 0]
             maqs_com_quebra_tipo = df_tipo_falhas["Maquina_TAG"].nunique()
 
             if not df_tipo_falhas.empty:
