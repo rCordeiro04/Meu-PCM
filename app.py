@@ -107,10 +107,13 @@ for col in colunas_correias:
     if col not in df_correias.columns:
         df_correias[col] = ""
 
+# Forçar todas as colunas de correias como tipo string/objeto para evitar LossySetitemError
+for col in colunas_correias:
+    df_correias[col] = df_correias[col].astype(object)
+
 # =========================================================================
 # CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS (TODOS OS SETORES)
 # =========================================================================
-# Estrutura: (Setor, Maquina_TAG, Mod_Sup, Data_Sup, Mod_Inf, Data_Inf)
 dados_correias_completos = [
     # --- Setor A (36.100, 19.500 e 18.050) ---
     ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
@@ -168,39 +171,36 @@ dados_correias_completos = [
 
 precisa_salvar_correias = False
 for s_cor, tag_cor, m1_cor, dt1_cor, m2_cor, dt2_cor in dados_correias_completos:
-    idx_m = df_correias[
-        (df_correias["Setor"] == s_cor) & (df_correias["Maquina_TAG"] == tag_cor)
-    ].index
+    filtro_maq = (df_correias["Setor"] == s_cor) & (df_correias["Maquina_TAG"] == tag_cor)
+    idx_m = df_correias[filtro_maq].index
 
     if len(idx_m) == 0:
         novo_reg = {
             "Setor": s_cor,
             "Maquina_TAG": tag_cor,
-            "Tipo_Correia_1": m1_cor,
-            "Data_Instalacao_1": dt1_cor,
-            "Tipo_Correia_2": m2_cor,
-            "Data_Instalacao_2": dt2_cor,
+            "Tipo_Correia_1": str(m1_cor),
+            "Data_Instalacao_1": str(dt1_cor),
+            "Tipo_Correia_2": str(m2_cor),
+            "Data_Instalacao_2": str(dt2_cor),
         }
         df_correias = pd.concat([df_correias, pd.DataFrame([novo_reg])], ignore_index=True)
         precisa_salvar_correias = True
     else:
         linha_idx = idx_m[0]
-        # Atualiza Superior se especificado
         if m1_cor:
-            df_correias.at[linha_idx, "Tipo_Correia_1"] = m1_cor
-            df_correias.at[linha_idx, "Data_Instalacao_1"] = dt1_cor
+            df_correias.loc[linha_idx, "Tipo_Correia_1"] = str(m1_cor)
+            df_correias.loc[linha_idx, "Data_Instalacao_1"] = str(dt1_cor)
             precisa_salvar_correias = True
-        elif dt1_cor and str(df_correias.at[linha_idx, "Data_Instalacao_1"]).strip() in ["", "nan", "None", "NaT"]:
-            df_correias.at[linha_idx, "Data_Instalacao_1"] = dt1_cor
+        elif dt1_cor and str(df_correias.loc[linha_idx, "Data_Instalacao_1"]).strip() in ["", "nan", "None", "NaT"]:
+            df_correias.loc[linha_idx, "Data_Instalacao_1"] = str(dt1_cor)
             precisa_salvar_correias = True
 
-        # Atualiza Inferior se especificado
         if m2_cor:
-            df_correias.at[linha_idx, "Tipo_Correia_2"] = m2_cor
-            df_correias.at[linha_idx, "Data_Instalacao_2"] = dt2_cor
+            df_correias.loc[linha_idx, "Tipo_Correia_2"] = str(m2_cor)
+            df_correias.loc[linha_idx, "Data_Instalacao_2"] = str(dt2_cor)
             precisa_salvar_correias = True
-        elif dt2_cor and str(df_correias.at[linha_idx, "Data_Instalacao_2"]).strip() in ["", "nan", "None", "NaT"]:
-            df_correias.at[linha_idx, "Data_Instalacao_2"] = dt2_cor
+        elif dt2_cor and str(df_correias.loc[linha_idx, "Data_Instalacao_2"]).strip() in ["", "nan", "None", "NaT"]:
+            df_correias.loc[linha_idx, "Data_Instalacao_2"] = str(dt2_cor)
             precisa_salvar_correias = True
 
 if precisa_salvar_correias:
@@ -1569,6 +1569,7 @@ elif tela == "Correias":
         df_atual_cor = pd.read_excel(ARQUIVO_CORREIAS)
         maquinas_do_setor = obter_maquinas_setor(setor_selecionado, df_atual_cor, df_fusos)
 
+        # Inserção de Nova Máquina
         with col_add:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>➕ Adicionar Máquina</div>", unsafe_allow_html=True)
             c_input_add, c_btn_add = st.columns([1.5, 1.0])
@@ -1595,6 +1596,7 @@ elif tela == "Correias":
                     else:
                         st.warning("Informe o código da máquina.")
 
+        # Exclusão de Máquina
         with col_del:
             st.markdown("<div style='font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:2px;'>🗑️ Excluir Máquina</div>", unsafe_allow_html=True)
             c_sel_del, c_btn_del = st.columns([1.5, 1.0])
@@ -1629,7 +1631,7 @@ elif tela == "Correias":
             t1 = c1 if c1 != "nan" else ""
             d1_val = ultimo.get("Data_Instalacao_1", "")
             try:
-                if pd.notna(d1_val) and str(d1_val).strip() not in ["", "nan", "NaT", "None"]:
+                if pd.notna(d1_val) and str(d1_val).strip() not in ["", "nan"]:
                     dt1 = pd.to_datetime(d1_val).date()
             except Exception:
                 dt1 = None
@@ -1638,7 +1640,7 @@ elif tela == "Correias":
             t2 = c2 if c2 != "nan" else ""
             d2_val = ultimo.get("Data_Instalacao_2", "")
             try:
-                if pd.notna(d2_val) and str(d2_val).strip() not in ["", "nan", "NaT", "None"]:
+                if pd.notna(d2_val) and str(d2_val).strip() not in ["", "nan"]:
                     dt2 = pd.to_datetime(d2_val).date()
             except Exception:
                 dt2 = None
@@ -1687,7 +1689,7 @@ elif tela == "Correias":
         for _, linha in tabela_editada_cor.iterrows():
             d1 = linha["Data (Superior / Cabeceira)"]
             dt1_str = ""
-            if pd.notna(d1) and d1 is not None and str(d1).strip() not in ["", "NaT"]:
+            if pd.notna(d1) and d1 is not None and str(d1).strip() != "":
                 try:
                     dt1_str = pd.to_datetime(d1).strftime("%Y-%m-%d")
                 except Exception:
@@ -1695,14 +1697,14 @@ elif tela == "Correias":
 
             d2 = linha["Data (Inferior / Traseira)"]
             dt2_str = ""
-            if pd.notna(d2) and d2 is not None and str(d2).strip() not in ["", "NaT"]:
+            if pd.notna(d2) and d2 is not None and str(d2).strip() != "":
                 try:
                     dt2_str = pd.to_datetime(d2).strftime("%Y-%m-%d")
                 except Exception:
                     dt2_str = ""
 
-            m1 = formatar_modelo(linha["Modelo (Superior / Cabeceira)"])
-            m2 = formatar_modelo(linha["Modelo (Inferior / Traseira)"])
+            m1 = formatar_modelo(linha["Modelo (Superior / Cabeceira)"]) if pd.notna(linha["Modelo (Superior / Cabeceira)"]) and str(linha["Modelo (Superior / Cabeceira)"]).strip() != "None" else ""
+            m2 = formatar_modelo(linha["Modelo (Inferior / Traseira)"]) if pd.notna(linha["Modelo (Inferior / Traseira)"]) and str(linha["Modelo (Inferior / Traseira)"]).strip() != "None" else ""
 
             novos_registros_cor.append(
                 {
@@ -1742,6 +1744,9 @@ elif tela == "Painel Fusos":
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
         ano_painel = st.selectbox("Ano", lista_anos_painel, index=2, key="filtro_ano_fusos_dash", label_visibility="collapsed")
 
+    # ==========================================
+    # CÁLCULO DINÂMICO DE MESES TRANSCORRIDOS
+    # ==========================================
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
     mes_atual_num_ref = data_hoje_ref.month
@@ -1798,7 +1803,9 @@ elif tela == "Painel Fusos":
         df_dados_fusos["Dia"] = 1
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
-    # ABA GERAL
+    # ==========================================
+    # CASO 1: ABA GERAL (FÁBRICA COMPLETA)
+    # ==========================================
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
         media_mensal_fabrica = round(total_geral_quebras / meses_divisor, 1)
@@ -1978,12 +1985,15 @@ elif tela == "Painel Fusos":
                 )
                 st.altair_chart(chart_men, use_container_width=True)
 
-    # VISÃO POR SETOR
+    # ==========================================
+    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR
+    # ==========================================
     else:
         setor_ativo = st.session_state.aba_setor_fuso
         df_setor = df_fuso_ano[df_fuso_ano["Setor"] == setor_ativo].copy()
 
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
+        
         maquinas_setor_lista = obter_maquinas_setor(setor_ativo, df_correias, df_fusos)
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
@@ -2164,7 +2174,6 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
