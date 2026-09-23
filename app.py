@@ -76,7 +76,6 @@ else:
     df_fusos = pd.DataFrame(columns=colunas_fusos)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-# Base de Correias com blindagem contra corrupção
 df_correias = None
 if os.path.exists(ARQUIVO_CORREIAS):
     try:
@@ -825,13 +824,21 @@ st.markdown(
             padding-left: 2rem !important;
             padding-right: 2rem !important;
         }}
+
+        /* ======================================================== */
+        /* OTIMIZAÇÃO E CORREÇÃO DE CORES DA BARRA LATERAL (SIDEBAR)*/
+        /* ======================================================== */
         [data-testid="stSidebar"] {{
             background-color: #0f172a !important;
             border-right: 1px solid #1e293b !important;
         }}
-        [data-testid="stSidebar"] * {{
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span {{
             color: #f8fafc;
         }}
+
+        /* Seletor de Modo (st.radio) */
         [data-testid="stSidebar"] div[data-testid="stRadio"] {{
             background: #1e293b;
             padding: 4px;
@@ -853,20 +860,60 @@ st.markdown(
             cursor: pointer;
             transition: all 0.15s ease;
         }}
-        [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
-            background: rgba(255, 255, 255, 0.05);
+        [data-testid="stSidebar"] div[data-testid="stRadio"] label p {{
+            color: #f1f5f9 !important;
         }}
-        [data-testid="stSidebar"] .stButton > button {{
+        [data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {{
+            background: rgba(255, 255, 255, 0.08);
+        }}
+
+        /* Botões secundários (Inativos) da Sidebar: Fundo escuro com texto claro nítido */
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
+            background-color: #1e293b !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #334155 !important;
             border-radius: 8px !important;
             font-weight: 700 !important;
             font-size: 0.88rem !important;
-            height: 38px !important;
+            height: 40px !important;
             transition: all 0.15s ease;
         }}
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"] p {{
+            color: #e2e8f0 !important;
+            font-weight: 700 !important;
+        }}
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {{
+            background-color: #334155 !important;
+            border-color: #475569 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+        }}
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover p {{
+            color: #ffffff !important;
+        }}
+
+        /* Botões primários (Ativos) da Sidebar: Vermelho vibrante padrão */
+        [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #b91c1c !important;
+            border-radius: 8px !important;
+            font-weight: 800 !important;
+            font-size: 0.88rem !important;
+            height: 40px !important;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25) !important;
+            transition: all 0.15s ease;
+        }}
+        [data-testid="stSidebar"] .stButton > button[kind="primary"] p {{
+            color: #ffffff !important;
+            font-weight: 800 !important;
+        }}
+
         [data-testid="stSidebar"] hr {{
             margin: 10px 0 !important;
             border-color: #1e293b !important;
         }}
+
         div[data-testid="column"] {{
             padding: 1px !important;
             margin: 0px !important;
@@ -875,6 +922,7 @@ st.markdown(
             gap: 4px !important;
             margin-bottom: 4px !important;
         }}
+
         div[data-testid="stVegaLiteChart"] summary,
         div[data-testid="stVegaLiteChart"] .vega-actions {{
             display: none !important;
@@ -882,6 +930,11 @@ st.markdown(
         div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
             overscroll-behavior: contain;
         }}
+        div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {{
+            resize: none !important;
+        }}
+
+        /* Botões do mosaico de máquinas no dashboard de correias */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -891,7 +944,9 @@ st.markdown(
             border-radius: 7px !important;
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }}
+
         {regras_css_botoes}
+
         div.st-key-btn_inv_total,
         div.st-key-btn_inv_novas,
         div.st-key-btn_inv_meia,
@@ -908,6 +963,7 @@ st.markdown(
             width: 100% !important;
             cursor: pointer !important;
         }}
+
         .card-kpi-bonito {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -955,6 +1011,7 @@ st.markdown(
             letter-spacing: 0.5px;
             margin-bottom: 3px;
         }}
+
         .alerta-manutencao {{
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -981,6 +1038,50 @@ st.markdown(
             display: inline-block;
             margin-right: 4px;
         }}
+
+        .hud-detalhe {{
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin: 6px 0 12px 0;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            border-left: 6px solid #64748b;
+            animation: fadeIn 0.15s ease-in;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(-4px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .hud-detalhe.status-verde {{ border-left-color: #10b981; }}
+        .hud-detalhe.status-amarelo {{ border-left-color: #f59e0b; }}
+        .hud-detalhe.status-vermelho {{ border-left-color: #ef4444; }}
+        .hud-detalhe.status-cinza {{ border-left-color: #94a3b8; }}
+
+        .tag-pill {{
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            display: inline-block;
+            margin-right: 8px;
+        }}
+        .badge-status {{
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .badge-verde {{ background: #d1fae5; color: #065f46; }}
+        .badge-amarelo {{ background: #fef3c7; color: #92400e; }}
+        .badge-vermelho {{ background: #fee2e2; color: #991b1b; }}
+        .badge-cinza {{ background: #e2e8f0; color: #475569; }}
+
         .pill-legenda {{
             display: inline-flex;
             align-items: center;
@@ -999,6 +1100,7 @@ st.markdown(
             border-radius: 50%;
             display: inline-block;
         }}
+
         .chart-header-row {{
             display: flex;
             align-items: center;
@@ -1026,7 +1128,7 @@ st.markdown(
 )
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR)
+# BARRA LATERAL (SIDEBAR) OTIMIZADA
 # ==========================================
 with st.sidebar:
     st.markdown(
@@ -1327,6 +1429,61 @@ if tela == "Painel Correias":
 
     st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
 
+    if st.session_state.maq_clicada_cor is not None:
+        maq_sel = st.session_state.maq_clicada_cor
+        classe_badge = (
+            "badge-verde" if maq_sel["status_label"] == "Nova"
+            else "badge-amarelo" if maq_sel["status_label"] == "Meia-Vida"
+            else "badge-vermelho" if maq_sel["status_label"] == "Troca Necessária"
+            else "badge-cinza"
+        )
+
+        c_box, c_close = st.columns([6.2, 0.8])
+        with c_box:
+            html_linhas = ""
+            if maq_sel["tem_c1"]:
+                html_linhas += f"""
+                <span class="tag-pill">🔼 <b>Superior / Cabeceira:</b> {formatar_modelo(maq_sel['t1'])} &nbsp;|&nbsp; 📅 {maq_sel['d1']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso1']}</b></span>
+                """
+            else:
+                html_linhas += """
+                <span class="tag-pill" style="opacity:0.75;">🔼 <b>Superior / Cabeceira:</b> Sem registro</span>
+                """
+
+            if maq_sel["tem_c2"]:
+                html_linhas += f"""
+                <span class="tag-pill">🔽 <b>Inferior / Traseira:</b> {formatar_modelo(maq_sel['t2'])} &nbsp;|&nbsp; 📅 {maq_sel['d2']} &nbsp;|&nbsp; ⏱️ <b>{maq_sel['uso2']}</b></span>
+                """
+            else:
+                html_linhas += """
+                <span class="tag-pill" style="opacity:0.75;">🔽 <b>Inferior / Traseira:</b> Sem registro</span>
+                """
+
+            st.markdown(
+                f"""
+                <div class="hud-detalhe {maq_sel['classe_card']}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px;">
+                        <div>
+                            <span class="tag-pill" style="font-size:0.95rem; background:#0f172a; color:#ffffff; border-color:#0f172a;">⚙️ {maq_sel['tag']}</span>
+                            <span class="tag-pill" style="background:#e2e8f0;">🏭 {maq_sel['setor']}</span>
+                        </div>
+                        <span class="badge-status {classe_badge}">{maq_sel['status_label']}</span>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        {html_linhas}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with c_close:
+            st.write("")
+            if st.button("✖ Fechar", key="btn_fechar_balao_topo"):
+                st.session_state.maq_clicada_cor = None
+                st.rerun()
+
+    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+
     if todas_as_maquinas:
         COLS_GRELHA = 12
         linhas_grid = [todas_as_maquinas[i:i + COLS_GRELHA] for i in range(0, len(todas_as_maquinas), COLS_GRELHA)]
@@ -1351,7 +1508,7 @@ if tela == "Painel Correias":
         st.info("Nenhuma máquina encontrada com os filtros selecionados.")
 
 # ------------------------------------------
-# 2. LANÇAMENTOS: CORREIAS (COM PRESERVAÇÃO DE DADOS)
+# 2. LANÇAMENTOS: CORREIAS (SUPERIOR / INFERIOR - BLINDADO)
 # ------------------------------------------
 elif tela == "Correias":
     st.title("🔄 Lançamento: Gestão de Correias")
@@ -1962,6 +2119,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
+        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
@@ -2046,7 +2204,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-        # DIAGNÓSTICO POR TIPO DE FUSO
+        # 2. DIAGNÓSTICO POR TIPO DE FUSO
         tipos_disponiveis_setor = sorted(df_setor["Tipo_Fuso"].dropna().unique().tolist()) if not df_setor.empty else []
         if not tipos_disponiveis_setor:
             tipos_disponiveis_setor = OPCOES_TIPO_FUSO
