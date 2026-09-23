@@ -969,7 +969,7 @@ elif tela == "Painel Fusos":
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
-    st.caption("Exportação e importação consolidada: 1 único ficheiro Excel contendo os 12 meses como abas separadas")
+    st.caption("Central de importação e exportação de dados mestres em formato Excel (.xlsx)")
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
@@ -984,7 +984,6 @@ elif tela == "Banco de Dados":
 
         maquinas_set_db = obter_maquinas_setor(setor_db_fuso, df_correias, df_fusos)
 
-        # Montagem do Excel consolidado com 12 abas (Janeiro a Dezembro)
         buffer_excel_ano = io.BytesIO()
         with pd.ExcelWriter(buffer_excel_ano, engine="openpyxl") as writer:
             for idx_m, nome_mes_aba in enumerate(LISTA_MESES_PUROS):
@@ -1105,26 +1104,17 @@ elif tela == "Banco de Dados":
                     except Exception as erro_up:
                         st.error(f"Erro ao processar o ficheiro anual: {erro_up}")
 
-    # Aba Correias: Exportação e importação inteligente
+    # Aba Correias: Estritamente Download e Upload de Dados
     with tab_correias_db:
-        st.markdown("### 🔄 Gestão e Troca de Dados de Correias")
-        st.caption("Exporte a planilha atual para edição externa e reenvie o arquivo preenchido para atualizar o sistema.")
-
-        m1_c, m2_c, m3_c = st.columns(3)
-        m1_c.metric("Total de Registros", len(df_correias))
-        m2_c.metric("Máquinas Cadastradas", df_correias["Maquina_TAG"].nunique() if not df_correias.empty else 0)
-        m3_c.metric("Setores com Dados", df_correias["Setor"].nunique() if not df_correias.empty else 0)
-
-        st.markdown("---")
+        st.markdown("### 🔄 Troca de Dados de Correias")
+        st.caption("Descarregue a planilha modelo com todas as máquinas cadastradas ou envie novos dados atualizados.")
 
         col_d_cor, col_u_cor = st.columns([1.5, 2.5])
 
-        # -------------------------------------------------------------
         # 1. DOWNLOAD DA BASE DE CORREIAS
-        # -------------------------------------------------------------
         with col_d_cor:
-            st.markdown("#### 📥 Descarregar Dados")
-            st.caption("Gera um ficheiro .xlsx pronto para preenchimento com todas as máquinas.")
+            st.markdown("#### 📥 Descarregar Planilha")
+            st.caption("Gera um arquivo .xlsx limpo pronto para preenchimento de todas as máquinas.")
 
             filtro_export_setor = st.selectbox(
                 "Exportar Setor:",
@@ -1177,12 +1167,10 @@ elif tela == "Banco de Dados":
                 use_container_width=True,
             )
 
-        # -------------------------------------------------------------
         # 2. UPLOAD E ATUALIZAÇÃO DA BASE DE CORREIAS
-        # -------------------------------------------------------------
         with col_u_cor:
             st.markdown("#### 📤 Enviar Dados Atualizados")
-            st.caption("Suba o arquivo Excel (.xlsx) contendo as colunas: `Setor`, `Maquina_TAG`, `Tipo_Correia_1`, `Data_Instalacao_1`, `Tipo_Correia_2`, `Data_Instalacao_2`.")
+            st.caption("Suba o arquivo Excel preenchido (.xlsx). Colunas esperadas: `Setor`, `Maquina_TAG`, `Tipo_Correia_1`, `Data_Instalacao_1`, `Tipo_Correia_2`, `Data_Instalacao_2`.")
 
             up_arquivo_cor = st.file_uploader(
                 "Carregar nova planilha de correias (.xlsx)",
@@ -1267,15 +1255,6 @@ elif tela == "Banco de Dados":
 
                     except Exception as erro_proc:
                         st.error(f"Erro ao processar o arquivo de correias: {erro_proc}")
-
-        # -------------------------------------------------------------
-        # 3. PRÉ-VISUALIZAÇÃO DA BASE VIGENTE
-        # -------------------------------------------------------------
-        st.markdown("---")
-        st.markdown("#### 👁️ Pré-visualização dos Dados Atuais")
-        filtro_prev_setor = st.selectbox("Filtrar pré-visualização:", ["Todos"] + list(DICIONARIO_SETORES.keys()), key="f_prev_db_c")
-        df_exibir_db = df_correias if filtro_prev_setor == "Todos" else df_correias[df_correias["Setor"] == filtro_prev_setor]
-        st.dataframe(df_exibir_db, use_container_width=True, height=280)
 
     # Aba Backups Automáticos
     with tab_backups_db:
