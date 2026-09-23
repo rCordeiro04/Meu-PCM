@@ -782,7 +782,7 @@ elif tela == "Painel Setores":
     df_f_setor_ano = df_fusos[(df_fusos["Setor"] == s_nome) & (df_fusos["Ano"] == 2026)].copy() if not df_fusos.empty else pd.DataFrame()
     tot_q_fusos = int(df_f_setor_ano["Quantidade_Quebras"].sum()) if not df_f_setor_ano.empty else 0
 
-    # 2. Dados de Paradas / Corretivas do Setor (Último 1 Ano / 365 dias)
+    # 2. Dados de Paradas / Corretivas do Setor
     df_p_setor = df_paradas[df_paradas["Setor"] == s_nome].copy() if not df_paradas.empty else pd.DataFrame()
     if not df_p_setor.empty:
         df_p_setor["Data_Dt"] = pd.to_datetime(df_p_setor["Data"], errors="coerce")
@@ -791,9 +791,8 @@ elif tela == "Painel Setores":
     else:
         df_p_1ano = pd.DataFrame(columns=COLUNAS_PARADAS)
 
-    tot_horas_paradas_setor = float(df_p_setor[df_p_setor["Mes_Filtro"] if "Mes_Filtro" in df_p_setor.columns else True]["Tempo_Parado_Horas"].sum()) if not df_p_setor.empty else 0.0
+    tot_horas_paradas_setor = float(df_p_setor["Tempo_Parado_Horas"].sum()) if not df_p_setor.empty else 0.0
 
-    # Se houver filtro de mês específico na tela de Setores para as horas paradas
     if mes_selecionado_exec != "Todos os Meses" and not df_p_setor.empty:
         df_p_setor["Mes_Nome"] = df_p_setor["Data_Dt"].dt.month.map(lambda x: LISTA_MESES_PUROS[x-1] if pd.notna(x) and 1 <= x <= 12 else "")
         tot_horas_paradas_setor = float(df_p_setor[df_p_setor["Mes_Nome"] == mes_selecionado_exec]["Tempo_Parado_Horas"].sum())
@@ -816,7 +815,7 @@ elif tela == "Painel Setores":
     else:
         top_corretivas = pd.DataFrame(columns=["Máquina", "Horas Paradas"])
 
-    # 6. Preventivas vs Corretivas (Últimos 1 Ano) para o Gráfico de Rosca de Preventivas
+    # 6. Preventivas vs Corretivas (Último 1 Ano)
     if not df_p_1ano.empty:
         contagem_manut = df_p_1ano["Tipo_Manutencao"].value_counts().reset_index()
         contagem_manut.columns = ["Tipo", "Total"]
@@ -896,7 +895,7 @@ elif tela == "Painel Setores":
 
     with cg_s3:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Top 5 Máquinas com Mais Horas Corretivas</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.95rem; font-weight:800; margin-bottom:8px;'>🍩 Top Máquinas com Mais Horas Corretivas</div>", unsafe_allow_html=True)
             if not top_corretivas.empty and top_corretivas["Horas Paradas"].sum() > 0:
                 chart_don_cor = alt.Chart(top_corretivas).mark_arc(innerRadius=65, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
                     theta=alt.Theta("Horas Paradas:Q", stack=True),
