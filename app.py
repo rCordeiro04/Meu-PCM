@@ -126,7 +126,6 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # Forçar fuso FAG
     MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
     if not df_f.empty:
         mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
@@ -134,7 +133,6 @@ def carregar_dados():
             df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
             df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # Forçar fuso MENEGATTO
     MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
     if not df_f.empty:
         mask_men_init = df_f["Maquina_TAG"].isin(MAQUINAS_MENEGATTO)
@@ -670,21 +668,34 @@ elif tela == "Painel Fusos":
 
         with c_rosca:
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:0.96rem; font-weight:800; margin-bottom:6px;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
-                if not df_sa.empty and tot_s > 0:
-                    df_tipos = df_sa[df_sa["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
-                    chart_donut = alt.Chart(df_tipos).mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2).encode(
+                # CABEÇALHO COM FILTRO DE MÊS INTEGRADO NA ROSCA DE TIPO DE FUSO
+                cr_col1, cr_col2 = st.columns([2.0, 1.5])
+                with cr_col1:
+                    st.markdown(f"<div style='font-size:0.96rem; font-weight:800;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
+                with cr_col2:
+                    mes_filtro_rosca_fuso = st.selectbox("Mês:", ["Todos os Meses"] + LISTA_MESES_PUROS, key=f"sel_mes_rosca_fuso_{s_ativo}", label_visibility="collapsed")
+
+                df_sa_rosca = df_sa.copy()
+                if mes_filtro_rosca_fuso != "Todos os Meses":
+                    df_sa_rosca = df_sa_rosca[df_sa_rosca["Mes"] == mes_filtro_rosca_fuso]
+
+                tot_s_rosca = int(df_sa_rosca["Quantidade_Quebras"].sum()) if not df_sa_rosca.empty else 0
+
+                if not df_sa_rosca.empty and tot_s_rosca > 0:
+                    df_tipos = df_sa_rosca[df_sa_rosca["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
+                    base_don_fuso = alt.Chart(df_tipos).encode(
                         theta=alt.Theta("Quantidade_Quebras:Q", stack=True),
-                        color=alt.Color("Tipo_Fuso:N", title="Tipo / Marca", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right")),
+                        color=alt.Color("Tipo_Fuso:N", title="Tipo / Marca", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right", title="Tipo de Fuso", labelFontSize=12, titleFontSize=13)),
                         tooltip=[alt.Tooltip("Tipo_Fuso:N", title="Tipo"), alt.Tooltip("Quantidade_Quebras:Q", title="Quebras")]
-                    ).properties(height=280)
-                    st.altair_chart(chart_donut, use_container_width=True)
+                    )
+                    arc_fuso = base_don_fuso.mark_arc(innerRadius=55, outerRadius=110, stroke="#ffffff", strokeWidth=2)
+                    text_fuso = base_don_fuso.mark_text(radius=82, fontSize=12, fontWeight=800, fill="#ffffff").encode(text=alt.Text("Quantidade_Quebras:Q"))
+                    st.altair_chart((arc_fuso + text_fuso).properties(height=260), use_container_width=True)
                 else:
-                    st.info(f"Sem registros de tipos de fuso para {s_ativo} em {ano_f}.")
+                    st.info(f"Sem registros para o período selecionado.")
 
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-        # MAPA DE CALOR COM ESCALA CLÁSSICA (VERDE AO VERMELHO) E FILTRO DE FUSO
         with st.container(border=True):
             ch_col1, ch_col2 = st.columns([2.5, 1.5])
             with ch_col1:
@@ -849,7 +860,7 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    cg_s3, cg_s4 = alt.Chart, st.columns(2)
+    cg_s3, cg_s4 = st.columns(2)
 
     with cg_s3:
         with st.container(border=True):
@@ -1156,7 +1167,7 @@ elif tela == "Banco de Dados":
 
             df_export_pronto = pd.DataFrame(linhas_export)
             buf_down_cor = io.BytesIO()
-            with pd.ExcelWriter(buf_down_cor, engine="openpyxl") as writer_cor:
+            with pd.ExcelWriter(buffer_excel_ano if 'buffer_excel_ano' in locals() else buf_down_cor, engine="openpyxl") as writer_cor:
                 df_export_pronto.to_excel(writer_cor, index=False, sheet_name="Correias")
             buf_down_cor.seek(0)
 
