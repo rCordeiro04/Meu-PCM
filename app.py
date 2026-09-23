@@ -126,7 +126,7 @@ def carregar_dados():
         df_f = pd.DataFrame(columns=COLUNAS_FUSOS)
         df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # Forçar fuso FAG para as máquinas informadas
+    # Forçar fuso FAG
     MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
     if not df_f.empty:
         mask_fag_init = df_f["Maquina_TAG"].isin(MAQUINAS_FAG)
@@ -134,8 +134,8 @@ def carregar_dados():
             df_f.loc[mask_fag_init, "Tipo_Fuso"] = "FAG"
             df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # Forçar fuso MENEGATTO para as máquinas informadas[cite: 6]
-    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"][cite: 6]
+    # Forçar fuso MENEGATTO
+    MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
     if not df_f.empty:
         mask_men_init = df_f["Maquina_TAG"].isin(MAQUINAS_MENEGATTO)
         if mask_men_init.any() and (df_f.loc[mask_men_init, "Tipo_Fuso"] != "MENEGATTO").any():
@@ -849,7 +849,7 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    cg_s3, cg_s4 = st.columns(2)
+    cg_s3, cg_s4 = alt.Chart, st.columns(2)
 
     with cg_s3:
         with st.container(border=True):
