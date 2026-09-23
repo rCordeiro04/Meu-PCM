@@ -1,4 +1,5 @@
 import os
+import shutil
 import calendar
 from datetime import date, datetime
 import pandas as pd
@@ -36,6 +37,20 @@ colunas_correias = [
 ]
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
+
+# ==========================================
+# ROTINA DE BACKUP AUTOMÁTICO
+# ==========================================
+def gerar_backup_seguro(caminho_arquivo):
+    if os.path.exists(caminho_arquivo):
+        os.makedirs("backups", exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nome_arq = os.path.basename(caminho_arquivo)
+        caminho_destino = os.path.join("backups", f"{ts}_{nome_arq}")
+        try:
+            shutil.copy2(caminho_arquivo, caminho_destino)
+        except Exception:
+            pass
 
 # ==========================================
 # FUNÇÃO AUXILIAR DE FORMATAÇÃO DE MODELO
@@ -107,16 +122,14 @@ for col in colunas_correias:
     if col not in df_correias.columns:
         df_correias[col] = ""
 
-# Forçar tipo object/string para evitar LossySetitemError
 for col in colunas_correias:
     df_correias[col] = df_correias[col].astype(object)
 
 # =========================================================================
 # CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS (TODOS OS SETORES)
 # =========================================================================
-# Formato: (Setor, Maquina_TAG, Modelo_Sup, Data_Sup, Modelo_Inf, Data_Inf)
 dados_correias_completos = [
-    # --- Setor A (36.100, 19.500 e 18.050) ---
+    # --- Setor A ---
     ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
     ("Setor A", "L-02", "", "", "", ""),
     ("Setor A", "L-03", "36.100", "2026-05-04", "", ""),
@@ -146,7 +159,7 @@ dados_correias_completos = [
     ("Setor A", "L-27", "", "", "18.050", "2025-03-13"),
     ("Setor A", "L-28", "19.500", "2025-03-22", "", ""),
 
-    # --- Setor B (36.100, 19.500, 18.050, 33.990 e 34.870) ---
+    # --- Setor B ---
     ("Setor B", "L-29", "36.100", "2025-11-13", "", ""),
     ("Setor B", "L-30", "36.100", "2026-09-10", "", ""),
     ("Setor B", "L-31", "36.100", "2026-08-24", "", ""),
@@ -162,14 +175,14 @@ dados_correias_completos = [
     ("Setor B", "L-50", "19.500", "2026-07-28", "18.050", "2026-03-05"),
     ("Setor B", "L-51", "36.100", "2026-06-30", "", ""),
 
-    # --- Setor Látex (33.990 e 34.870) ---
+    # --- Setor Látex ---
     ("Setor Látex", "B-72", "33.990", "2026-01-02", "", ""),
     ("Setor Látex", "B-73", "33.990", "2026-06-13", "34.870", "2026-06-13"),
     ("Setor Látex", "B-74", "33.990", "2026-03-10", "34.870", "2025-02-15"),
     ("Setor Látex", "B-78", "", "", "34.870", "2025-12-29"),
     ("Setor Látex", "B-79", "", "", "34.870", "2024-11-30"),
 
-    # --- Setor Menegatto (38.740 e Superior) ---
+    # --- Setor Menegatto ---
     ("Setor Menegatto", "B-93", "", "", "38.740", "2025-04-16"),
     ("Setor Menegatto", "B-94", "", "", "38.740", "2025-05-01"),
     ("Setor Menegatto", "B-95", "", "", "38.740", "2025-04-17"),
@@ -216,6 +229,7 @@ for s_cor, tag_cor, m1_cor, dt1_cor, m2_cor, dt2_cor in dados_correias_completos
             precisa_salvar_correias = True
 
 if precisa_salvar_correias:
+    gerar_backup_seguro(ARQUIVO_CORREIAS)
     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
 df_correias["Tipo_Correia_1"] = df_correias["Tipo_Correia_1"].apply(formatar_modelo)
@@ -654,6 +668,7 @@ for nome_mes_carga, lista_dados_carga in mapa_cargas_setor_menegatto:
         precisa_salvar_fusos = True
 
 if precisa_salvar_fusos:
+    gerar_backup_seguro(ARQUIVO_FUSOS)
     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
 # Mapeamento de ativos por setor
@@ -895,7 +910,6 @@ st.markdown(
             color: #f8fafc;
         }}
 
-        /* Seletor de Modo (st.radio) */
         [data-testid="stSidebar"] div[data-testid="stRadio"] {{
             background: #1e293b;
             padding: 4px;
@@ -924,7 +938,6 @@ st.markdown(
             background: rgba(255, 255, 255, 0.08);
         }}
 
-        /* Botões secundários (Inativos) da Sidebar: Fundo escuro com texto claro nítido */
         [data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
             background-color: #1e293b !important;
             color: #e2e8f0 !important;
@@ -949,7 +962,6 @@ st.markdown(
             color: #ffffff !important;
         }}
 
-        /* Botões primários (Ativos) da Sidebar: Vermelho vibrante padrão */
         [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
             color: #ffffff !important;
@@ -991,7 +1003,6 @@ st.markdown(
             resize: none !important;
         }}
 
-        /* Botões do mosaico de máquinas no dashboard de correias */
         div[data-testid="stButton"] button {{
             padding: 0px !important;
             font-size: 0.8rem !important;
@@ -1278,6 +1289,27 @@ with st.sidebar:
         if not is_lancamento:
             st.session_state.pagina_atual = "Lançamento Fusos"
             st.rerun()
+
+    st.markdown("---")
+    st.markdown("<p style='font-size:0.72rem; font-weight:800; text-transform:uppercase; color:#94a3b8; margin: 6px 0 4px 2px; letter-spacing:0.6px;'>📥 Baixar Dados</p>", unsafe_allow_html=True)
+    if os.path.exists(ARQUIVO_CORREIAS):
+        with open(ARQUIVO_CORREIAS, "rb") as f_cor:
+            st.download_button(
+                "Baixar Correias (.xlsx)",
+                data=f_cor,
+                file_name="lancamentos_correias_backup.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+    if os.path.exists(ARQUIVO_FUSOS):
+        with open(ARQUIVO_FUSOS, "rb") as f_fus:
+            st.download_button(
+                "Baixar Fusos (.xlsx)",
+                data=f_fus,
+                file_name="lancamentos_fusos_backup.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
 
     st.markdown("---")
     st.markdown("<div style='text-align:center; font-size:0.72rem; color:#64748b;'>PCM • Versão Gerencial</div>", unsafe_allow_html=True)
@@ -1602,6 +1634,7 @@ elif tela == "Correias":
                                 "Data_Instalacao_2": ""
                             }])
                             df_atual_cor = pd.concat([df_atual_cor, novo_reg_cor], ignore_index=True)
+                            gerar_backup_seguro(ARQUIVO_CORREIAS)
                             df_atual_cor.to_excel(ARQUIVO_CORREIAS, index=False)
                             st.success(f"Máquina {nova_maq_cor} adicionada ao {setor_selecionado}!")
                             st.rerun()
@@ -1618,6 +1651,7 @@ elif tela == "Correias":
                 if st.button("Excluir", key=f"btn_del_cor_{setor_selecionado}", use_container_width=True, type="secondary"):
                     if maq_del_cor and maq_del_cor != "-- Selecione --":
                         df_atual_cor = df_atual_cor[~((df_atual_cor["Setor"] == setor_selecionado) & (df_atual_cor["Maquina_TAG"] == maq_del_cor))]
+                        gerar_backup_seguro(ARQUIVO_CORREIAS)
                         df_atual_cor.to_excel(ARQUIVO_CORREIAS, index=False)
                         st.success(f"Máquina {maq_del_cor} removida do {setor_selecionado}!")
                         st.rerun()
@@ -1732,6 +1766,7 @@ elif tela == "Correias":
         df_final_cor = pd.concat(
             [df_limpo_cor, pd.DataFrame(novos_registros_cor)], ignore_index=True
         )
+        gerar_backup_seguro(ARQUIVO_CORREIAS)
         df_final_cor.to_excel(ARQUIVO_CORREIAS, index=False)
         st.success(f"✅ Dados de correias do {setor_selecionado} salvos com sucesso!")
         st.rerun()
@@ -2504,6 +2539,7 @@ elif tela == "Lançamento Fusos":
                                 for m_nome in lista_meses_puros
                             ]
                             df_atual_fuso_ctrl = pd.concat([df_atual_fuso_ctrl, pd.DataFrame(novos_regs_ano)], ignore_index=True)
+                            gerar_backup_seguro(ARQUIVO_FUSOS)
                             df_atual_fuso_ctrl.to_excel(ARQUIVO_FUSOS, index=False)
                             st.success(f"Máquina {nova_maq_fuso} adicionada ao {setor_selecionado} para {ano_selecionado}!")
                             st.rerun()
@@ -2519,6 +2555,7 @@ elif tela == "Lançamento Fusos":
                 if st.button("Excluir", key=f"btn_del_fuso_{setor_selecionado}", use_container_width=True, type="secondary"):
                     if maq_del_fuso and maq_del_fuso != "-- Selecione --":
                         df_atual_fuso_ctrl = df_atual_fuso_ctrl[~((df_atual_fuso_ctrl["Setor"] == setor_selecionado) & (df_atual_fuso_ctrl["Maquina_TAG"] == maq_del_fuso))]
+                        gerar_backup_seguro(ARQUIVO_FUSOS)
                         df_atual_fuso_ctrl.to_excel(ARQUIVO_FUSOS, index=False)
                         st.success(f"Máquina {maq_del_fuso} removida do {setor_selecionado}!")
                         st.rerun()
@@ -2637,6 +2674,7 @@ elif tela == "Lançamento Fusos":
                         )
 
                 df_final = pd.concat([df_limpo, pd.DataFrame(novos_registros)], ignore_index=True)
+                gerar_backup_seguro(ARQUIVO_FUSOS)
                 df_final.to_excel(ARQUIVO_FUSOS, index=False)
                 st.success(f"✅ Apontamentos diários de {nome_mes}/{ano_selecionado} para {setor_selecionado} salvos com sucesso!")
                 st.rerun()
