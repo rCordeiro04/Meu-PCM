@@ -2094,7 +2094,7 @@ elif tela == "Painel Fusos":
             maqs_vinculadas = sorted(df_tipo_especifico["Maquina_TAG"].unique().tolist())
             qtd_maqs_vinculadas = len(maqs_vinculadas)
             
-            df_tipo falhas = df_tipo_especifico[df_tipo_especifico["Quantidade_Quebras"] > 0]
+            df_tipo_falhas = df_tipo_especifico[df_tipo_especifico["Quantidade_Quebras"] > 0]
             maqs_com_quebra_tipo = df_tipo_falhas["Maquina_TAG"].nunique()
 
             if not df_tipo_falhas.empty:
