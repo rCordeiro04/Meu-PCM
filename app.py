@@ -436,24 +436,25 @@ st.markdown(
             border: 1px solid #b91c1c !important; border-radius: 8px !important; font-weight: 800 !important; height: 38px !important;
         }
 
-        /* Estilização compacta dos botões de máquina com círculo colorido */
+        /* Estilização com FONTE MAIOR e botões compactos */
         div.stButton > button {
             background: #ffffff !important;
-            color: #1e293b !important;
+            color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
             padding: 0px 4px !important;
-            font-size: 0.76rem !important;
-            font-weight: 700 !important;
-            height: 27px !important;
-            min-height: 27px !important;
-            line-height: 25px !important;
+            font-size: 0.88rem !important;
+            font-weight: 800 !important;
+            height: 30px !important;
+            min-height: 30px !important;
+            line-height: 28px !important;
             border-radius: 6px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
             transition: all 0.1s ease-in-out !important;
         }
         div.stButton > button:hover {
-            border-color: #3b82f6 !important;
-            background: #f1f5f9 !important;
+            border-color: #2563eb !important;
+            background: #f8fafc !important;
+            color: #2563eb !important;
             transform: translateY(-1px);
         }
         
@@ -501,12 +502,12 @@ st.markdown(
 
         /* Títulos de Seção de Cada Setor */
         .header-setor-dash {
-            font-size: 0.84rem;
+            font-size: 0.86rem;
             font-weight: 800;
             color: #0f172a;
             border-left: 3px solid #2563eb;
             padding-left: 7px;
-            margin: 6px 0 3px 0;
+            margin: 7px 0 3px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -546,7 +547,7 @@ with st.sidebar:
 tela = st.session_state.pagina_atual
 
 # ------------------------------------------
-# 1. PAINEL GERENCIAL DE CORREIAS (OTIMIZADO COM CÍRCULOS E SETORES SEPARADOS)
+# 1. PAINEL GERENCIAL DE CORREIAS (FONTE AJUSTADA E VISÃO COMPLETA)
 # ------------------------------------------
 if tela == "Painel Correias":
     c_t, c_f1, c_f2, c_leg = st.columns([3.0, 1.4, 1.4, 5.2])
@@ -622,7 +623,7 @@ if tela == "Painel Correias":
 
         st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b;'>{len(maquinas_do_setor)} máquinas</span></div>", unsafe_allow_html=True)
 
-        cols_g = 14  # Grade ampla para acomodar até 28 máquinas em no máximo 2 linhas por setor
+        cols_g = 14  # Grade de 14 colunas para acomodar os setores mantendo tudo visível em uma só tela
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
             for i, m in enumerate(chunk):
