@@ -997,7 +997,7 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS (DESIGN OTIMIZADO)
+# 4. BANCO DE DADOS & GESTÃO DE ARQUIVOS
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Gestão de Arquivos")
@@ -1005,11 +1005,10 @@ elif tela == "Banco de Dados":
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
-    # Aba Fusos: Visual refinado com cards profissionais
+    # Aba Fusos: Visual refinado com cards de ação
     with tab_fusos_db:
         st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
         
-        # Filtros e métricas de cabeçalho
         col_ctrl1, col_ctrl2, col_m1, col_m2 = st.columns([1.5, 2.0, 1.5, 1.5])
         with col_ctrl1:
             ano_db_fuso = st.selectbox("📅 Ano de Referência:", [2024, 2025, 2026, 2027], index=2, key="sel_ano_db_fuso")
@@ -1051,7 +1050,7 @@ elif tela == "Banco de Dados":
 
         buffer_excel_ano.seek(0)
 
-        # Painéis de Ação (Download e Upload) com design em cartões
+        # Painéis de Download e Upload
         col_down_ano, col_up_ano = st.columns(2)
 
         with col_down_ano:
