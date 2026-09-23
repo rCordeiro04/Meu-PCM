@@ -107,13 +107,14 @@ for col in colunas_correias:
     if col not in df_correias.columns:
         df_correias[col] = ""
 
-# Forçar todas as colunas de correias como tipo string/objeto para evitar LossySetitemError
+# Forçar tipo object/string para evitar LossySetitemError
 for col in colunas_correias:
     df_correias[col] = df_correias[col].astype(object)
 
 # =========================================================================
 # CARGA FIXA HISTÓRICA CONSOLIDADA DE CORREIAS (TODOS OS SETORES)
 # =========================================================================
+# Formato: (Setor, Maquina_TAG, Modelo_Sup, Data_Sup, Modelo_Inf, Data_Inf)
 dados_correias_completos = [
     # --- Setor A (36.100, 19.500 e 18.050) ---
     ("Setor A", "L-01", "36.100", "2026-08-21", "", ""),
@@ -140,15 +141,26 @@ dados_correias_completos = [
     ("Setor A", "L-22", "36.100", "2026-05-19", "", ""),
     ("Setor A", "L-23", "36.100", "2025-09-01", "", ""),
     ("Setor A", "L-24", "36.100", "2025-10-27", "", ""),
+    ("Setor A", "L-25", "36.100", "2026-06-29", "", ""),
     ("Setor A", "L-26", "", "", "18.050", "2026-09-14"),
     ("Setor A", "L-27", "", "", "18.050", "2025-03-13"),
     ("Setor A", "L-28", "19.500", "2025-03-22", "", ""),
 
-    # --- Setor B (19.500, 18.050, 33.990 e 34.870) ---
+    # --- Setor B (36.100, 19.500, 18.050, 33.990 e 34.870) ---
+    ("Setor B", "L-29", "36.100", "2025-11-13", "", ""),
+    ("Setor B", "L-30", "36.100", "2026-09-10", "", ""),
+    ("Setor B", "L-31", "36.100", "2026-08-24", "", ""),
+    ("Setor B", "L-33", "36.100", "2026-03-20", "", ""),
+    ("Setor B", "L-34", "36.100", "2026-08-06", "", ""),
+    ("Setor B", "L-36", "36.100", "2026-02-26", "", ""),
+    ("Setor B", "L-38", "36.100", "2025-10-02", "", ""),
+    ("Setor B", "L-39", "36.100", "2025-03-21", "", ""),
+    ("Setor B", "L-40", "36.100", "2026-03-11", "", ""),
     ("Setor B", "L-42", "", "", "34.870", "2025-10-02"),
     ("Setor B", "L-43", "", "", "34.870", "2025-08-05"),
     ("Setor B", "L-44", "", "", "34.870", "2025-08-08"),
     ("Setor B", "L-50", "19.500", "2026-07-28", "18.050", "2026-03-05"),
+    ("Setor B", "L-51", "36.100", "2026-06-30", "", ""),
 
     # --- Setor Látex (33.990 e 34.870) ---
     ("Setor Látex", "B-72", "33.990", "2026-01-02", "", ""),
@@ -1744,9 +1756,6 @@ elif tela == "Painel Fusos":
         lista_anos_painel = [2024, 2025, 2026, 2027, 2028]
         ano_painel = st.selectbox("Ano", lista_anos_painel, index=2, key="filtro_ano_fusos_dash", label_visibility="collapsed")
 
-    # ==========================================
-    # CÁLCULO DINÂMICO DE MESES TRANSCORRIDOS
-    # ==========================================
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
     mes_atual_num_ref = data_hoje_ref.month
@@ -1803,9 +1812,7 @@ elif tela == "Painel Fusos":
         df_dados_fusos["Dia"] = 1
     df_fuso_ano = df_dados_fusos[df_dados_fusos["Ano"] == int(ano_painel)].copy()
 
-    # ==========================================
-    # CASO 1: ABA GERAL (FÁBRICA COMPLETA)
-    # ==========================================
+    # ABA GERAL
     if st.session_state.aba_setor_fuso == "Geral":
         total_geral_quebras = int(df_fuso_ano["Quantidade_Quebras"].sum()) if not df_fuso_ano.empty else 0
         media_mensal_fabrica = round(total_geral_quebras / meses_divisor, 1)
@@ -1985,15 +1992,12 @@ elif tela == "Painel Fusos":
                 )
                 st.altair_chart(chart_men, use_container_width=True)
 
-    # ==========================================
-    # CASO 2: VISÃO ESPECÍFICA DE CADA SETOR
-    # ==========================================
+    # VISÃO POR SETOR
     else:
         setor_ativo = st.session_state.aba_setor_fuso
         df_setor = df_fuso_ano[df_fuso_ano["Setor"] == setor_ativo].copy()
 
         total_setor_quebras = int(df_setor["Quantidade_Quebras"].sum()) if not df_setor.empty else 0
-        
         maquinas_setor_lista = obter_maquinas_setor(setor_ativo, df_correias, df_fusos)
         qtd_maquinas_setor = len(maquinas_setor_lista)
         media_mensal_setor = round(total_setor_quebras / meses_divisor, 1)
@@ -2174,6 +2178,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
+        # 1. MAPA DE CALOR: GERAL DO SETOR
         with st.container(border=True):
             st.markdown(
                 f"""
