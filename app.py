@@ -526,8 +526,7 @@ st.markdown(
         .pill-legenda {{ display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px; }}
         .dot-legenda {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; }}
 
-        /* Painéis customizados do Banco de Dados */
-        .painel-db-card {
+        .painel-db-card {{
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
@@ -537,26 +536,26 @@ st.markdown(
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-        }
-        .painel-db-card.azul { border-top: 4px solid #2563eb; }
-        .painel-db-card.roxo { border-top: 4px solid #7c3aed; }
-        .painel-db-header {
+        }}
+        .painel-db-card.azul {{ border-top: 4px solid #2563eb; }}
+        .painel-db-card.roxo {{ border-top: 4px solid #7c3aed; }}
+        .painel-db-header {{
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 10px;
-        }
-        .painel-db-titulo {
+        }}
+        .painel-db-titulo {{
             font-size: 1.05rem;
             font-weight: 800;
             color: #0f172a;
-        }
-        .painel-db-desc {
+        }}
+        .painel-db-desc {{
             font-size: 0.85rem;
             color: #64748b;
             line-height: 1.4;
             margin-bottom: 16px;
-        }
+        }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -991,7 +990,7 @@ elif tela == "Painel Fusos":
                 txt_t = alt.Chart(m_calor_esp).mark_text(baseline="middle", fontSize=11, fontWeight=700).encode(
                     x=alt.X("MES:N", sort=ORDEM_MESES_ABREV),
                     y=alt.Y("MAQ:N", sort=maqs_tipo),
-                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")),
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
                     color=alt.condition("datum.Quantidade_Quebras >= 10", alt.value("#ffffff"), alt.value("#0f172a"))
                 )
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
@@ -1005,7 +1004,6 @@ elif tela == "Banco de Dados":
 
     tab_fusos_db, tab_correias_db, tab_backups_db = st.tabs(["🔩 Base de Fusos", "🔄 Base de Correias", "🛡️ Histórico de Backups"])
 
-    # Aba Fusos: Visual refinado com cards de ação
     with tab_fusos_db:
         st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
         
@@ -1026,7 +1024,6 @@ elif tela == "Banco de Dados":
 
         st.markdown("---")
 
-        # Geração em memória do arquivo Excel com as 12 abas (Janeiro a Dezembro)
         buffer_excel_ano = io.BytesIO()
         with pd.ExcelWriter(buffer_excel_ano, engine="openpyxl") as writer:
             for idx_m, nome_mes_aba in enumerate(LISTA_MESES_PUROS):
@@ -1050,7 +1047,6 @@ elif tela == "Banco de Dados":
 
         buffer_excel_ano.seek(0)
 
-        # Painéis de Download e Upload
         col_down_ano, col_up_ano = st.columns(2)
 
         with col_down_ano:
