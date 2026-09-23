@@ -900,19 +900,17 @@ elif tela == "Painel Fusos":
                 st.altair_chart((rect_t + txt_t).properties(height=max(220, len(maqs_tipo) * 23)), use_container_width=True)
 
 # ------------------------------------------
-# 3. PAINEL GERENCIAL DE SETORES (NOVO)
+# 3. PAINEL GERENCIAL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
     st.caption("Visão consolidada e comparativa de desempenho operacional entre todos os setores da fábrica.")
 
-    # Matriz de indicadores por setor
     dados_resumo_setores = []
     for s_nome in DICIONARIO_SETORES.keys():
         maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
         tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
         
-        # Correias críticas do setor
         crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
         novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
         meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
@@ -928,7 +926,6 @@ elif tela == "Painel Setores":
 
     df_res_setores = pd.DataFrame(dados_resumo_setores)
 
-    # 4 Cards superiores de resumo geral
     cs1, cs2, cs3, cs4 = st.columns(4)
     cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total de Setores</div><div class='kpi-val'>{len(DICIONARIO_SETORES)}</div></div><div>🏢</div></div>", unsafe_allow_html=True)
     cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{len(todas_maquinas_totais)}</div></div><div>⚙️</div></div>", unsafe_allow_html=True)
@@ -966,7 +963,7 @@ elif tela == "Painel Setores":
         st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
-# 4. PAINEL GERENCIAL DE MÁQUINAS (NOVO)
+# 4. PAINEL GERENCIAL DE MÁQUINAS
 # ------------------------------------------
 elif tela == "Painel Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
@@ -1350,38 +1347,78 @@ elif tela == "Banco de Dados":
             st.info("Pasta de backups ainda não inicializada.")
 
 # ------------------------------------------
-# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS) (NOVO)
+# 6. GESTÃO CADASTRAL DE MÁQUINAS (SISTEMA & DADOS COM FILTRO POR SETOR E MÁQUINA)
 # ------------------------------------------
 elif tela == "Gestao Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Gestão Cadastral de Máquinas</h2>", unsafe_allow_html=True)
-    st.caption("Cadastre novas máquinas no parque de ativos ou desative TAGs dos setores.")
+    st.caption("Filtre o parque de ativos por setor e máquina, adicione novas TAGs ou remova equipamentos descontinuados.")
 
-    c_cad_s, _ = st.columns([2, 3])
-    with c_cad_s:
-        setor_gerenc = st.selectbox("Selecione o Setor:", list(DICIONARIO_SETORES.keys()), key="sel_setor_gestao_maq")
+    # 1. Filtros Interdependentes de Visualização
+    c_f_set, c_f_maq = st.columns([1.5, 2.0])
+    with c_f_set:
+        opcoes_setor_gestao = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
+        setor_selecionado_gestao = st.selectbox("Filtrar por Setor:", opcoes_setor_gestao, key="sel_setor_gestao_filtro")
 
-    maqs_atuais_gestao = obter_maquinas_setor(setor_gerenc, df_correias, df_fusos)
+    # Mapeamento dinâmico das máquinas conforme o filtro de setor
+    if setor_selecionado_gestao == "Todos os Setores":
+        maquinas_filtradas_gestao = todas_maquinas_totais
+    else:
+        maquinas_filtradas_gestao = obter_maquinas_setor(setor_selecionado_gestao, df_correias, df_fusos)
+
+    with c_f_maq:
+        opcoes_maq_gestao = ["Todas as Máquinas"] + maquinas_filtradas_gestao
+        maq_selecionada_gestao = st.selectbox("Filtrar por Máquina:", opcoes_maq_gestao, key="sel_maq_gestao_filtro")
+
+    # Detalhe / Diagnóstico da Máquina Filtrada
+    if maq_selecionada_gestao != "Todas as Máquinas":
+        setor_da_maq = mapa_setor_maquina.get(maq_selecionada_gestao, "Setor A")
+        info_m_cad = dados_maquinas.get(maq_selecionada_gestao, {})
+
+        st.markdown(f"""
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid #2563eb; border-radius:8px; padding:10px 14px; margin:8px 0 14px 0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-weight:800; font-size:0.95rem; color:#0f172a;">⚙️ Ativo: {maq_selecionada_gestao}</span>
+                    <span class="tag-pill" style="background:#0f172a; color:#ffffff;">🏭 {setor_da_maq}</span>
+                </div>
+                <div style="display:flex; gap:12px; font-size:0.8rem; color:#475569;">
+                    <span><b>Correia Sup:</b> {info_m_cad.get('t1', 'N/A')} ({info_m_cad.get('d1', 'Sem data')})</span>
+                    <span><b>Correia Inf:</b> {info_m_cad.get('t2', 'N/A')} ({info_m_cad.get('d2', 'Sem data')})</span>
+                    <span><b>Status:</b> {info_m_cad.get('dot', '⚪')} {info_m_cad.get('status_label', 'Sem dados')}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("---")
+
+    # 2. Operações de Cadastro e Exclusão
     col_add, col_del = st.columns(2)
 
     with col_add:
         with st.container(border=True):
-            st.markdown(f"#### ➕ Adicionar Nova Máquina — {setor_gerenc}")
-            st.caption("A nova máquina será incorporada nas bases de fusos e correias.")
+            st.markdown("#### ➕ Cadastrar Nova Máquina")
+            st.caption("Insira uma nova TAG nas bases de correias e de fusos.")
+            
+            # Seletor do setor de destino da nova máquina
+            setor_destino_add = st.selectbox(
+                "Setor de Destino:",
+                list(DICIONARIO_SETORES.keys()),
+                index=0 if setor_selecionado_gestao == "Todos os Setores" else list(DICIONARIO_SETORES.keys()).index(setor_selecionado_gestao),
+                key="sel_setor_add_modal"
+            )
+
             nova_tag_input = st.text_input("Código / TAG da Máquina:", placeholder="Ex: L-54 ou B-109", key="inp_nova_tag_gerenc").strip().upper()
 
-            if st.button("Cadastrar Máquina", type="primary", key="btn_cadastrar_maq_gerenc"):
+            if st.button("Salvar Nova Máquina", type="primary", key="btn_cadastrar_maq_gerenc", use_container_width=True):
                 if not nova_tag_input:
                     st.warning("Informe o código da máquina.")
-                elif nova_tag_input in maqs_atuais_gestao:
-                    st.warning(f"A máquina {nova_tag_input} já existe no {setor_gerenc}.")
+                elif nova_tag_input in todas_maquinas_totais:
+                    st.warning(f"A máquina {nova_tag_input} já existe no parque de ativos.")
                 else:
-                    # Adiciona à base de correias se não existir
-                    mask_c = (df_correias["Setor"] == setor_gerenc) & (df_correias["Maquina_TAG"] == nova_tag_input)
+                    # Registra na base de correias
+                    mask_c = (df_correias["Setor"] == setor_destino_add) & (df_correias["Maquina_TAG"] == nova_tag_input)
                     if not mask_c.any():
                         novo_cor = {
-                            "Setor": setor_gerenc, "Maquina_TAG": nova_tag_input,
+                            "Setor": setor_destino_add, "Maquina_TAG": nova_tag_input,
                             "Tipo_Correia_1": "", "Data_Instalacao_1": "",
                             "Tipo_Correia_2": "", "Data_Instalacao_2": "",
                         }
@@ -1389,43 +1426,65 @@ elif tela == "Gestao Maquinas":
                         gerar_backup_seguro(ARQUIVO_CORREIAS)
                         df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
-                    # Adiciona à base de fusos para o ano vigente
-                    fuso_padrao = "FAG" if setor_gerenc == "Setor A" else "TEP" if setor_gerenc == "Setor B" else "M4BA" if setor_gerenc == "Setor Látex" else "MENEGATTO"
-                    mask_f = (df_fusos["Setor"] == setor_gerenc) & (df_fusos["Maquina_TAG"] == nova_tag_input)
+                    # Registra na base de fusos para o ano vigente
+                    fuso_padrao = "FAG" if setor_destino_add == "Setor A" else "TEP" if setor_destino_add == "Setor B" else "M4BA" if setor_destino_add == "Setor Látex" else "MENEGATTO"
+                    mask_f = (df_fusos["Setor"] == setor_destino_add) & (df_fusos["Maquina_TAG"] == nova_tag_input)
                     if not mask_f.any():
                         novos_fusos_ano = [
-                            {"Ano": 2026, "Mes": m_nome, "Dia": 1, "Setor": setor_gerenc, "Maquina_TAG": nova_tag_input, "Quantidade_Quebras": 0, "Tipo_Fuso": fuso_padrao}
+                            {"Ano": 2026, "Mes": m_nome, "Dia": 1, "Setor": setor_destino_add, "Maquina_TAG": nova_tag_input, "Quantidade_Quebras": 0, "Tipo_Fuso": fuso_padrao}
                             for m_nome in LISTA_MESES_PUROS
                         ]
                         df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_fusos_ano)], ignore_index=True)
                         gerar_backup_seguro(ARQUIVO_FUSOS)
                         df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-                    st.success(f"✅ Máquina {nova_tag_input} cadastrada com sucesso no {setor_gerenc}!")
+                    st.success(f"✅ Máquina {nova_tag_input} cadastrada com sucesso no {setor_destino_add}!")
                     st.rerun()
 
     with col_del:
         with st.container(border=True):
-            st.markdown(f"#### 🗑️ Desativar / Remover Máquina — {setor_gerenc}")
-            st.caption("Remove a TAG e desvincula os apontamentos existentes das bases.")
-            tag_del_sel = st.selectbox("Selecione a TAG para remover:", ["-- Selecione --"] + maqs_atuais_gestao, key="sel_tag_excluir_gerenc")
+            st.markdown("#### 🗑️ Desativar / Remover Máquina")
+            st.caption("Remove o equipamento e exclui seus vínculos das bases de dados.")
+            
+            # Seletor com as máquinas filtradas atualmente
+            lista_para_excluir = maquinas_filtradas_gestao if maq_selecionada_gestao == "Todas as Máquinas" else [maq_selecionada_gestao]
+            tag_del_sel = st.selectbox("Selecione a TAG para remover:", ["-- Selecione --"] + lista_para_excluir, key="sel_tag_excluir_gerenc")
 
-            if st.button("Remover Máquina", type="secondary", key="btn_remover_maq_gerenc"):
+            if st.button("Remover Máquina", type="secondary", key="btn_remover_maq_gerenc", use_container_width=True):
                 if tag_del_sel and tag_del_sel != "-- Selecione --":
+                    setor_da_exclusao = mapa_setor_maquina.get(tag_del_sel, "")
+                    
                     gerar_backup_seguro(ARQUIVO_CORREIAS)
-                    df_correias = df_correias[~((df_correias["Setor"] == setor_gerenc) & (df_correias["Maquina_TAG"] == tag_del_sel))]
+                    df_correias = df_correias[~(df_correias["Maquina_TAG"] == tag_del_sel)]
                     df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
 
                     gerar_backup_seguro(ARQUIVO_FUSOS)
-                    df_fusos = df_fusos[~((df_fusos["Setor"] == setor_gerenc) & (df_fusos["Maquina_TAG"] == tag_del_sel))]
+                    df_fusos = df_fusos[~(df_fusos["Maquina_TAG"] == tag_del_sel)]
                     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-                    st.success(f"🗑️ Máquina {tag_del_sel} removida com sucesso do {setor_gerenc}!")
+                    st.success(f"🗑️ Máquina {tag_del_sel} removida com sucesso!")
                     st.rerun()
                 else:
                     st.warning("Selecione uma máquina válida para remover.")
 
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+    # 3. Lista e Tabela de Máquinas Filtradas
     with st.container(border=True):
-        st.markdown(f"#### 📋 Lista de Máquinas Ativas — {setor_gerenc} ({len(maqs_atuais_gestao)} no total)")
-        st.write(", ".join(maqs_atuais_gestao))
+        st.markdown(f"#### 📋 Parque de Ativos ({len(maquinas_filtradas_gestao)} máquinas listadas)")
+        
+        dados_tabela_gestao = []
+        for m in maquinas_filtradas_gestao:
+            s_m = mapa_setor_maquina.get(m, "Setor A")
+            inf = dados_maquinas.get(m, {})
+            dados_tabela_gestao.append({
+                "TAG": m,
+                "Setor": s_m,
+                "Status Correia": f"{inf.get('dot', '⚪')} {inf.get('status_label', 'Sem dados')}",
+                "Modelo Sup.": inf.get("t1", "-"),
+                "Instalação Sup.": inf.get("d1", "-"),
+                "Modelo Inf.": inf.get("t2", "-"),
+                "Instalação Inf.": inf.get("d2", "-"),
+            })
+            
+        st.dataframe(pd.DataFrame(dados_tabela_gestao), use_container_width=True, hide_index=True, height=280)
