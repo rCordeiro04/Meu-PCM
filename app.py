@@ -168,7 +168,6 @@ def carregar_dados():
 
 df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 
-# SAFEGUARD: Força a criação da coluna se ela foi perdida pelo cache do Streamlit
 if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
@@ -284,7 +283,7 @@ for maq_tag in todas_maquinas_totais:
 st.markdown(
     """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
         html, body, [class*="css"]  { font-family: 'Inter', sans-serif !important; }
         .block-container { padding: 3rem 2rem 1.5rem 2rem !important; max-width: 1400px; }
         [data-testid="stSidebar"] { background-color: #0b1120 !important; border-right: 1px solid #1e293b !important; }
@@ -857,41 +856,54 @@ elif tela == "Painel Setores":
             else:
                 st.info("✅ Nenhuma máquina com correia crítica neste setor.")
 
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+    if setor_selecionado_exec != "Todos os Setores":
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
 
-        df_pend_setor = df_pendencias[df_pendencias["Setor"].isin(setores_alvo_exec)].copy()
-        
-        servicos_ativos = []
-        if not df_pend_setor.empty:
-            df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
-            df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
-            for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
-                pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                if pendentes or concluidas:
-                    servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+            df_pend_setor = df_pendencias[df_pendencias["Setor"] == setor_selecionado_exec].copy()
+            
+            servicos_ativos = []
+            if not df_pend_setor.empty:
+                df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
+                df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
+                for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
+                    pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    if pendentes or concluidas:
+                        servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
 
-        if servicos_ativos:
-            for item in servicos_ativos:
-                p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
-                c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+            if servicos_ativos:
+                for item in servicos_ativos:
+                    p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
+                    c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
 
-                st.markdown(f"""
-                    <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:5px solid #f59e0b; border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight:800; color:#0f172a; font-size:1.05rem; margin-bottom:2px;">🛠️ {item['nome']}</div>
-                        <div style="font-size:0.85rem; color:#64748b; font-style:italic; margin-bottom:8px;">{item['desc']}</div>
-                        <div style="font-size:0.85rem; color:#475569; margin-bottom:4px;">
-                            <span style="color:#ef4444; font-weight:700;">⏳ Pendentes ({len(item['pendentes'])}):</span> {p_str}
+                    st.markdown(f"""
+                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                🛠️ {item['nome']}
+                            </div>
+                            <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                                {item['desc']}
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ⏳ Pendentes ({len(item['pendentes'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{p_str}</span>
+                                </div>
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ✅ Prontas ({len(item['concluidas'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{c_str}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div style="font-size:0.85rem; color:#475569;">
-                            <span style="color:#10b981; font-weight:700;">✅ Prontas ({len(item['concluidas'])}):</span> {c_str}
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
 
 # ------------------------------------------
 # 4. PAINEL DE MÁQUINAS
