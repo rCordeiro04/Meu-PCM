@@ -747,6 +747,7 @@ elif tela == "Painel Setores":
         horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
         df_prev_filtro = df_paradas_ano[df_paradas_ano['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
         tot_fusos_sel = int(df_fusos_alvo["Quantidade_Quebras"].sum())
+        df_paradas_filtro = df_paradas_ano
     else:
         num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
         if num_mes_selecionado == mes_ref_num:
@@ -760,6 +761,7 @@ elif tela == "Painel Setores":
         horas_paradas_total = df_paradas_mes['Tempo_Parado_Horas'].sum()
         df_prev_filtro = df_paradas_mes[df_paradas_mes['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
         tot_fusos_sel = int(df_fusos_alvo[df_fusos_alvo["Mes"] == mes_filtro_painel]["Quantidade_Quebras"].sum())
+        df_paradas_filtro = df_paradas_mes
 
     horas_totais_disponiveis = tot_maqs_sel * 24 * dias_calculo
     horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
@@ -791,46 +793,124 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    with st.container(border=True):
-        if mes_filtro_painel == "Acumulado do Ano":
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
-            df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
-            df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
-            df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
-            
-            barras_setor = alt.Chart(df_f_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
-                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
-                tooltip=["Mes", "Quantidade_Quebras"]
-            )
-            rotulos_setor = alt.Chart(df_f_evol).mark_text(dy=-8, fontSize=12, fontWeight=800).encode(
-                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV), 
-                y=alt.Y("Quantidade_Quebras:Q"), 
-                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
-            )
-            st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
-        else:
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
-            df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
-            
-            num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
-            _, dias_no_mes = calendar.monthrange(ano_ref, num_mes_selecionado)
-            lista_dias = list(range(1, dias_no_mes + 1))
-            
-            df_f_evol_dia = df_fusos_setor_mes.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
-            df_f_evol_dia["Dia_Str"] = df_f_evol_dia["Dia"].astype(str)
-            
-            barras_dia = alt.Chart(df_f_evol_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
-                tooltip=["Dia", "Quantidade_Quebras"]
-            )
-            rotulos_dia = alt.Chart(df_f_evol_dia).mark_text(dy=-8, fontSize=11, fontWeight=800).encode(
-                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias]), 
-                y=alt.Y("Quantidade_Quebras:Q"), 
-                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
-            )
-            st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
+    if setor_selecionado_exec == "Todos os Setores":
+        with st.container(border=True):
+            if mes_filtro_painel == "Acumulado do Ano":
+                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
+                df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
+                df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
+                
+                barras_setor = alt.Chart(df_f_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
+                    x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                    tooltip=["Mes", "Quantidade_Quebras"]
+                )
+                rotulos_setor = alt.Chart(df_f_evol).mark_text(dy=-8, fontSize=12, fontWeight=800).encode(
+                    x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV), 
+                    y=alt.Y("Quantidade_Quebras:Q"), 
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                )
+                st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
+            else:
+                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
+                
+                num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+                _, dias_no_mes = calendar.monthrange(ano_ref, num_mes_selecionado)
+                lista_dias = list(range(1, dias_no_mes + 1))
+                
+                df_f_evol_dia = df_fusos_setor_mes.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
+                df_f_evol_dia["Dia_Str"] = df_f_evol_dia["Dia"].astype(str)
+                
+                barras_dia = alt.Chart(df_f_evol_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                    x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                    tooltip=["Dia", "Quantidade_Quebras"]
+                )
+                rotulos_dia = alt.Chart(df_f_evol_dia).mark_text(dy=-8, fontSize=11, fontWeight=800).encode(
+                    x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias]), 
+                    y=alt.Y("Quantidade_Quebras:Q"), 
+                    text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                )
+                st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
+    else:
+        c_fuso_evol, c_top_efi = st.columns([2.0, 1.2])
+        with c_fuso_evol:
+            with st.container(border=True):
+                if mes_filtro_painel == "Acumulado do Ano":
+                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                    df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
+                    df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
+                    df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
+                    
+                    barras_setor = alt.Chart(df_f_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                        tooltip=["Mes", "Quantidade_Quebras"]
+                    )
+                    rotulos_setor = alt.Chart(df_f_evol).mark_text(dy=-8, fontSize=12, fontWeight=800).encode(
+                        x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV), 
+                        y=alt.Y("Quantidade_Quebras:Q"), 
+                        text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                    )
+                    st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
+                else:
+                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                    df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
+                    
+                    num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+                    _, dias_no_mes = calendar.monthrange(ano_ref, num_mes_selecionado)
+                    lista_dias = list(range(1, dias_no_mes + 1))
+                    
+                    df_f_evol_dia = df_fusos_setor_mes.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
+                    df_f_evol_dia["Dia_Str"] = df_f_evol_dia["Dia"].astype(str)
+                    
+                    barras_dia = alt.Chart(df_f_evol_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                        x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                        tooltip=["Dia", "Quantidade_Quebras"]
+                    )
+                    rotulos_dia = alt.Chart(df_f_evol_dia).mark_text(dy=-8, fontSize=11, fontWeight=800).encode(
+                        x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias]), 
+                        y=alt.Y("Quantidade_Quebras:Q"), 
+                        text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+                    )
+                    st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
+        
+        with c_top_efi:
+            with st.container(border=True):
+                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:15px;'>📉 Top 5 - Piores Eficiências</div>", unsafe_allow_html=True)
+                
+                df_paradas_maq = df_paradas_filtro.groupby('Maquina_TAG')['Tempo_Parado_Horas'].sum().to_dict()
+                efi_list = []
+                for maq in maquinas_alvo_totais:
+                    hp = df_paradas_maq.get(maq, 0.0)
+                    hd = 24 * dias_calculo
+                    efi = max(0.0, ((hd - hp) / hd) * 100) if hd > 0 else 0.0
+                    efi_list.append({"Maquina": maq, "Eficiencia": efi, "Horas_Paradas": hp})
+                
+                df_top = pd.DataFrame(efi_list).sort_values(by=["Eficiencia", "Horas_Paradas"], ascending=[True, False]).head(5)
+
+                if not df_top.empty and dias_calculo > 0:
+                    for _, row in df_top.iterrows():
+                        maq_t = row['Maquina']
+                        efi_t = row['Eficiencia']
+                        hp_t = row['Horas_Paradas']
+                        cor_barra = "#ef4444" if efi_t < 90 else ("#f59e0b" if efi_t < 98 else "#10b981")
+                        st.markdown(f"""
+                            <div style="margin-bottom:14px;">
+                                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; color:#1e293b; margin-bottom:4px;">
+                                    <span>⚙️ {maq_t} <span style="font-size:0.75rem; color:#64748b; font-weight:600;">({hp_t:.1f}h)</span></span>
+                                    <span>{efi_t:.1f}%</span>
+                                </div>
+                                <div style="width:100%; background-color:#e2e8f0; border-radius:4px; height:8px;">
+                                    <div style="width:{efi_t}%; background-color:{cor_barra}; height:8px; border-radius:4px;"></div>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("Sem dados operacionais.")
 
     if setor_selecionado_exec != "Todos os Setores":
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
@@ -880,130 +960,6 @@ elif tela == "Painel Setores":
                     """, unsafe_allow_html=True)
             else:
                 st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
-
-# ------------------------------------------
-# 4. PAINEL DE MÁQUINAS
-# ------------------------------------------
-elif tela == "Painel Maquinas":
-    c_m_t, c_m_prt = st.columns([8.5, 1.5])
-    with c_m_t:
-        st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
-        st.caption("Consulte o histórico detalhado, manutenções, pendências e quebras de fusos por TAG.")
-    with c_m_prt:
-        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_maq")
-        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
-
-    col_sm, col_mq, col_mes = st.columns([1.5, 2.0, 1.5])
-    with col_sm: setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
-    maqs_disponiveis = obter_maquinas_setor(setor_selecionado_maq, df_correias, df_fusos)
-    with col_mq: tag_selecionada = st.selectbox("Selecione a TAG da Máquina:", maqs_disponiveis, key="sel_maq_painel_tag")
-    with col_mes: mes_filtro_maq = st.selectbox("Período:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, key="sel_mes_maq")
-
-    if tag_selecionada:
-        info_cor_maq = dados_maquinas.get(tag_selecionada, {})
-        
-        ano_ref = date.today().year
-        mes_ref_num = date.today().month
-        dia_ref = date.today().day
-        
-        sub_fusos_maq = df_fusos[(df_fusos["Maquina_TAG"] == tag_selecionada) & (df_fusos["Ano"] == ano_ref)]
-        
-        sub_paradas_maq = df_paradas[df_paradas["Maquina_TAG"] == tag_selecionada].copy()
-        sub_paradas_maq['Data_Parsed'] = pd.to_datetime(sub_paradas_maq['Data'], errors='coerce')
-        
-        if mes_filtro_maq == "Acumulado do Ano":
-            dias_calculo = (date.today() - date(ano_ref, 1, 1)).days + 1
-            if dias_calculo < 1: dias_calculo = 1
-            df_paradas_filtro = sub_paradas_maq[sub_paradas_maq['Data_Parsed'].dt.year == ano_ref]
-            df_fusos_filtro = sub_fusos_maq
-            lbl_horas = "Horas Paradas (Ano)"
-        else:
-            num_mes_sel = LISTA_MESES_PUROS.index(mes_filtro_maq) + 1
-            if num_mes_sel == mes_ref_num:
-                dias_calculo = dia_ref
-            elif num_mes_sel > mes_ref_num:
-                dias_calculo = 0
-            else:
-                dias_calculo = calendar.monthrange(ano_ref, num_mes_sel)[1]
-            
-            df_paradas_filtro = sub_paradas_maq[(sub_paradas_maq['Data_Parsed'].dt.year == ano_ref) & (sub_paradas_maq['Data_Parsed'].dt.month == num_mes_sel)]
-            df_fusos_filtro = sub_fusos_maq[sub_fusos_maq["Mes"] == mes_filtro_maq]
-            lbl_horas = f"Horas Paradas ({MAPA_MES_ABREV[mes_filtro_maq]})"
-        
-        tot_horas_paradas = float(df_paradas_filtro["Tempo_Parado_Horas"].sum()) if not df_paradas_filtro.empty else 0.0
-
-        horas_totais_disp_maq = 24 * dias_calculo
-        efi_maq_perc = max(0.0, ((horas_totais_disp_maq - tot_horas_paradas) / horas_totais_disp_maq) * 100) if horas_totais_disp_maq > 0 else 0.0
-
-        mod_sup = info_cor_maq.get('t1', '')
-        mod_inf = info_cor_maq.get('t2', '')
-        if mod_sup and mod_inf and mod_sup != "Não informada" and mod_inf != "Não informada":
-            modelos_str = mod_sup if mod_sup == mod_inf else f"{mod_sup} | {mod_inf}"
-        elif mod_sup and mod_sup != "Não informada": modelos_str = mod_sup
-        elif mod_inf and mod_inf != "Não informada": modelos_str = mod_inf
-        else: modelos_str = "S/ Modelo"
-        
-        condicao_cor = info_cor_maq.get('status_label', 'S/ Dados')
-        dot_cor = info_cor_maq.get('dot', '⚪')
-
-        df_prev_maq = sub_paradas_maq[sub_paradas_maq['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
-        if not df_prev_maq.empty:
-            ultima_prev_date = df_prev_maq['Data_Parsed'].max()
-            str_ultima_prev = ultima_prev_date.strftime("%d/%m/%Y") if pd.notnull(ultima_prev_date) else "Sem registro"
-        else:
-            str_ultima_prev = "Sem registro"
-
-        cm1, cm2, cm3, cm4 = st.columns(4)
-        lbl_efi = f"Eficiência ({MAPA_MES_ABREV[mes_filtro_maq]})" if mes_filtro_maq != "Acumulado do Ano" else "Eficiência (Ano)"
-        
-        cm1.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>{lbl_efi}</div><div class='kpi-val' style='color:#059669;'>{efi_maq_perc:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-        cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correia: {modelos_str}</div><div class='kpi-val' style='font-size:1.1rem;'>{dot_cor} {condicao_cor}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>{lbl_horas}</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>🛑</div></div>", unsafe_allow_html=True)
-        cm4.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Última Preventiva</div><div class='kpi-val' style='font-size:1.1rem; color:#3b82f6;'>{str_ultima_prev}</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
-
-        st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-
-        sub_pend_maq = df_pendencias[(df_pendencias["Maquina_TAG"] == tag_selecionada) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")]
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
-            if not sub_pend_maq.empty: st.dataframe(sub_pend_maq[["Nome_Servico", "Descricao_Pendencia", "Prioridade", "Status"]], use_container_width=True, hide_index=True)
-            else: st.info("Nenhuma manutenção pendente cadastrada.")
-
-        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🛠️ Corretivas Executadas ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
-            if not df_paradas_filtro.empty: st.dataframe(df_paradas_filtro[["Data", "Tipo_Manutencao", "Descricao_Servico", "Tempo_Parado_Horas"]].sort_values("Data", ascending=False), use_container_width=True, hide_index=True)
-            else: st.info("Nenhuma manutenção corretiva registrada no período.")
-
-        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-
-        with st.container(border=True):
-            if mes_filtro_maq == "Acumulado do Ano":
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução de Quebras de Fusos — {tag_selecionada}</div>", unsafe_allow_html=True)
-                if not df_fusos_filtro.empty:
-                    df_f_maq = df_fusos_filtro.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
-                    df_f_maq["Mes_Abrev"] = df_f_maq["Mes"].map(MAPA_MES_ABREV)
-                    bar_maq = alt.Chart(df_f_maq).mark_bar(color="#3b82f6", cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title="Mês"), y=alt.Y("Quantidade_Quebras:Q", title="Quebras"))
-                    txt_maq = bar_maq.mark_text(dy=-6, fontSize=12, fontWeight=800).encode(text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")))
-                    st.altair_chart((bar_maq + txt_maq).properties(height=260), use_container_width=True)
-                else:
-                    st.info("Sem registros de quebras de fusos para esta máquina no ano.")
-            else:
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução Diária de Fusos ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
-                if not df_fusos_filtro.empty:
-                    num_mes_sel = LISTA_MESES_PUROS.index(mes_filtro_maq) + 1
-                    lista_dias = list(range(1, calendar.monthrange(ano_ref, num_mes_sel)[1] + 1))
-                    df_f_maq_dia = df_fusos_filtro.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
-                    df_f_maq_dia["Dia_Str"] = df_f_maq_dia["Dia"].astype(str)
-                    bar_maq_dia = alt.Chart(df_f_maq_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
-                        x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("Quantidade_Quebras:Q", title="Quebras")
-                    )
-                    txt_maq_dia = bar_maq_dia.mark_text(dy=-6, fontSize=11, fontWeight=800).encode(text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")))
-                    st.altair_chart((bar_maq_dia + txt_maq_dia).properties(height=260), use_container_width=True)
-                else:
-                    st.info("Sem registros de quebras de fusos para esta máquina no período selecionado.")
 
 # ------------------------------------------
 # 5. BANCO DE DADOS & GESTÃO
