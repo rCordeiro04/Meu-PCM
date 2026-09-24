@@ -235,6 +235,7 @@ for _, r in df_fusos.iterrows():
 if "pagina_atual" not in st.session_state: st.session_state.pagina_atual = "Painel Fusos"
 if "maq_clicada_cor" not in st.session_state: st.session_state.maq_clicada_cor = None
 if "aba_setor_fuso" not in st.session_state: st.session_state.aba_setor_fuso = "Geral"
+if "maq_clicada_painel" not in st.session_state: st.session_state.maq_clicada_painel = None
 
 def navegar(p): st.session_state.pagina_atual = p
 
@@ -1027,15 +1028,52 @@ elif tela == "Painel Maquinas":
         modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_maq")
         if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
-    col_sm, col_mq, col_mes = st.columns([15, 20, 15])
+    col_sm, col_mes = st.columns([20, 20])
     with col_sm: setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
+    with col_mes: mes_filtro_maq = st.selectbox("Período:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, key="sel_mes_maq")
+
     maqs_disponiveis = obter_maquinas_setor(setor_selecionado_maq, df_correias, df_fusos)
-    
+
+    # Se a máquina clicada não pertencer mais ao setor filtrado, limpamos a seleção
+    if st.session_state.maq_clicada_painel and st.session_state.maq_clicada_painel not in maqs_disponiveis:
+        st.session_state.maq_clicada_painel = None
+
     if maqs_disponiveis:
-        with col_mq: tag_selecionada = st.selectbox("Selecione a TAG da Máquina:", maqs_disponiveis, key="sel_maq_painel_tag")
-        with col_mes: mes_filtro_maq = st.selectbox("Período:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, key="sel_mes_maq")
+        st.markdown(f"<div class='header-setor-dash'><span>🏭 {setor_selecionado_maq}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>Selecione a máquina abaixo</span></div>", unsafe_allow_html=True)
+        
+        # Grade de botões das máquinas
+        cols_g = 14
+        for chunk in [maqs_disponiveis[i:i + cols_g] for i in range(0, len(maqs_disponiveis), cols_g)]:
+            cols = st.columns(cols_g)
+            for i, m in enumerate(chunk):
+                info_m = dados_maquinas.get(m, {})
+                dot_m = info_m.get("dot", "⚪")
+                
+                is_active = (m == st.session_state.maq_clicada_painel)
+                btn_type = "primary" if is_active else "secondary"
+                
+                if cols[i].button(f"{dot_m} {m}", key=f"btn_pmaq_{m.replace('-', '_')}", use_container_width=True, type=btn_type):
+                    if st.session_state.maq_clicada_painel == m:
+                        st.session_state.maq_clicada_painel = None
+                    else:
+                        st.session_state.maq_clicada_painel = m
+                    st.rerun()
+
+        tag_selecionada = st.session_state.maq_clicada_painel
 
         if tag_selecionada:
+            st.markdown("<hr style='border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;'>", unsafe_allow_html=True)
+            
+            c_header, c_close = st.columns([85, 15])
+            with c_header:
+                st.markdown(f"<h3 style='margin:0; font-weight:900; color:#0f172a;'>Prontuário da Máquina: {tag_selecionada}</h3>", unsafe_allow_html=True)
+            with c_close:
+                if st.button("✖ Fechar", key="btn_close_maq", use_container_width=True):
+                    st.session_state.maq_clicada_painel = None
+                    st.rerun()
+
+            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
             info_cor_maq = dados_maquinas.get(tag_selecionada, {})
             
             ano_ref = date.today().year
