@@ -1039,20 +1039,74 @@ elif tela == "Painel Maquinas":
         st.session_state.maq_clicada_painel = None
 
     if maqs_disponiveis:
-        st.markdown(f"<div class='header-setor-dash'><span>🏭 {setor_selecionado_maq}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>Selecione a máquina abaixo</span></div>", unsafe_allow_html=True)
+        # CÁLCULO DE EFICIÊNCIA PRÉVIO PARA A GRADE
+        ano_ref_grid = date.today().year
+        mes_ref_num_grid = date.today().month
+        dia_ref_grid = date.today().day
         
-        # Grade de botões das máquinas
-        cols_g = 14
+        if mes_filtro_maq == "Acumulado do Ano":
+            dias_calc_grid = (date.today() - date(ano_ref_grid, 1, 1)).days + 1
+            if dias_calc_grid < 1: dias_calc_grid = 1
+            df_par_grid = df_paradas[pd.to_datetime(df_paradas['Data'], errors='coerce').dt.year == ano_ref_grid]
+        else:
+            n_mes_grid = LISTA_MESES_PUROS.index(mes_filtro_maq) + 1
+            if n_mes_grid == mes_ref_num_grid:
+                dias_calc_grid = dia_ref_grid
+            elif n_mes_grid > mes_ref_num_grid:
+                dias_calc_grid = 0
+            else:
+                dias_calc_grid = calendar.monthrange(ano_ref_grid, n_mes_grid)[1]
+            
+            df_par_grid = df_paradas[(pd.to_datetime(df_paradas['Data'], errors='coerce').dt.year == ano_ref_grid) & (pd.to_datetime(df_paradas['Data'], errors='coerce').dt.month == n_mes_grid)]
+
+        hd_total_grid = 24 * dias_calc_grid
+        efi_por_maq = {}
+        for m in maqs_disponiveis:
+            hp_m = df_par_grid[df_par_grid['Maquina_TAG'] == m]['Tempo_Parado_Horas'].sum()
+            efi_por_maq[m] = max(0.0, ((hd_total_grid - hp_m) / hd_total_grid) * 100) if hd_total_grid > 0 else 0.0
+
+        # CSS CUSTOMIZADO PARA DEIXAR OS BOTÕES DE MÁQUINA MAIORES E MAIS BONITOS
+        st.markdown("""
+            <style>
+            div[class*="st-key-btn_pmaq_"] button {
+                height: 48px !important;
+                font-size: 1rem !important;
+                font-weight: 800 !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            div[class*="st-key-btn_pmaq_"] button:hover {
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 12px rgba(0,0,0,0.08) !important;
+                border-color: #3b82f6 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+            <div class='header-setor-dash' style='margin-bottom: 15px;'>
+                <span>🏭 {setor_selecionado_maq} — Escolha uma máquina</span> 
+                <span style='font-size:0.8rem; color:#64748b; font-weight:700;'>
+                    🔴 Eficiência &lt; 90% &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 90-95% &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 &gt; 95%
+                </span>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Grade de botões das máquinas (Reduzido para 8 colunas para os botões ficarem MAIORES)
+        cols_g = 8
         for chunk in [maqs_disponiveis[i:i + cols_g] for i in range(0, len(maqs_disponiveis), cols_g)]:
             cols = st.columns(cols_g)
             for i, m in enumerate(chunk):
-                info_m = dados_maquinas.get(m, {})
-                dot_m = info_m.get("dot", "⚪")
+                efi_m = efi_por_maq[m]
+                dot_m = "🟢" if efi_m >= 95 else "🟡" if efi_m >= 90 else "🔴"
                 
                 is_active = (m == st.session_state.maq_clicada_painel)
                 btn_type = "primary" if is_active else "secondary"
                 
-                if cols[i].button(f"{dot_m} {m}", key=f"btn_pmaq_{m.replace('-', '_')}", use_container_width=True, type=btn_type):
+                btn_label = f"{dot_m} {m}"
+                
+                if cols[i].button(btn_label, key=f"btn_pmaq_{m.replace('-', '_')}", use_container_width=True, type=btn_type):
                     if st.session_state.maq_clicada_painel == m:
                         st.session_state.maq_clicada_painel = None
                     else:
