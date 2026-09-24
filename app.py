@@ -172,8 +172,9 @@ if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
 # ------------------------------------------
-# INJEÇÃO DO TESTE DE SERVIÇOS (AMORTECEDORES FUSOS)
+# INJEÇÃO AUTOMÁTICA DE DADOS TESTE
 # ------------------------------------------
+# 1. PENDÊNCIAS
 if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
     test_pend = []
     for m in DICIONARIO_SETORES["Setor A"]:
@@ -188,6 +189,26 @@ if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
         })
     df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
     df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
+    st.cache_data.clear()
+
+# 2. PREVENTIVAS (JUNHO E AGOSTO) - UMA POR SEMANA
+registros_prev = [
+    {"Data": "2026-06-03", "Setor": "Setor B", "Maquina_TAG": "L-52", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-10", "Setor": "Setor B", "Maquina_TAG": "L-53", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-17", "Setor": "Setor Látex", "Maquina_TAG": "B-87", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-24", "Setor": "Setor Látex", "Maquina_TAG": "B-84", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-05", "Setor": "Setor B", "Maquina_TAG": "L-41", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-12", "Setor": "Setor B", "Maquina_TAG": "L-44", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-19", "Setor": "Setor B", "Maquina_TAG": "L-45", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+]
+novas_paradas = []
+for reg in registros_prev:
+    mask = (df_paradas["Data"] == reg["Data"]) & (df_paradas["Maquina_TAG"] == reg["Maquina_TAG"]) & (df_paradas["Tipo_Manutencao"] == "Preventiva")
+    if not mask.any():
+        novas_paradas.append(reg)
+if novas_paradas:
+    df_paradas = pd.concat([df_paradas, pd.DataFrame(novas_paradas)], ignore_index=True)
+    df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
     st.cache_data.clear()
 
 def invalidar_cache():
