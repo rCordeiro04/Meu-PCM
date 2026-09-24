@@ -738,44 +738,50 @@ elif tela == "Painel Setores":
     df_paradas_chart['Data'] = pd.to_datetime(df_paradas_chart['Data'], errors='coerce')
     df_paradas_alvo = df_paradas_chart[df_paradas_chart['Maquina_TAG'].isin(maquinas_alvo_totais)]
 
-    dias_ano_atual = (date.today() - date(date.today().year, 1, 1)).days + 1
-    if dias_ano_atual < 1: dias_ano_atual = 1
-    horas_totais_disponiveis = tot_maqs_sel * 24 * dias_ano_atual
-
-    df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == date.today().year]
-    horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
-    horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
-
-    df_efi = pd.DataFrame({
-        "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
-        "Horas": [horas_operando_total, horas_paradas_total]
-    })
-    total_h = horas_operando_total + horas_paradas_total
-    df_efi["Perc"] = (df_efi["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
-    df_efi["Label"] = df_efi["Perc"].astype(str) + "%"
-
-    data_limite_prev = pd.Timestamp(date.today() - timedelta(days=365))
-    df_prev_1ano = df_paradas_alvo[
-        (df_paradas_alvo['Data'] >= data_limite_prev) &
-        (df_paradas_alvo['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False))
-    ]
-    maquinas_com_prev = df_prev_1ano['Maquina_TAG'].nunique()
-    maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
-
-    df_prev = pd.DataFrame({
-        "Condição": ["Com Preventiva", "Sem Preventiva"],
-        "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
-    })
-    total_m_prev = maquinas_com_prev + maquinas_sem_prev
-    df_prev["Perc"] = (df_prev["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
-    df_prev["Label"] = df_prev["Perc"].astype(str) + "%"
-
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     c_efi, c_prev = st.columns(2)
 
     with c_efi:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>⏱️ Eficiência Mecânica (Acumulado do Ano)</div>", unsafe_allow_html=True)
+            cef1, cef2 = st.columns([1.8, 1.2])
+            with cef1: 
+                st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>⏱️ Eficiência Mecânica</div>", unsafe_allow_html=True)
+            with cef2: 
+                mes_filtro_efi = st.selectbox("Mês Eficiência:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, key="sel_mes_efi", label_visibility="collapsed")
+
+            ano_ref = date.today().year
+            mes_ref_num = date.today().month
+            dia_ref = date.today().day
+
+            df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == ano_ref]
+
+            if mes_filtro_efi == "Acumulado do Ano":
+                dias_calculo = (date.today() - date(ano_ref, 1, 1)).days + 1
+                if dias_calculo < 1: dias_calculo = 1
+                horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
+            else:
+                num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_efi) + 1
+                if num_mes_selecionado == mes_ref_num:
+                    dias_calculo = dia_ref
+                elif num_mes_selecionado > mes_ref_num:
+                    dias_calculo = 0
+                else:
+                    dias_calculo = calendar.monthrange(ano_ref, num_mes_selecionado)[1]
+                
+                df_paradas_mes = df_paradas_ano[df_paradas_ano['Data'].dt.month == num_mes_selecionado]
+                horas_paradas_total = df_paradas_mes['Tempo_Parado_Horas'].sum()
+
+            horas_totais_disponiveis = tot_maqs_sel * 24 * dias_calculo
+            horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
+
+            df_efi = pd.DataFrame({
+                "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
+                "Horas": [horas_operando_total, horas_paradas_total]
+            })
+            total_h = horas_operando_total + horas_paradas_total
+            df_efi["Perc"] = (df_efi["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
+            df_efi["Label"] = df_efi["Perc"].astype(str) + "%"
+
             if total_h > 0:
                 base_efi = alt.Chart(df_efi).encode(
                     theta=alt.Theta("Horas:Q", stack=True),
@@ -786,13 +792,33 @@ elif tela == "Painel Setores":
                 text_efi = base_efi.mark_text(radius=80, fontSize=12, fontWeight=800, fill="#ffffff").encode(
                     text=alt.condition(alt.datum.Horas > 0, 'Label:N', alt.value(''))
                 )
-                st.altair_chart((arc_efi + text_efi).properties(height=300), use_container_width=True)
+                st.altair_chart((arc_efi + text_efi).properties(height=280), use_container_width=True)
             else:
-                st.info("Sem dados de capacidade disponíveis para o período.")
+                if dias_calculo == 0:
+                    st.info(f"O mês de {mes_filtro_efi} ainda não tem dados operacionais.")
+                else:
+                    st.info("Sem dados de capacidade para o período selecionado.")
 
     with c_prev:
         with st.container(border=True):
             st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🛠️ Cobertura de Preventivas (Últimos 365 dias)</div>", unsafe_allow_html=True)
+            
+            data_limite_prev = pd.Timestamp(date.today() - timedelta(days=365))
+            df_prev_1ano = df_paradas_alvo[
+                (df_paradas_alvo['Data'] >= data_limite_prev) &
+                (df_paradas_alvo['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False))
+            ]
+            maquinas_com_prev = df_prev_1ano['Maquina_TAG'].nunique()
+            maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
+
+            df_prev = pd.DataFrame({
+                "Condição": ["Com Preventiva", "Sem Preventiva"],
+                "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
+            })
+            total_m_prev = maquinas_com_prev + maquinas_sem_prev
+            df_prev["Perc"] = (df_prev["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
+            df_prev["Label"] = df_prev["Perc"].astype(str) + "%"
+
             if total_m_prev > 0:
                 base_prev = alt.Chart(df_prev).encode(
                     theta=alt.Theta("Quantidade:Q", stack=True),
@@ -803,7 +829,7 @@ elif tela == "Painel Setores":
                 text_prev = base_prev.mark_text(radius=85, fontSize=12, fontWeight=800, fill="#ffffff").encode(
                     text=alt.condition(alt.datum.Quantidade > 0, 'Label:N', alt.value(''))
                 )
-                st.altair_chart((arc_prev + text_prev).properties(height=300), use_container_width=True)
+                st.altair_chart((arc_prev + text_prev).properties(height=280), use_container_width=True)
             else:
                 st.info("Nenhuma máquina cadastrada no contexto atual.")
 
