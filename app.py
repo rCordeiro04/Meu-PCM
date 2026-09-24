@@ -2,7 +2,7 @@ import calendar
 import io
 import os
 import shutil
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -102,7 +102,6 @@ def formatar_modelo(val):
 
 @st.cache_data(show_spinner=False)
 def carregar_dados():
-    # FUSOS
     if os.path.exists(ARQUIVO_FUSOS):
         try:
             df_f = pd.read_excel(ARQUIVO_FUSOS)
@@ -131,7 +130,6 @@ def carregar_dados():
             df_f["Tipo_Fuso"] = novo_tipo
             df_f.to_excel(ARQUIVO_FUSOS, index=False)
 
-    # CORREIAS
     if os.path.exists(ARQUIVO_CORREIAS):
         try: df_c = pd.read_excel(ARQUIVO_CORREIAS)
         except: df_c = pd.DataFrame(columns=COLUNAS_CORREIAS)
@@ -148,7 +146,6 @@ def carregar_dados():
     df_c["Tipo_Correia_2"] = df_c["Tipo_Correia_2"].apply(formatar_modelo)
     df_c["Data_Instalacao_2"] = df_c["Data_Instalacao_2"].astype(str).replace({"nan": "", "NaT": "", "None": ""})
 
-    # PARADAS
     if os.path.exists(ARQUIVO_PARADAS):
         try: df_p = pd.read_excel(ARQUIVO_PARADAS)
         except: df_p = pd.DataFrame(columns=COLUNAS_PARADAS)
@@ -158,7 +155,6 @@ def carregar_dados():
     for col in COLUNAS_PARADAS:
         if col not in df_p.columns: df_p[col] = 0.0 if col == "Tempo_Parado_Horas" else ""
 
-    # PENDÊNCIAS
     if os.path.exists(ARQUIVO_PENDENCIAS):
         try: df_pend = pd.read_excel(ARQUIVO_PENDENCIAS)
         except: df_pend = pd.DataFrame(columns=COLUNAS_PENDENCIAS)
@@ -483,7 +479,6 @@ elif tela == "Painel Fusos":
                     qtd_setor_ofensor = int(agrup_s.iloc[0])
                     break
 
-        # Nova Lógica de Projeção Mensal para a aba Geral
         projecao_mes = "-"
         lbl_projecao = "Projeção Mês"
         if int(ano_f) == ano_atual_ref:
@@ -564,7 +559,6 @@ elif tela == "Painel Fusos":
 
         quebras_por_maq = round(quebras_ult_mes / qtd_maqs_s, 1) if (qtd_maqs_s > 0 and quebras_ult_mes > 0) else 0.0
 
-        # Nova Lógica de Projeção Mensal Setorial
         projecao_mes_s = "-"
         lbl_projecao_s = "Projeção Mês"
         if int(ano_f) == ano_atual_ref:
@@ -661,8 +655,12 @@ elif tela == "Painel Setores":
     setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
     
     dados_resumo_setores = []
+    maquinas_alvo_totais = []
+    
     for s_nome in setores_alvo_exec:
         maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+        maquinas_alvo_totais.extend(maqs_s)
+        
         tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
         crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
         meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
@@ -710,6 +708,84 @@ elif tela == "Painel Setores":
                 )
                 txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Correias Críticas:Q")
                 st.altair_chart((chart_s_cor + txt_s_cor).properties(height=260), use_container_width=True)
+
+    # ---------------------------------------------------------
+    # NOVOS GRÁFICOS: EFICIÊNCIA MECÂNICA E COBERTURA PREVENTIVA
+    # ---------------------------------------------------------
+    df_paradas_chart = df_paradas.copy()
+    df_paradas_chart['Data'] = pd.to_datetime(df_paradas_chart['Data'], errors='coerce')
+    df_paradas_alvo = df_paradas_chart[df_paradas_chart['Maquina_TAG'].isin(maquinas_alvo_totais)]
+
+    # 1. Eficiência Mecânica (Ano Atual - YTD)
+    dias_ano_atual = (date.today() - date(date.today().year, 1, 1)).days + 1
+    if dias_ano_atual < 1: dias_ano_atual = 1
+    horas_totais_disponiveis = tot_maqs_sel * 24 * dias_ano_atual
+
+    df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == date.today().year]
+    horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
+    horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
+
+    df_efi = pd.DataFrame({
+        "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
+        "Horas": [horas_operando_total, horas_paradas_total]
+    })
+    total_h = horas_operando_total + horas_paradas_total
+    df_efi["Perc"] = (df_efi["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
+    df_efi["Label"] = df_efi["Perc"].astype(str) + "%"
+
+    # 2. Preventivas (Últimos 365 Dias)
+    data_limite_prev = pd.Timestamp(date.today() - timedelta(days=365))
+    df_prev_1ano = df_paradas_alvo[
+        (df_paradas_alvo['Data'] >= data_limite_prev) &
+        (df_paradas_alvo['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False))
+    ]
+    maquinas_com_prev = df_prev_1ano['Maquina_TAG'].nunique()
+    maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
+
+    df_prev = pd.DataFrame({
+        "Condição": ["Com Preventiva", "Sem Preventiva"],
+        "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
+    })
+    total_m_prev = maquinas_com_prev + maquinas_sem_prev
+    df_prev["Perc"] = (df_prev["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
+    df_prev["Label"] = df_prev["Perc"].astype(str) + "%"
+
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    c_efi, c_prev = st.columns(2)
+
+    with c_efi:
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>⏱️ Eficiência Mecânica (Acumulado do Ano)</div>", unsafe_allow_html=True)
+            if total_h > 0:
+                base_efi = alt.Chart(df_efi).encode(
+                    theta=alt.Theta("Horas:Q", stack=True),
+                    color=alt.Color("Status:N", scale=alt.Scale(domain=["Horas Operando", "Horas Paradas (Corretivas)"], range=["#10b981", "#ef4444"]), legend=alt.Legend(title="Status Operacional", orient="bottom")),
+                    tooltip=["Status", "Horas", "Perc"]
+                )
+                arc_efi = base_efi.mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
+                text_efi = base_efi.mark_text(radius=80, fontSize=12, fontWeight=800, fill="#ffffff").encode(
+                    text=alt.condition(alt.datum.Horas > 0, 'Label:N', alt.value(''))
+                )
+                st.altair_chart((arc_efi + text_efi).properties(height=300), use_container_width=True)
+            else:
+                st.info("Sem dados de capacidade disponíveis para o período.")
+
+    with c_prev:
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🛠️ Cobertura de Preventivas (Últimos 365 dias)</div>", unsafe_allow_html=True)
+            if total_m_prev > 0:
+                base_prev = alt.Chart(df_prev).encode(
+                    theta=alt.Theta("Quantidade:Q", stack=True),
+                    color=alt.Color("Condição:N", scale=alt.Scale(domain=["Com Preventiva", "Sem Preventiva"], range=["#3b82f6", "#cbd5e1"]), legend=alt.Legend(title="Cobertura Anual", orient="bottom")),
+                    tooltip=["Condição", "Quantidade", "Perc"]
+                )
+                arc_prev = base_prev.mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
+                text_prev = base_prev.mark_text(radius=85, fontSize=12, fontWeight=800, fill="#ffffff").encode(
+                    text=alt.condition(alt.datum.Quantidade > 0, 'Label:N', alt.value(''))
+                )
+                st.altair_chart((arc_prev + text_prev).properties(height=300), use_container_width=True)
+            else:
+                st.info("Nenhuma máquina cadastrada no contexto atual.")
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
@@ -1004,13 +1080,11 @@ elif tela == "Banco de Dados":
                         if tag_add in obter_maquinas_setor(setor_add, df_correias, df_fusos):
                             st.warning(f"A máquina {tag_add} já está cadastrada no {setor_add}.")
                         else:
-                            # 1. Injetar na base de correias
                             novo_registro_cor = {"Setor": setor_add, "Maquina_TAG": tag_add, "Tipo_Correia_1": "", "Data_Instalacao_1": "", "Tipo_Correia_2": "", "Data_Instalacao_2": ""}
                             df_correias = pd.concat([df_correias, pd.DataFrame([novo_registro_cor])], ignore_index=True)
                             gerar_backup_seguro(ARQUIVO_CORREIAS)
                             df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
                             
-                            # 2. Injetar na base de fusos (criando matriz pro ano atual)
                             ano_corrente = date.today().year
                             novos_fusos_ano = [{"Ano": ano_corrente, "Mes": m_n, "Dia": 1, "Setor": setor_add, "Maquina_TAG": tag_add, "Quantidade_Quebras": 0, "Tipo_Fuso": obter_fuso_padrao(tag_add, setor_add)} for m_n in LISTA_MESES_PUROS]
                             df_fusos = pd.concat([df_fusos, pd.DataFrame(novos_fusos_ano)], ignore_index=True)
@@ -1033,19 +1107,16 @@ elif tela == "Banco de Dados":
                 if st.button("Excluir Máquina e Dados", type="primary", use_container_width=True):
                     if tag_del != "-- Selecione --" and confirm_del:
                         
-                        # 1. Limpar de todos os DataFrames
                         df_fusos = df_fusos[~((df_fusos["Setor"] == setor_del) & (df_fusos["Maquina_TAG"] == tag_del))]
                         df_correias = df_correias[~((df_correias["Setor"] == setor_del) & (df_correias["Maquina_TAG"] == tag_del))]
                         df_paradas = df_paradas[~((df_paradas["Setor"] == setor_del) & (df_paradas["Maquina_TAG"] == tag_del))]
                         df_pendencias = df_pendencias[~((df_pendencias["Setor"] == setor_del) & (df_pendencias["Maquina_TAG"] == tag_del))]
                         
-                        # 2. Backups de segurança
                         gerar_backup_seguro(ARQUIVO_FUSOS)
                         gerar_backup_seguro(ARQUIVO_CORREIAS)
                         gerar_backup_seguro(ARQUIVO_PARADAS)
                         gerar_backup_seguro(ARQUIVO_PENDENCIAS)
                         
-                        # 3. Salvar os novos DataFrames limpos
                         df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
                         df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
                         df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
@@ -1059,9 +1130,6 @@ elif tela == "Banco de Dados":
 
         st.markdown("---")
         
-        # -------------------------------------------------------------
-        # Parâmetros da Máquina
-        # -------------------------------------------------------------
         c_f_set, c_f_maq = st.columns([1.5, 2.0])
         with c_f_set:
             setores_disponiveis = list(DICIONARIO_SETORES.keys())
@@ -1129,7 +1197,6 @@ elif tela == "Banco de Dados":
                 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
                 if st.button("💾 Salvar Parâmetros da Máquina", type="primary", use_container_width=True):
-                    # FUSO
                     mask_fusos_maq = (df_fusos["Setor"] == setor_selecionado) & (df_fusos["Maquina_TAG"] == maq_selecionada)
                     if mask_fusos_maq.any(): df_fusos.loc[mask_fusos_maq, "Tipo_Fuso"] = novo_fuso
                     else:
@@ -1138,7 +1205,6 @@ elif tela == "Banco de Dados":
                     gerar_backup_seguro(ARQUIVO_FUSOS)
                     df_fusos.to_excel(ARQUIVO_FUSOS, index=False)
 
-                    # CORREIAS
                     mask_cor_maq = (df_correias["Setor"] == setor_selecionado) & (df_correias["Maquina_TAG"] == maq_selecionada)
                     if mask_cor_maq.any():
                         idx_c = df_correias[mask_cor_maq].index[0]
