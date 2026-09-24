@@ -564,7 +564,7 @@ elif tela == "Painel Fusos":
                     df_tipos = df_sa_rosca[df_sa_rosca["Quantidade_Quebras"] > 0].groupby("Tipo_Fuso")["Quantidade_Quebras"].sum().reset_index()
                     base_don_fuso = alt.Chart(df_tipos).encode(
                         theta=alt.Theta("Quantidade_Quebras:Q", stack=True),
-                        color=alt.Color("Tipo_Fuso:N", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right", title="Tipo / Marca", labelFontSize=13, titleFontSize=14)),
+                        color=alt.Color("Tipo_Fuso:N", scale=alt.Scale(scheme="category10"), legend=alt.Legend(orient="right", title="Tipo de Fuso", labelFontSize=13, titleFontSize=14)),
                         tooltip=["Tipo_Fuso", "Quantidade_Quebras"]
                     )
                     arc_fuso = base_don_fuso.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
@@ -588,7 +588,7 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
-            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5).encode(
+            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5, rx=3, ry=3).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
                 color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#ef4444"]), legend=alt.Legend(title="Quebras", orient="right")),
@@ -602,140 +602,74 @@ elif tela == "Painel Fusos":
             st.altair_chart((rect + txt).properties(height=max(250, len(maqs_setor) * 26)), use_container_width=True)
 
 # ------------------------------------------
-# 3. PAINEL DE SETORES (1.0 COM NOVOS GRÁFICOS DETALHADOS)
+# 3. PAINEL DE SETORES (1.0 ESTÁVEL)
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2, c_ts3 = st.columns([2.2, 1.8, 1.8])
+    c_ts1, c_ts2 = st.columns([3.5, 2.5])
     with c_ts1: st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
-    with c_ts3:
-        meses_filtro_painel = ["Todos os Meses"] + LISTA_MESES_PUROS
-        mes_selecionado_exec = st.selectbox("Filtrar Mês:", meses_filtro_painel, label_visibility="collapsed")
+
+    st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
 
     setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
     
-    maqs_alvo = []
-    for s in setores_alvo_exec: maqs_alvo.extend(obter_maquinas_setor(s, df_correias, df_fusos))
-    qtd_maqs_alvo = len(set(maqs_alvo))
+    dados_resumo_setores = []
+    for s_nome in setores_alvo_exec:
+        maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+        tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
+        crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
+        meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
+        novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
+        tot_horas_s = float(df_paradas[df_paradas["Setor"] == s_nome]["Tempo_Parado_Horas"].sum()) if not df_paradas.empty else 0.0
+        tot_pend_s = len(df_pendencias[(df_pendencias["Setor"] == s_nome) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")])
 
-    df_f_setor = df_fusos[df_fusos["Setor"].isin(setores_alvo_exec)].copy()
-    if mes_selecionado_exec != "Todos os Meses": df_f_setor = df_f_setor[df_f_setor["Mes"] == mes_selecionado_exec]
-    tot_q_fusos = int(df_f_setor["Quantidade_Quebras"].sum()) if not df_f_setor.empty else 0
+        dados_resumo_setores.append({
+            "Setor": s_nome, "Total Máquinas": len(maqs_s), "Quebras Fusos": tot_q_fusos,
+            "Horas Paradas (Corretivas)": round(tot_horas_s, 1), "Pendências Abertas": tot_pend_s,
+            "Correias Críticas": crit_cor, "Correias Meia-Vida": meia_cor, "Correias Novas": novas_cor,
+        })
 
-    df_p_setor = df_paradas[df_paradas["Setor"].isin(setores_alvo_exec)].copy()
-    if not df_p_setor.empty:
-        df_p_setor["Data_Dt"] = pd.to_datetime(df_p_setor["Data"], errors="coerce")
-        data_limite_1ano = pd.Timestamp(date.today()) - pd.DateOffset(years=1)
-        df_p_1ano = df_p_setor[df_p_setor["Data_Dt"] >= data_limite_1ano]
-        
-        mask_prev = df_p_1ano["Tipo_Manutencao"].astype(str).str.lower().str.contains("preventiva")
-        maqs_com_prev = df_p_1ano[mask_prev]["Maquina_TAG"].nunique()
-        perc_prev = round((maqs_com_prev / qtd_maqs_alvo) * 100, 1) if qtd_maqs_alvo > 0 else 0.0
+    df_res_setores = pd.DataFrame(dados_resumo_setores)
 
-        if mes_selecionado_exec != "Todos os Meses":
-            idx_mes_sel = LISTA_MESES_PUROS.index(mes_selecionado_exec) + 1
-            df_p_setor = df_p_setor[df_p_setor["Data_Dt"].dt.month == idx_mes_sel]
-        tot_horas_paradas = float(df_p_setor["Tempo_Parado_Horas"].sum())
-    else:
-        tot_horas_paradas, perc_prev, maqs_com_prev = 0.0, 0.0, 0
-
-    if mes_selecionado_exec == "Todos os Meses": horas_totais = qtd_maqs_alvo * 24 * 365
-    else:
-        idx_m = LISTA_MESES_PUROS.index(mes_selecionado_exec) + 1
-        _, d_mes = calendar.monthrange(date.today().year, idx_m)
-        horas_totais = qtd_maqs_alvo * 24 * d_mes
-    
-    horas_operacionais = max(0.0, horas_totais - tot_horas_paradas)
-    eficiencia = round((horas_operacionais / horas_totais) * 100, 1) if horas_totais > 0 else 100.0
-
-    if setor_selecionado_exec == "Todos os Setores":
-        novas_c, meia_c, crit_c = len(lista_correias_novas), len(lista_correias_meia), len(lista_correias_criticas)
-    else:
-        novas_c = len([r for r in lista_correias_novas if r["setor"] == setor_selecionado_exec])
-        meia_c = len([r for r in lista_correias_meia if r["setor"] == setor_selecionado_exec])
-        crit_c = len([r for r in lista_correias_criticas if r["setor"] == setor_selecionado_exec])
+    tot_maqs_sel = df_res_setores["Total Máquinas"].sum()
+    tot_fusos_sel = df_res_setores["Quebras Fusos"].sum()
+    tot_horas_sel = df_res_setores["Horas Paradas (Corretivas)"].sum()
+    tot_crit_sel = df_res_setores["Correias Críticas"].sum()
 
     cs1, cs2, cs3, cs4 = st.columns(4)
-    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Eficiência / Uptime</div><div class='kpi-val' style='color:#059669;'>{eficiencia}%</div></div><div style='font-size:1.8rem;'>📈</div></div>", unsafe_allow_html=True)
-    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Preventivas (365d)</div><div class='kpi-val' style='color:#3b82f6;'>{perc_prev}%</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
-    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_q_fusos}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{crit_c}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
+    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_exec}</div></div><div style='font-size:1.8rem;'>🏢</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{tot_maqs_sel}</div></div><div style='font-size:1.8rem;'>⚙️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    cg_s1, cg_s2 = st.columns(2)
-    with cg_s1:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Quebras de Fusos</div>", unsafe_allow_html=True)
-            if not df_f_setor.empty and tot_q_fusos > 0:
-                if mes_selecionado_exec == "Todos os Meses":
-                    df_graf_f = df_f_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
-                    df_graf_f["Mes_Abrev"] = df_graf_f["Mes"].map(MAPA_MES_ABREV)
-                    bar_f = alt.Chart(df_graf_f).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)), y=alt.Y("Quantidade_Quebras:Q", title="Quebras"))
-                    txt_f = bar_f.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value("")))
-                    st.altair_chart((bar_f + txt_f).properties(height=260), use_container_width=True)
-                else:
-                    df_graf_f = df_f_setor.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().reset_index()
-                    df_graf_f = df_graf_f[df_graf_f["Quantidade_Quebras"] > 0]
-                    bar_f = alt.Chart(df_graf_f).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(x=alt.X("Maquina_TAG:N", sort="-y", title=None), y=alt.Y("Quantidade_Quebras:Q", title="Quebras"))
-                    txt_f = bar_f.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Quantidade_Quebras:Q")
-                    st.altair_chart((bar_f + txt_f).properties(height=260), use_container_width=True)
-            else:
-                st.info("Sem registros de quebras de fusos no período.")
-
-    with cg_s2:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🍩 Condições das Correias</div>", unsafe_allow_html=True)
-            df_donut_c = pd.DataFrame([{"Condicao": "Novas (≤ 1a)", "Quantidade": novas_c}, {"Condicao": "Meia-Vida (1-1.5a)", "Quantidade": meia_c}, {"Condicao": "Troca Urgente (> 1.5a)", "Quantidade": crit_c}])
-            if df_donut_c["Quantidade"].sum() > 0:
-                base_don_c = alt.Chart(df_donut_c).encode(
-                    theta=alt.Theta("Quantidade:Q", stack=True),
-                    color=alt.Color("Condicao:N", scale=alt.Scale(domain=["Novas (≤ 1a)", "Meia-Vida (1-1.5a)", "Troca Urgente (> 1.5a)"], range=["#10b981", "#f59e0b", "#ef4444"]), legend=alt.Legend(orient="right", title="Condição", labelFontSize=13, titleFontSize=14)),
-                    tooltip=["Condicao", "Quantidade"]
+    if setor_selecionado_exec == "Todos os Setores":
+        c_gset1, c_gset2 = st.columns(2)
+        with c_gset1:
+            with st.container(border=True):
+                st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
+                chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#3b82f6").encode(
+                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0)), y=alt.Y("Quebras Fusos:Q", title="Quebras")
                 )
-                arc_c = base_don_c.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
-                text_c = base_don_c.mark_text(radius=92, fontSize=13, fontWeight=800, fill="#ffffff").encode(text=alt.condition("datum.Quantidade > 0", alt.Text("Quantidade:Q"), alt.value("")))
-                st.altair_chart((arc_c + text_c).properties(height=260), use_container_width=True)
-            else:
-                st.info("Sem dados de correias.")
+                txt_s_fuso = chart_s_fuso.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Quebras Fusos:Q")
+                st.altair_chart((chart_s_fuso + txt_s_fuso).properties(height=260), use_container_width=True)
+
+        with c_gset2:
+            with st.container(border=True):
+                st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🚨 Correias com Troca Necessária por Setor</div>", unsafe_allow_html=True)
+                chart_s_cor = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#ef4444").encode(
+                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0)), y=alt.Y("Correias Críticas:Q", title="Críticas")
+                )
+                txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Correias Críticas:Q")
+                st.altair_chart((chart_s_cor + txt_s_cor).properties(height=260), use_container_width=True)
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    cg_s3, cg_s4 = st.columns(2)
-    
-    with cg_s3:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🍩 Eficiência: Operacional vs Paradas</div>", unsafe_allow_html=True)
-            df_eficiencia = pd.DataFrame([{"Status": "Horas Operacionais", "Horas": horas_operacionais}, {"Status": "Horas Paradas", "Horas": tot_horas_paradas}])
-            if horas_totais > 0:
-                base_don_e = alt.Chart(df_eficiencia).encode(
-                    theta=alt.Theta("Horas:Q", stack=True),
-                    color=alt.Color("Status:N", scale=alt.Scale(domain=["Horas Operacionais", "Horas Paradas"], range=["#10b981", "#ef4444"]), legend=alt.Legend(orient="right", title="Status", labelFontSize=13, titleFontSize=14)),
-                    tooltip=["Status", "Horas"]
-                )
-                arc_e = base_don_e.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
-                text_e = base_don_e.mark_text(radius=92, fontSize=13, fontWeight=800, fill="#ffffff").encode(text=alt.condition("datum.Horas > 0", alt.Text("Horas:Q", format=".0f"), alt.value("")))
-                st.altair_chart((arc_e + text_e).properties(height=260), use_container_width=True)
-            else:
-                st.info("Sem horas calculadas para o período.")
-
-    with cg_s4:
-        with st.container(border=True):
-            st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🍩 Cobertura Preventiva (Máquinas Atendidas nos Últimos 365d)</div>", unsafe_allow_html=True)
-            maqs_sem_prev = qtd_maqs_alvo - maqs_com_prev
-            df_prev = pd.DataFrame([{"Status": "Com Preventiva", "Máquinas": maqs_com_prev}, {"Status": "Sem Preventiva", "Máquinas": maqs_sem_prev}])
-            if qtd_maqs_alvo > 0:
-                base_don_p = alt.Chart(df_prev).encode(
-                    theta=alt.Theta("Máquinas:Q", stack=True),
-                    color=alt.Color("Status:N", scale=alt.Scale(domain=["Com Preventiva", "Sem Preventiva"], range=["#3b82f6", "#cbd5e1"]), legend=alt.Legend(orient="right", title="Status", labelFontSize=13, titleFontSize=14)),
-                    tooltip=["Status", "Máquinas"]
-                )
-                arc_p = base_don_p.mark_arc(innerRadius=65, outerRadius=120, stroke="#ffffff", strokeWidth=2)
-                text_p = base_don_p.mark_text(radius=92, fontSize=13, fontWeight=800, fill="#ffffff").encode(text=alt.condition("datum.Máquinas > 0", alt.Text("Máquinas:Q"), alt.value("")))
-                st.altair_chart((arc_p + text_p).properties(height=260), use_container_width=True)
-            else:
-                st.info("Sem máquinas no setor.")
+    with st.container(border=True):
+        st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Matriz de Desempenho Operacional — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+        st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
 # 4. PAINEL DE MÁQUINAS (EXATAMENTE COMO 1.0)
@@ -763,8 +697,8 @@ elif tela == "Painel Maquinas":
         cm1, cm2, cm3, cm4 = st.columns(4)
         cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_maq}</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
         cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.1rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'S/ Dados')}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Corretivas)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências Abertas</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
