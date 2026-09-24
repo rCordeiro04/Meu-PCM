@@ -171,6 +171,9 @@ df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
+# ------------------------------------------
+# INJEÇÃO AUTOMÁTICA DE DADOS TESTE
+# ------------------------------------------
 if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
     test_pend = []
     for m in DICIONARIO_SETORES["Setor A"]:
@@ -185,6 +188,24 @@ if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
         })
     df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
     df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
+    st.cache_data.clear()
+
+registros_prev = [
+    {"Data": "2026-06-03", "Setor": "Setor B", "Maquina_TAG": "L-52", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-10", "Setor": "Setor B", "Maquina_TAG": "L-53", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-17", "Setor": "Setor Látex", "Maquina_TAG": "B-87", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-06-24", "Setor": "Setor Látex", "Maquina_TAG": "B-84", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-05", "Setor": "Setor B", "Maquina_TAG": "L-41", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-12", "Setor": "Setor B", "Maquina_TAG": "L-44", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+    {"Data": "2026-08-19", "Setor": "Setor B", "Maquina_TAG": "L-45", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
+]
+novas_paradas = []
+for reg in registros_prev:
+    mask = (df_paradas["Data"] == reg["Data"]) & (df_paradas["Maquina_TAG"] == reg["Maquina_TAG"]) & (df_paradas["Tipo_Manutencao"] == "Preventiva")
+    if not mask.any(): novas_paradas.append(reg)
+if novas_paradas:
+    df_paradas = pd.concat([df_paradas, pd.DataFrame(novas_paradas)], ignore_index=True)
+    df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
     st.cache_data.clear()
 
 def invalidar_cache():
@@ -304,6 +325,7 @@ st.markdown(
         div[data-testid="column"] { padding: 0 6px !important; margin: 0px !important; }
         div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 4px !important; }
         div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
+        
         .card-kpi-bonito {
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px;
             display: flex; align-items: center; justify-content: space-between; height: 72px; box-sizing: border-box;
@@ -317,6 +339,7 @@ st.markdown(
         .card-kpi-bonito.c-crit::after { background: #ef4444; }
         .kpi-val { font-size: 1.45rem; font-weight: 900; line-height: 1; font-family: 'Inter', sans-serif; color: #0f172a;}
         .kpi-lbl { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        
         .alerta-manutencao {
             background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
             padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
@@ -341,6 +364,16 @@ st.markdown(
         .header-setor-dash {
             font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
             padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
+        }
+        
+        /* CSS OCULTO PARA IMPRESSÃO (CTRL+P) DE TELA LIMPA */
+        @media print {
+            [data-testid="stSidebar"] { display: none !important; }
+            header[data-testid="stHeader"] { display: none !important; }
+            .block-container { padding: 1rem !important; max-width: 100% !important; width: 100% !important; }
+            .stButton { display: none !important; }
+            .stToggle { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
     """,
@@ -685,7 +718,6 @@ elif tela == "Painel Setores":
 
     tot_maqs_sel = len(maquinas_alvo_totais)
 
-    # Lógica de Filtro de Tempo Dinâmico
     ano_ref = date.today().year
     mes_ref_num = date.today().month
     dia_ref = date.today().day
@@ -795,9 +827,6 @@ elif tela == "Painel Setores":
                 )
                 st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
 
-            # =========================================================================
-            # NOVA SESSÃO: PORCENTAGEM DE EFICIÊNCIA DE CADA SETOR SEPARADO (BEM BONITO)
-            # =========================================================================
             st.markdown("""
                 <style>
                 .card-efi-setor {
@@ -850,7 +879,6 @@ elif tela == "Painel Setores":
                             </div>
                         </div>
                     """, unsafe_allow_html=True)
-            # =========================================================================
 
     else:
         c_fuso_evol, c_top_efi = st.columns([20, 15])
@@ -1276,9 +1304,12 @@ elif tela == "Banco de Dados":
                         df_novo_p["Tempo_Parado_Horas"] = pd.to_numeric(df_novo_p["Tempo_Parado_Horas"], errors="coerce").fillna(0.0)
                         df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
                         gerar_backup_seguro(ARQUIVO_PARADAS)
-                        pd.concat([df_paradas, df_novo_p[COLUNAS_PARADAS]], ignore_index=True).to_excel(ARQUIVO_PARADAS, index=False)
+                        
+                        # SUBSTITUIÇÃO COMPLETA: Assumimos o arquivo enviado como a base oficial
+                        df_novo_p[COLUNAS_PARADAS].to_excel(ARQUIVO_PARADAS, index=False)
+                        
                         invalidar_cache()
-                        st.toast("✅ Corretivas registradas!")
+                        st.toast("✅ Corretivas atualizadas com sucesso (Substituição Completa)!")
                         st.rerun()
                     except Exception as e: st.error(f"Erro: {e}")
 
