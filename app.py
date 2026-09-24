@@ -307,6 +307,7 @@ st.markdown(
         div[data-testid="column"] { padding: 0 6px !important; margin: 0px !important; }
         div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 4px !important; }
         div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
+        
         .card-kpi-bonito {
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px;
             display: flex; align-items: center; justify-content: space-between; height: 72px; box-sizing: border-box;
@@ -320,6 +321,7 @@ st.markdown(
         .card-kpi-bonito.c-crit::after { background: #ef4444; }
         .kpi-val { font-size: 1.45rem; font-weight: 900; line-height: 1; font-family: 'Inter', sans-serif; color: #0f172a;}
         .kpi-lbl { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        
         .alerta-manutencao {
             background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
             padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
@@ -341,6 +343,20 @@ st.markdown(
         .badge-cinza { background: #e2e8f0; color: #475569; }
         .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
         .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .header-setor-dash {
+            font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
+            padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
+        }
+        
+        /* CSS OCULTO PARA IMPRESSÃO (CTRL+P) DE TELA LIMPA */
+        @media print {
+            [data-testid="stSidebar"] { display: none !important; }
+            header[data-testid="stHeader"] { display: none !important; }
+            .block-container { padding: 1rem !important; max-width: 100% !important; width: 100% !important; }
+            .stButton { display: none !important; }
+            .stToggle { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -373,7 +389,7 @@ tela = st.session_state.pagina_atual
 # 1. PAINEL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
+    c_t, c_f, c_leg, c_prt = st.columns([3.0, 1.5, 4.0, 1.5])
     with c_t: st.markdown("<h2 style='margin:0; font-weight:900;'>🔄 Dashboard de Correias</h2>", unsafe_allow_html=True)
     with c_f:
         mods_un = sorted(list({r["modelo"] for r in lista_correias_todas if r["modelo"] and r["modelo"] != "Não informada"}))
@@ -387,6 +403,9 @@ if tela == "Painel Correias":
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> S/ Dados</span>
             </div>
         """, unsafe_allow_html=True)
+    with c_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_cor")
+        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4)
@@ -448,9 +467,12 @@ if tela == "Painel Correias":
 # 2. PAINEL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
-    cf_t, cf_a = st.columns([3.8, 1.4])
+    cf_t, cf_a, cf_prt = st.columns([3.5, 1.0, 1.0])
     cf_t.markdown("<h2 style='margin:0; font-weight:900;'>🔩 Dashboard de Fusos</h2>", unsafe_allow_html=True)
     ano_f = cf_a.selectbox("Ano", [2024, 2025, 2026, 2027], index=2, label_visibility="collapsed")
+    with cf_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_fus")
+        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
@@ -662,12 +684,15 @@ elif tela == "Painel Fusos":
 # 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2, c_ts3 = st.columns([3.0, 1.5, 1.5])
+    c_ts1, c_ts2, c_ts3, c_prt = st.columns([3.0, 1.5, 1.5, 1.2])
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
     with c_ts3:
         mes_filtro_painel = st.selectbox("Mês:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, label_visibility="collapsed")
+    with c_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_set")
+        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     with c_ts1: 
         titulo_setor = f"Painel {setor_selecionado_exec}" if setor_selecionado_exec != "Todos os Setores" else "Painel Todos os Setores"
@@ -839,8 +864,13 @@ elif tela == "Painel Setores":
 # 4. PAINEL DE MÁQUINAS
 # ------------------------------------------
 elif tela == "Painel Maquinas":
-    st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
-    st.caption("Consulte o histórico detalhado, manutenções, pendências e quebras de fusos por TAG.")
+    c_m_t, c_m_prt = st.columns([8.5, 1.5])
+    with c_m_t:
+        st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
+        st.caption("Consulte o histórico detalhado, manutenções, pendências e quebras de fusos por TAG.")
+    with c_m_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_maq")
+        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     col_sm, col_mq, col_mes = st.columns([1.5, 2.0, 1.5])
     with col_sm: setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
