@@ -73,9 +73,11 @@ def obter_fuso_padrao(maq_tag, setor_nome):
     maq_str = str(maq_tag).strip().upper()
     MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
     MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
+    MAQUINAS_USL = [f"B-{i}" for i in range(70, 80)]
     
     if maq_str in MAQUINAS_FAG: return "FAG"
     if maq_str in MAQUINAS_MENEGATTO: return "MENEGATTO"
+    if maq_str in MAQUINAS_USL: return "USL"
     
     if setor_nome == "Setor A": return "FAG"
     elif setor_nome == "Setor B": return "TEP"
@@ -119,9 +121,11 @@ def carregar_dados():
             
             MAQUINAS_FAG = [f"L-{i:02d}" for i in range(1, 29)] + ["L-52", "L-53", "B-47", "B-48", "B-49"]
             MAQUINAS_MENEGATTO = ["L-29", "L-30", "L-31", "L-35", "L-38", "L-50", "L-51", "L-41", "L-42", "L-43", "L-44", "L-45", "L-46"]
+            MAQUINAS_USL = [f"B-{i}" for i in range(70, 80)]
             
             if m in MAQUINAS_FAG: return "FAG"
             if m in MAQUINAS_MENEGATTO: return "MENEGATTO"
+            if m in MAQUINAS_USL: return "USL"
             if t in OPCOES_TIPO_FUSO: return t
             return obter_fuso_padrao(m, s)
 
