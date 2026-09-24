@@ -51,7 +51,7 @@ ARQUIVO_PENDENCIAS = "lancamentos_pendencias_v1.xlsx"
 COLUNAS_FUSOS = ["Ano", "Mes", "Dia", "Setor", "Maquina_TAG", "Quantidade_Quebras", "Tipo_Fuso"]
 COLUNAS_CORREIAS = ["Setor", "Maquina_TAG", "Tipo_Correia_1", "Data_Instalacao_1", "Tipo_Correia_2", "Data_Instalacao_2"]
 COLUNAS_PARADAS = ["Data", "Setor", "Maquina_TAG", "Tipo_Manutencao", "Descricao_Servico", "Tempo_Parado_Horas"]
-COLUNAS_PENDENCIAS = ["Setor", "Maquina_TAG", "Descricao_Pendencia", "Prioridade", "Status"]
+COLUNAS_PENDENCIAS = ["Setor", "Maquina_TAG", "Nome_Servico", "Descricao_Pendencia", "Prioridade", "Status"]
 
 OPCOES_TIPO_FUSO = ["FAG", "TEP", "M4BA", "MENEGATTO", "M4ZD", "USL"]
 
@@ -167,6 +167,24 @@ def carregar_dados():
     return df_f, df_c, df_p, df_pend
 
 df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
+
+# ------------------------------------------
+# INJEÇÃO DO TESTE DE SERVIÇOS (AMORTECEDORES FUSOS)
+# ------------------------------------------
+if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
+    test_pend = []
+    for m in DICIONARIO_SETORES["Setor A"]:
+        status = "Concluído" if m in ["L-09", "L-20", "L-21"] else "Pendente"
+        test_pend.append({
+            "Setor": "Setor A",
+            "Maquina_TAG": m,
+            "Nome_Servico": "Amortecedores fusos",
+            "Descricao_Pendencia": "troca dos amortecedores para diminuir indice de quebra de fusos",
+            "Prioridade": "Alta",
+            "Status": status
+        })
+    df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
+    df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
 
 def invalidar_cache():
     st.cache_data.clear()
@@ -842,11 +860,13 @@ elif tela == "Painel Setores":
         
         servicos_ativos = []
         if not df_pend_setor.empty:
-            for serv, group in df_pend_setor.groupby('Descricao_Pendencia'):
+            df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
+            df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
+            for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
                 pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
                 concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                if pendentes:
-                    servicos_ativos.append({"serv": serv, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+                if pendentes or concluidas:
+                    servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
 
         if servicos_ativos:
             for item in servicos_ativos:
@@ -855,7 +875,8 @@ elif tela == "Painel Setores":
 
                 st.markdown(f"""
                     <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:5px solid #f59e0b; border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight:800; color:#0f172a; font-size:0.95rem; margin-bottom:6px;">🛠️ {item['serv']}</div>
+                        <div style="font-weight:800; color:#0f172a; font-size:1.05rem; margin-bottom:2px;">🛠️ {item['nome']}</div>
+                        <div style="font-size:0.85rem; color:#64748b; font-style:italic; margin-bottom:8px;">{item['desc']}</div>
                         <div style="font-size:0.85rem; color:#475569; margin-bottom:4px;">
                             <span style="color:#ef4444; font-weight:700;">⏳ Pendentes ({len(item['pendentes'])}):</span> {p_str}
                         </div>
@@ -924,7 +945,7 @@ elif tela == "Painel Maquinas":
 
         with st.container(border=True):
             st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
-            if not sub_pend_maq.empty: st.dataframe(sub_pend_maq[["Descricao_Pendencia", "Prioridade", "Status"]], use_container_width=True, hide_index=True)
+            if not sub_pend_maq.empty: st.dataframe(sub_pend_maq[["Nome_Servico", "Descricao_Pendencia", "Prioridade", "Status"]], use_container_width=True, hide_index=True)
             else: st.info("Nenhuma manutenção pendente cadastrada.")
 
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
@@ -1127,7 +1148,7 @@ elif tela == "Banco de Dados":
             if up_arquivo_pend and st.button("🚀 Atualizar Pendências", type="primary"):
                 try:
                     df_novo = pd.read_excel(up_arquivo_pend)
-                    mapa = {c: "Setor" if "setor" in c.lower() else "Maquina_TAG" if "maq" in c.lower() else "Descricao_Pendencia" if "desc" in c.lower() else "Prioridade" if "prio" in c.lower() else "Status" if "stat" in c.lower() else c for c in df_novo.columns}
+                    mapa = {c: "Setor" if "setor" in c.lower() else "Maquina_TAG" if "maq" in c.lower() else "Nome_Servico" if "nome" in c.lower() or "servi" in c.lower() else "Descricao_Pendencia" if "desc" in c.lower() else "Prioridade" if "prio" in c.lower() else "Status" if "stat" in c.lower() else c for c in df_novo.columns}
                     df_novo.rename(columns=mapa, inplace=True)
                     for c in COLUNAS_PENDENCIAS:
                         if c not in df_novo.columns: df_novo[c] = "Pendente" if c == "Status" else "Média" if c == "Prioridade" else ""
