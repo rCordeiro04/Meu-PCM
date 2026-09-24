@@ -21,19 +21,28 @@ def tema_altair():
     return {
         "config": {
             "view": {"strokeWidth": 0},
+            "background": "transparent",
             "axis": {
-                "domainColor": "#cbd5e1",
-                "gridColor": "#f8fafc",
+                "domainColor": "#e2e8f0",
+                "gridColor": "#f1f5f9",
                 "labelColor": "#64748b",
                 "labelFontWeight": 600,
+                "labelFontSize": 11,
                 "titleColor": "#0f172a",
                 "titleFontWeight": 800,
-                "tickColor": "#cbd5e1"
+                "titleFontSize": 13,
+                "tickColor": "#e2e8f0"
             },
             "legend": {
                 "labelColor": "#475569",
                 "titleColor": "#0f172a",
-                "titleFontWeight": 800
+                "titleFontWeight": 800,
+                "labelFontSize": 12
+            },
+            "title": {
+                "color": "#0f172a",
+                "fontSize": 16,
+                "fontWeight": 800
             }
         }
     }
@@ -172,46 +181,6 @@ def carregar_dados():
 
 df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 
-if "Nome_Servico" not in df_pendencias.columns:
-    df_pendencias["Nome_Servico"] = ""
-
-# ------------------------------------------
-# INJEÇÃO AUTOMÁTICA DE DADOS TESTE
-# ------------------------------------------
-if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
-    test_pend = []
-    for m in DICIONARIO_SETORES["Setor A"]:
-        status = "Concluído" if m in ["L-09", "L-20", "L-21"] else "Pendente"
-        test_pend.append({
-            "Setor": "Setor A",
-            "Maquina_TAG": m,
-            "Nome_Servico": "Amortecedores fusos",
-            "Descricao_Pendencia": "troca dos amortecedores para diminuir indice de quebra de fusos",
-            "Prioridade": "Alta",
-            "Status": status
-        })
-    df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
-    df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
-    st.cache_data.clear()
-
-registros_prev = [
-    {"Data": "2026-06-03", "Setor": "Setor B", "Maquina_TAG": "L-52", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-10", "Setor": "Setor B", "Maquina_TAG": "L-53", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-17", "Setor": "Setor Látex", "Maquina_TAG": "B-87", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-24", "Setor": "Setor Látex", "Maquina_TAG": "B-84", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-05", "Setor": "Setor B", "Maquina_TAG": "L-41", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-12", "Setor": "Setor B", "Maquina_TAG": "L-44", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-19", "Setor": "Setor B", "Maquina_TAG": "L-45", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-]
-novas_paradas = []
-for reg in registros_prev:
-    mask = (df_paradas["Data"] == reg["Data"]) & (df_paradas["Maquina_TAG"] == reg["Maquina_TAG"]) & (df_paradas["Tipo_Manutencao"] == "Preventiva")
-    if not mask.any(): novas_paradas.append(reg)
-if novas_paradas:
-    df_paradas = pd.concat([df_paradas, pd.DataFrame(novas_paradas)], ignore_index=True)
-    df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
-    st.cache_data.clear()
-
 def invalidar_cache():
     st.cache_data.clear()
 
@@ -306,71 +275,142 @@ for maq_tag in todas_maquinas_totais:
 st.markdown(
     """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-        html, body, [class*="css"]  { font-family: 'Inter', sans-serif !important; }
-        .block-container { padding: 3rem 2rem 1.5rem 2rem !important; max-width: 1400px; }
-        [data-testid="stSidebar"] { background-color: #0b1120 !important; border-right: 1px solid #1e293b !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        /* Base / Tipografia */
+        html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+        .block-container { padding: 3rem 2rem 1.5rem 2rem !important; max-width: 1440px; }
+        
+        /* Headers Superiores */
+        h2 { letter-spacing: -0.5px !important; color: #0f172a !important; }
+        
+        /* Elegant Sidebar - Dark Glass Theme */
+        [data-testid="stSidebar"] { 
+            background: linear-gradient(180deg, #0b1120 0%, #0f172a 100%) !important; 
+            border-right: none !important; 
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1); 
+        }
         [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: #f8fafc; }
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"] {
-            background-color: transparent !important; color: #94a3b8 !important; border: 1px solid transparent !important;
-            border-radius: 8px !important; font-weight: 600 !important; height: 42px !important; justify-content: flex-start; padding-left: 14px; transition: all 0.2s;
+        [data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.08) !important; margin: 20px 0 !important; }
+        
+        [data-testid="stSidebar"] .stButton > button {
+            border-radius: 12px !important; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            border: 1px solid rgba(255,255,255,0.05) !important;
+            height: 44px !important; justify-content: flex-start; padding-left: 16px;
         }
-        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover { background-color: #1e293b !important; color: #f8fafc !important; }
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"] { 
+            background-color: rgba(255,255,255,0.03) !important; color: #94a3b8 !important; font-weight: 600 !important;
+        }
+        [data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover { 
+            background-color: rgba(255,255,255,0.08) !important; color: #f8fafc !important; transform: translateX(4px);
+            border-color: rgba(255,255,255,0.1) !important;
+        }
         [data-testid="stSidebar"] .stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; color: #ffffff !important;
-            border: 1px solid transparent !important; border-radius: 8px !important; font-weight: 800 !important; height: 42px !important; justify-content: flex-start; padding-left: 14px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; color: #ffffff !important;
+            font-weight: 800 !important; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important; border: none !important;
         }
+
+        /* Botões Área Principal (Gerais) */
         div.stButton > button {
-            background: #ffffff !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important;
-            padding: 0px 4px !important; font-size: 0.85rem !important; font-weight: 800 !important;
-            height: 32px !important; min-height: 32px !important; line-height: 28px !important;
-            border-radius: 6px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important; transition: all 0.15s ease-in-out !important;
+            border-radius: 8px !important; font-weight: 700 !important;
+            transition: all 0.2s ease-in-out !important;
         }
-        div.stButton > button:hover { border-color: #3b82f6 !important; background: #f8fafc !important; color: #1d4ed8 !important; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
-        div[data-testid="column"] { padding: 0 6px !important; margin: 0px !important; }
-        div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 4px !important; }
+        div.stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
+        
+        /* Ajuste do layout de colunas */
+        div[data-testid="column"] { padding: 0 8px !important; }
+        div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 6px !important; }
+        
+        /* Altair escondendo actions */
         div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
         
+        /* KPI Cards Premium (Estilo Vercel/Stripe) */
         .card-kpi-bonito {
-            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px;
-            display: flex; align-items: center; justify-content: space-between; height: 72px; box-sizing: border-box;
-            position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #ffffff; border: none; border-radius: 16px; padding: 18px 22px;
+            display: flex; align-items: center; justify-content: space-between; height: 90px; box-sizing: border-box;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 4px solid #e2e8f0;
         }
-        .card-kpi-bonito:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); }
-        .card-kpi-bonito::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
-        .card-kpi-bonito.c-total::after { background: #3b82f6; }
-        .card-kpi-bonito.c-ok::after { background: #10b981; }
-        .card-kpi-bonito.c-warn::after { background: #f59e0b; }
-        .card-kpi-bonito.c-crit::after { background: #ef4444; }
-        .kpi-val { font-size: 1.45rem; font-weight: 900; line-height: 1; font-family: 'Inter', sans-serif; color: #0f172a;}
-        .kpi-lbl { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        .card-kpi-bonito:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04); 
+        }
+        .card-kpi-bonito.c-total { border-bottom-color: #3b82f6; }
+        .card-kpi-bonito.c-ok { border-bottom-color: #10b981; }
+        .card-kpi-bonito.c-warn { border-bottom-color: #f59e0b; }
+        .card-kpi-bonito.c-crit { border-bottom-color: #ef4444; }
         
+        .kpi-val { font-size: 1.8rem; font-weight: 900; line-height: 1; color: #0f172a; letter-spacing: -0.5px;}
+        .kpi-lbl { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+        .kpi-icon { font-size: 2.2rem; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.06)); }
+        
+        /* Alertas e Badges */
         .alerta-manutencao {
-            background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
-            padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
+            background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 10px;
+            padding: 10px 16px; margin: 8px 0 16px 0; font-size: 0.9rem; font-weight: 600; color: #991b1b; 
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
         }
-        .chip-critico { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.78rem; }
+        .chip-critico { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; }
+        
         .hud-detalhe {
-            background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 16px; margin: 4px 0 12px 0;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-left: 6px solid #64748b; transition: all 0.2s;
+            background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin: 4px 0 16px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 6px solid #64748b; transition: all 0.2s;
         }
         .hud-detalhe.status-verde { border-left-color: #10b981; }
         .hud-detalhe.status-amarelo { border-left-color: #f59e0b; }
         .hud-detalhe.status-vermelho { border-left-color: #ef4444; }
         .hud-detalhe.status-cinza { border-left-color: #94a3b8; }
-        .tag-pill { background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; color: #334155; }
+        
+        .tag-pill { background: #ffffff; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         .badge-status { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;}
         .badge-verde { background: #d1fae5; color: #065f46; }
         .badge-amarelo { background: #fef3c7; color: #92400e; }
         .badge-vermelho { background: #fee2e2; color: #991b1b; }
-        .badge-cinza { background: #e2e8f0; color: #475569; }
-        .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
-        .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .badge-cinza { background: #f1f5f9; color: #475569; }
+        
+        .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);}
+        .dot-legenda { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        
         .header-setor-dash {
-            font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
-            padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
+            font-size: 1rem; font-weight: 800; color: #0f172a; border-left: 4px solid #3b82f6;
+            padding-left: 12px; margin: 20px 0 10px 0; display: flex; align-items: center; justify-content: space-between;
         }
         
+        /* Container geral do Streamlit polido */
+        div[data-testid="stVerticalBlock"] > div[style*="border"] {
+            border-radius: 12px !important;
+            border: 1px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        }
+        
+        /* Tabs Estilizadas */
+        button[data-baseweb="tab"] { font-weight: 700 !important; font-size: 0.95rem !important; }
+
+        /* Grade de máquinas no Dashboard Painel Maquinas */
+        div[class*="st-key-btn_pmaq_"] button {
+            height: 48px !important;
+            font-size: 0.95rem !important;
+            font-weight: 800 !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
+            border: 1px solid #e2e8f0 !important;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+            color: #1e293b !important;
+        }
+        div[class*="st-key-btn_pmaq_"] button[kind="primary"] {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+            border: 1px solid #93c5fd !important; 
+            color: #1d4ed8 !important;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1) !important;
+        }
+        div[class*="st-key-btn_pmaq_"] button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.06) !important;
+            border-color: #cbd5e1 !important;
+        }
+
         /* CSS OCULTO PARA IMPRESSÃO (CTRL+P) DE TELA LIMPA */
         @media print {
             [data-testid="stSidebar"] { display: none !important; }
@@ -391,17 +431,17 @@ st.markdown(
 with st.sidebar:
     st.markdown("<h2 style='font-size:1.7rem; font-weight:900; margin:0 0 18px 0; color:#ffffff;'>⚙️ Portal PCM</h2>", unsafe_allow_html=True)
     
-    st.markdown("<p style='font-size:0.75rem; font-weight:800; color:#64748b; margin:8px 0 4px 0; letter-spacing:1px;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.75rem; font-weight:800; color:#94a3b8; margin:8px 0 4px 0; letter-spacing:1px;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
     st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
     st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
     st.button("🏭 Painel dos Setores", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Setores" else "secondary", on_click=navegar, args=("Painel Setores",))
     st.button("⚙️ Visão por Máquina", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Maquinas" else "secondary", on_click=navegar, args=("Painel Maquinas",))
 
-    st.markdown("<hr style='border-color:#1e293b; margin:15px 0;'>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size:0.75rem; font-weight:800; color:#64748b; margin:8px 0 4px 0; letter-spacing:1px;'>SISTEMA E DADOS</p>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.75rem; font-weight:800; color:#94a3b8; margin:8px 0 4px 0; letter-spacing:1px;'>SISTEMA E DADOS</p>", unsafe_allow_html=True)
     st.button("🗄️ Banco de Dados", key="btn_nav_banco_dados", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Banco de Dados" else "secondary", on_click=navegar, args=("Banco de Dados",))
 
-    st.markdown("<br><div style='text-align:center; font-size:0.7rem; color:#475569; font-weight:600;'>Portal PCM • Versão 1.0 Pro</div>", unsafe_allow_html=True)
+    st.markdown("<br><div style='text-align:center; font-size:0.75rem; color:#475569; font-weight:600;'>Portal PCM • Versão 1.0 Pro</div>", unsafe_allow_html=True)
 
 # ==========================================
 # ÁREA PRINCIPAL
@@ -423,16 +463,16 @@ if tela == "Painel Correias":
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#10b981;'></span> Nova (&le; 1a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#f59e0b;'></span> Meia (1-1.5a)</span>
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#ef4444;'></span> Urgente (&gt; 1.5a)</span>
-                <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> S/ Dados</span>
+                <span class='pill-legenda'><span class='dot-legenda' style='background:#cbd5e1;'></span> S/ Dados</span>
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4)
-    k1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Correias</div><div class='kpi-val'>{len(lista_correias_todas)}</div></div><div style='font-size:1.8rem;'>📦</div></div>", unsafe_allow_html=True)
-    k2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Vida Útil OK</div><div class='kpi-val' style='color:#059669;'>{len(lista_correias_novas)}</div></div><div style='font-size:1.8rem;'>🟢</div></div>", unsafe_allow_html=True)
-    k3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Meia-Vida Ativa</div><div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div></div><div style='font-size:1.8rem;'>🟡</div></div>", unsafe_allow_html=True)
-    k4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Críticas / Urgentes</div><div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div></div><div style='font-size:1.8rem;'>🔴</div></div>", unsafe_allow_html=True)
+    k1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Correias</div><div class='kpi-val'>{len(lista_correias_todas)}</div></div><div class='kpi-icon'>📦</div></div>", unsafe_allow_html=True)
+    k2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Vida Útil OK</div><div class='kpi-val' style='color:#059669;'>{len(lista_correias_novas)}</div></div><div class='kpi-icon'>🟢</div></div>", unsafe_allow_html=True)
+    k3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Meia-Vida Ativa</div><div class='kpi-val' style='color:#d97706;'>{len(lista_correias_meia)}</div></div><div class='kpi-icon'>🟡</div></div>", unsafe_allow_html=True)
+    k4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Críticas / Urgentes</div><div class='kpi-val' style='color:#dc2626;'>{len(lista_correias_criticas)}</div></div><div class='kpi-icon'>🔴</div></div>", unsafe_allow_html=True)
 
     if lista_correias_criticas:
         chips = " ".join([f"<span class='chip-critico'>🏷️ {k}: <b>{v} un.</b></span>" for k, v in pd.DataFrame(lista_correias_criticas)["modelo"].value_counts().items()])
@@ -472,7 +512,7 @@ if tela == "Painel Correias":
             maquinas_do_setor = filtradas
         if not maquinas_do_setor: continue
 
-        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.8rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
         cols_g = 14
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
@@ -550,11 +590,11 @@ elif tela == "Painel Fusos":
             lbl_projecao = f"Projeção ({MAPA_MES_ABREV[nome_mes_atual]})"
 
         kf1, kf2, kf3, kf4, kf5 = st.columns(5)
-        kf1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Fábrica</div><div class='kpi-val'>{tot_fabrica}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-        kf2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_fabrica}</div></div><div style='font-size:1.8rem;'>📈</div></div>", unsafe_allow_html=True)
-        kf3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Setor Crítico ({ult_mes_fab})</div><div class='kpi-val' style='color:#d97706; font-size:1.2rem;'>{setor_ofensor} ({qtd_setor_ofensor})</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
-        kf4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Quebras no Mês ({ult_mes_fab})</div><div class='kpi-val' style='color:#dc2626;'>{tot_ult_mes}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
-        kf5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes}</div></div><div style='font-size:1.8rem;'>🔮</div></div>", unsafe_allow_html=True)
+        kf1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Fábrica</div><div class='kpi-val'>{tot_fabrica}</div></div><div class='kpi-icon'>🔩</div></div>", unsafe_allow_html=True)
+        kf2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_fabrica}</div></div><div class='kpi-icon'>📈</div></div>", unsafe_allow_html=True)
+        kf3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Setor Crítico ({ult_mes_fab})</div><div class='kpi-val' style='color:#d97706; font-size:1.2rem;'>{setor_ofensor} ({qtd_setor_ofensor})</div></div><div class='kpi-icon'>🏭</div></div>", unsafe_allow_html=True)
+        kf4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Quebras no Mês ({ult_mes_fab})</div><div class='kpi-val' style='color:#dc2626;'>{tot_ult_mes}</div></div><div class='kpi-icon'>🚨</div></div>", unsafe_allow_html=True)
+        kf5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes}</div></div><div class='kpi-icon'>🔮</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -572,20 +612,20 @@ elif tela == "Painel Fusos":
         with cg1:
             with st.container(border=True):
                 c_a, t_a = gerar_chart_setor("Setor A", cores_map["Setor A"])
-                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1rem; margin-bottom:10px;'><span>🏭 Setor A</span><span style='color:{cores_map['Setor A']}'>Total: {t_a} fusos</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1.05rem; margin-bottom:10px; color:#0f172a;'><span>🏭 Setor A</span><span style='color:{cores_map['Setor A']}'>Total: {t_a} fusos</span></div>", unsafe_allow_html=True)
                 st.altair_chart(c_a, use_container_width=True)
             with st.container(border=True):
                 c_lat, t_lat = gerar_chart_setor("Setor Látex", cores_map["Setor Látex"])
-                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1rem; margin-bottom:10px;'><span>🌿 Setor Látex</span><span style='color:{cores_map['Setor Látex']}'>Total: {t_lat} fusos</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1.05rem; margin-bottom:10px; color:#0f172a;'><span>🌿 Setor Látex</span><span style='color:{cores_map['Setor Látex']}'>Total: {t_lat} fusos</span></div>", unsafe_allow_html=True)
                 st.altair_chart(c_lat, use_container_width=True)
         with cg2:
             with st.container(border=True):
                 c_b, t_b = gerar_chart_setor("Setor B", cores_map["Setor B"])
-                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1rem; margin-bottom:10px;'><span>🏭 Setor B</span><span style='color:{cores_map['Setor B']}'>Total: {t_b} fusos</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1.05rem; margin-bottom:10px; color:#0f172a;'><span>🏭 Setor B</span><span style='color:{cores_map['Setor B']}'>Total: {t_b} fusos</span></div>", unsafe_allow_html=True)
                 st.altair_chart(c_b, use_container_width=True)
             with st.container(border=True):
                 c_men, t_men = gerar_chart_setor("Setor Menegatto", cores_map["Setor Menegatto"])
-                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1rem; margin-bottom:10px;'><span>⚙️ Setor Menegatto</span><span style='color:{cores_map['Setor Menegatto']}'>Total: {t_men} fusos</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='display:flex; justify-content:space-between; font-weight:800; font-size:1.05rem; margin-bottom:10px; color:#0f172a;'><span>⚙️ Setor Menegatto</span><span style='color:{cores_map['Setor Menegatto']}'>Total: {t_men} fusos</span></div>", unsafe_allow_html=True)
                 st.altair_chart(c_men, use_container_width=True)
 
     else:
@@ -630,18 +670,18 @@ elif tela == "Painel Fusos":
             lbl_projecao_s = f"Projeção ({MAPA_MES_ABREV[nome_mes_atual]})"
 
         ks1, ks2, ks3, ks4, ks5 = st.columns(5)
-        ks1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Quebras ({s_ativo})</div><div class='kpi-val'>{tot_s}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-        ks2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_s}</div></div><div style='font-size:1.8rem;'>📅</div></div>", unsafe_allow_html=True)
-        ks3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Tx Falha/Máq ({ult_mes_s})</div><div class='kpi-val' style='color:#d97706;'>{quebras_por_maq}</div></div><div style='font-size:1.8rem;'>⚙️</div></div>", unsafe_allow_html=True)
-        ks4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Maior Ofensor ({ult_mes_s})</div><div class='kpi-val' style='color:#dc2626; font-size:1.2rem;'>{top_maq_s} ({qtd_top_s})</div></div><div style='font-size:1.8rem;'>⚠️</div></div>", unsafe_allow_html=True)
-        ks5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao_s}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes_s}</div></div><div style='font-size:1.8rem;'>🔮</div></div>", unsafe_allow_html=True)
+        ks1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Quebras ({s_ativo})</div><div class='kpi-val'>{tot_s}</div></div><div class='kpi-icon'>🔩</div></div>", unsafe_allow_html=True)
+        ks2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_s}</div></div><div class='kpi-icon'>📅</div></div>", unsafe_allow_html=True)
+        ks3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Tx Falha/Máq ({ult_mes_s})</div><div class='kpi-val' style='color:#d97706;'>{quebras_por_maq}</div></div><div class='kpi-icon'>⚙️</div></div>", unsafe_allow_html=True)
+        ks4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Maior Ofensor ({ult_mes_s})</div><div class='kpi-val' style='color:#dc2626; font-size:1.2rem;'>{top_maq_s} ({qtd_top_s})</div></div><div class='kpi-icon'>⚠️</div></div>", unsafe_allow_html=True)
+        ks5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao_s}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes_s}</div></div><div class='kpi-icon'>🔮</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
         c_evol, c_rosca = st.columns([1.5, 1.5])
         with c_evol:
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução de Quebras ({ano_f})</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>📊 Evolução de Quebras ({ano_f})</div>", unsafe_allow_html=True)
                 df_evol = df_sa.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
                 df_evol["Mes_Abrev"] = df_evol["Mes"].map(MAPA_MES_ABREV)
                 barras_s = alt.Chart(df_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None), y=alt.Y("Quantidade_Quebras:Q", title="Quebras"), tooltip=["Mes", "Quantidade_Quebras"])
@@ -651,7 +691,7 @@ elif tela == "Painel Fusos":
         with c_rosca:
             with st.container(border=True):
                 cr_col1, cr_col2 = st.columns([2.0, 1.5])
-                with cr_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
+                with cr_col1: st.markdown(f"<div style='font-size:1.05rem; font-weight:800; color:#0f172a;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
                 with cr_col2: mes_filtro_rosca_fuso = st.selectbox("Mês:", ["Todos os Meses"] + LISTA_MESES_PUROS, key=f"sel_mes_rosca_fuso_{s_ativo}", label_visibility="collapsed")
 
                 df_sa_rosca = df_sa.copy()
@@ -673,7 +713,7 @@ elif tela == "Painel Fusos":
 
         with st.container(border=True):
             ch_col1, ch_col2 = st.columns([2.5, 1.5])
-            with ch_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔥 Mapa de Calor Operacional ({s_ativo})</div>", unsafe_allow_html=True)
+            with ch_col1: st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🔥 Mapa de Calor Operacional ({s_ativo})</div>", unsafe_allow_html=True)
             with ch_col2:
                 tipos_disp = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else OPCOES_TIPO_FUSO
                 fuso_filtro_mapa = st.selectbox("Filtrar Fuso no Mapa:", ["Todos os Tipos"] + tipos_disp, key=f"sel_fuso_mapa_{s_ativo}")
@@ -684,6 +724,7 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
+            # GRÁFICO DE CALOR MANTIDO RIGOROSAMENTE INTACTO!
             rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
@@ -779,17 +820,17 @@ elif tela == "Painel Setores":
         tooltip_correias = "Nenhuma correia crítica neste setor."
 
     cs1, cs2, cs3, cs4 = st.columns(4)
-    cs1.markdown(f"<div class='card-kpi-bonito c-ok' title='Eficiência calculada com base no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Eficiência Mecânica</div><div class='kpi-val' style='color:#059669;'>{perc_efi:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-    cs2.markdown(f"<div class='card-kpi-bonito c-total' title='Cobertura preventiva no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Cobertura Preventiva</div><div class='kpi-val' style='color:#3b82f6;'>{perc_prev:.1f}%</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
-    cs3.markdown(f"<div class='card-kpi-bonito c-warn' title='Total registrado em: {mes_filtro_painel}'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-    cs4.markdown(f"<div class='card-kpi-bonito c-crit' title='{tooltip_correias}'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
+    cs1.markdown(f"<div class='card-kpi-bonito c-ok' title='Eficiência calculada com base no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Eficiência Mecânica</div><div class='kpi-val' style='color:#059669;'>{perc_efi:.1f}%</div></div><div class='kpi-icon'>⏱️</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-total' title='Cobertura preventiva no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Cobertura Preventiva</div><div class='kpi-val' style='color:#3b82f6;'>{perc_prev:.1f}%</div></div><div class='kpi-icon'>🛠️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn' title='Total registrado em: {mes_filtro_painel}'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div class='kpi-icon'>🔩</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit' title='{tooltip_correias}'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div class='kpi-icon'>🚨</div></div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
     if setor_selecionado_exec == "Todos os Setores":
         with st.container(border=True):
             if mes_filtro_painel == "Acumulado do Ano":
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
                 df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
                 df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
                 df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
@@ -806,7 +847,7 @@ elif tela == "Painel Setores":
                 )
                 st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
             else:
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
                 df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
                 
                 num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
@@ -835,7 +876,7 @@ elif tela == "Painel Setores":
             st.markdown("""
                 <style>
                 .card-efi-setor {
-                    background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease-in-out;
+                    background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: all 0.3s ease-in-out;
                 }
                 .card-efi-setor:hover {
                     transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: #cbd5e1;
@@ -872,8 +913,8 @@ elif tela == "Painel Setores":
                                 <span style="font-size:0.85rem; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">{s_nome}</span>
                                 <span>{icone_status}</span>
                             </div>
-                            <div style="font-size:2rem; font-weight:900; color:#0f172a; margin-bottom:12px; line-height:1;">
-                                {efi_s:.1f}<span style="font-size:1.2rem; color:#64748b;">%</span>
+                            <div style="font-size:2rem; font-weight:900; color:#0f172a; margin-bottom:12px; line-height:1; letter-spacing:-0.5px;">
+                                {efi_s:.1f}<span style="font-size:1.2rem; color:#64748b; font-weight:700;">%</span>
                             </div>
                             <div style="width:100%; background-color:#e2e8f0; border-radius:8px; height:8px; overflow:hidden; margin-bottom:8px;">
                                 <div style="width:{efi_s}%; background-color:{cor_borda}; height:100%; border-radius:8px; transition: width 1s ease-in-out;"></div>
@@ -890,7 +931,7 @@ elif tela == "Painel Setores":
         with c_fuso_evol:
             with st.container(border=True):
                 if mes_filtro_painel == "Acumulado do Ano":
-                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
                     df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
                     df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
                     df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
@@ -907,7 +948,7 @@ elif tela == "Painel Setores":
                     )
                     st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
                 else:
-                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
                     df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
                     
                     num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
@@ -935,7 +976,7 @@ elif tela == "Painel Setores":
         
         with c_top_efi:
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:15px;'>📉 Top 5 - Piores Eficiências</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:15px; color:#0f172a;'>📉 Top 5 - Piores Eficiências</div>", unsafe_allow_html=True)
                 
                 df_paradas_maq = df_paradas_filtro.groupby('Maquina_TAG')['Tempo_Parado_Horas'].sum().to_dict()
                 efi_list = []
@@ -954,8 +995,8 @@ elif tela == "Painel Setores":
                         hp_t = row['Horas_Paradas']
                         cor_barra = "#ef4444" if efi_t < 90 else ("#f59e0b" if efi_t < 98 else "#10b981")
                         st.markdown(f"""
-                            <div style="margin-bottom:14px;">
-                                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; color:#1e293b; margin-bottom:4px;">
+                            <div style="margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid #f1f5f9;">
+                                <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:800; color:#1e293b; margin-bottom:6px;">
                                     <span>⚙️ {maq_t} <span style="font-size:0.75rem; color:#64748b; font-weight:600;">({hp_t:.1f}h)</span></span>
                                     <span>{efi_t:.1f}%</span>
                                 </div>
@@ -990,8 +1031,8 @@ elif tela == "Painel Setores":
                     c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
 
                     st.markdown(f"""
-                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; letter-spacing:-0.5px;">
                                 🛠️ {item['nome']}
                             </div>
                             <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
@@ -1023,7 +1064,7 @@ elif tela == "Painel Maquinas":
     c_m_t, c_m_prt = st.columns([85, 15])
     with c_m_t:
         st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
-        st.caption("Consulte o histórico detalhado, manutenções, pendências e quebras de fusos por TAG.")
+        st.caption("Consulte o histórico detalhado, dados de correias, manutenções corretivas, pendências e quebras de fusos por TAG.")
     with c_m_prt:
         modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_maq")
         if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
@@ -1034,12 +1075,11 @@ elif tela == "Painel Maquinas":
 
     maqs_disponiveis = obter_maquinas_setor(setor_selecionado_maq, df_correias, df_fusos)
 
-    # Se a máquina clicada não pertencer mais ao setor filtrado, limpamos a seleção
     if st.session_state.maq_clicada_painel and st.session_state.maq_clicada_painel not in maqs_disponiveis:
         st.session_state.maq_clicada_painel = None
 
     if maqs_disponiveis:
-        # CÁLCULO DE EFICIÊNCIA PRÉVIO PARA A GRADE
+        # PRÉ-CÁLCULO DE EFICIÊNCIA PARA A GRADE (Bolinhas)
         ano_ref_grid = date.today().year
         mes_ref_num_grid = date.today().month
         dia_ref_grid = date.today().day
@@ -1065,35 +1105,16 @@ elif tela == "Painel Maquinas":
             hp_m = df_par_grid[df_par_grid['Maquina_TAG'] == m]['Tempo_Parado_Horas'].sum()
             efi_por_maq[m] = max(0.0, ((hd_total_grid - hp_m) / hd_total_grid) * 100) if hd_total_grid > 0 else 0.0
 
-        # CSS CUSTOMIZADO PARA DEIXAR OS BOTÕES DE MÁQUINA MAIORES E MAIS BONITOS
-        st.markdown("""
-            <style>
-            div[class*="st-key-btn_pmaq_"] button {
-                height: 48px !important;
-                font-size: 1rem !important;
-                font-weight: 800 !important;
-                border-radius: 8px !important;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.04) !important;
-                border: 1px solid #cbd5e1 !important;
-            }
-            div[class*="st-key-btn_pmaq_"] button:hover {
-                transform: translateY(-2px) !important;
-                box-shadow: 0 6px 12px rgba(0,0,0,0.08) !important;
-                border-color: #3b82f6 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
         st.markdown(f"""
-            <div class='header-setor-dash' style='margin-bottom: 15px;'>
+            <div class='header-setor-dash' style='margin-bottom: 20px;'>
                 <span>🏭 {setor_selecionado_maq} — Escolha uma máquina</span> 
-                <span style='font-size:0.8rem; color:#64748b; font-weight:700;'>
+                <span style='font-size:0.85rem; color:#64748b; font-weight:700; background:#f1f5f9; padding:4px 12px; border-radius:20px;'>
                     🔴 Eficiência &lt; 90% &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 90-95% &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 &gt; 95%
                 </span>
             </div>
         """, unsafe_allow_html=True)
         
-        # Grade de botões das máquinas (Reduzido para 8 colunas para os botões ficarem MAIORES)
+        # Grade de botões (8 colunas para ficarem MAIORES e mais bonitos)
         cols_g = 8
         for chunk in [maqs_disponiveis[i:i + cols_g] for i in range(0, len(maqs_disponiveis), cols_g)]:
             cols = st.columns(cols_g)
@@ -1116,17 +1137,17 @@ elif tela == "Painel Maquinas":
         tag_selecionada = st.session_state.maq_clicada_painel
 
         if tag_selecionada:
-            st.markdown("<hr style='border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='border: 0; border-top: 1px dashed #cbd5e1; margin: 25px 0;'>", unsafe_allow_html=True)
             
             c_header, c_close = st.columns([85, 15])
             with c_header:
-                st.markdown(f"<h3 style='margin:0; font-weight:900; color:#0f172a;'>Prontuário da Máquina: {tag_selecionada}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='margin:0; font-weight:900; color:#0f172a; font-size:1.6rem; letter-spacing:-0.5px;'>Prontuário da Máquina: {tag_selecionada}</h3>", unsafe_allow_html=True)
             with c_close:
-                if st.button("✖ Fechar", key="btn_close_maq", use_container_width=True):
+                if st.button("✖ Fechar Prontuário", key="btn_close_maq", use_container_width=True):
                     st.session_state.maq_clicada_painel = None
                     st.rerun()
 
-            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
             info_cor_maq = dados_maquinas.get(tag_selecionada, {})
             
@@ -1184,31 +1205,31 @@ elif tela == "Painel Maquinas":
             cm1, cm2, cm3, cm4 = st.columns(4)
             lbl_efi = f"Eficiência ({MAPA_MES_ABREV[mes_filtro_maq]})" if mes_filtro_maq != "Acumulado do Ano" else "Eficiência (Ano)"
             
-            cm1.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>{lbl_efi}</div><div class='kpi-val' style='color:#059669;'>{efi_maq_perc:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-            cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correia: {modelos_str}</div><div class='kpi-val' style='font-size:1.1rem;'>{dot_cor} {condicao_cor}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-            cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>{lbl_horas}</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>🛑</div></div>", unsafe_allow_html=True)
-            cm4.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Última Preventiva</div><div class='kpi-val' style='font-size:1.1rem; color:#3b82f6;'>{str_ultima_prev}</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
+            cm1.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>{lbl_efi}</div><div class='kpi-val' style='color:#059669;'>{efi_maq_perc:.1f}%</div></div><div class='kpi-icon'>⏱️</div></div>", unsafe_allow_html=True)
+            cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correia: {modelos_str}</div><div class='kpi-val' style='font-size:1.1rem;'>{dot_cor} {condicao_cor}</div></div><div class='kpi-icon'>🔄</div></div>", unsafe_allow_html=True)
+            cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>{lbl_horas}</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div class='kpi-icon'>🛑</div></div>", unsafe_allow_html=True)
+            cm4.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Última Preventiva</div><div class='kpi-val' style='font-size:1.1rem; color:#3b82f6;'>{str_ultima_prev}</div></div><div class='kpi-icon'>🛠️</div></div>", unsafe_allow_html=True)
 
-            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
             sub_pend_maq = df_pendencias[(df_pendencias["Maquina_TAG"] == tag_selecionada) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")]
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
                 if not sub_pend_maq.empty: st.dataframe(sub_pend_maq[["Nome_Servico", "Descricao_Pendencia", "Prioridade", "Status"]], use_container_width=True, hide_index=True)
-                else: st.info("Nenhuma manutenção pendente cadastrada.")
+                else: st.info("Nenhuma manutenção pendente cadastrada para esta máquina.")
 
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
             with st.container(border=True):
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🛠️ Corretivas Executadas ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>🛠️ Corretivas Executadas ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
                 if not df_paradas_filtro.empty: st.dataframe(df_paradas_filtro[["Data", "Tipo_Manutencao", "Descricao_Servico", "Tempo_Parado_Horas"]].sort_values("Data", ascending=False), use_container_width=True, hide_index=True)
-                else: st.info("Nenhuma manutenção corretiva registrada no período.")
+                else: st.info("Nenhuma manutenção corretiva registrada no período selecionado.")
 
             st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
             with st.container(border=True):
                 if mes_filtro_maq == "Acumulado do Ano":
-                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução de Quebras de Fusos — {tag_selecionada}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>📊 Evolução de Quebras de Fusos — {tag_selecionada}</div>", unsafe_allow_html=True)
                     if not df_fusos_filtro.empty:
                         df_f_maq = df_fusos_filtro.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
                         df_f_maq["Mes_Abrev"] = df_f_maq["Mes"].map(MAPA_MES_ABREV)
@@ -1218,7 +1239,7 @@ elif tela == "Painel Maquinas":
                     else:
                         st.info("Sem registros de quebras de fusos para esta máquina no ano.")
                 else:
-                    st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução Diária de Fusos ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:1.05rem; font-weight:800; margin-bottom:10px; color:#0f172a;'>📊 Evolução Diária de Fusos ({mes_filtro_maq}) — {tag_selecionada}</div>", unsafe_allow_html=True)
                     if not df_fusos_filtro.empty:
                         num_mes_sel = LISTA_MESES_PUROS.index(mes_filtro_maq) + 1
                         lista_dias = list(range(1, calendar.monthrange(ano_ref, num_mes_sel)[1] + 1))
@@ -1254,7 +1275,7 @@ elif tela == "Banco de Dados":
 
     with tab_fusos_db:
         st.markdown("### 📅 Gestão de Fusos Anual Consolidada")
-        c_ano_db, c_set_db = st.columns([15, 25])
+        c_ano_db, c_set_db = st.columns([1.5, 2.5])
         with c_ano_db: ano_db_fuso = st.selectbox("Ano de Trabalho:", [2024, 2025, 2026, 2027], index=2, key="sel_ano_db_fuso")
         with c_set_db: setor_db_fuso = st.selectbox("Setor:", list(DICIONARIO_SETORES.keys()), key="sel_setor_db_fuso")
 
@@ -1279,7 +1300,7 @@ elif tela == "Banco de Dados":
         buffer_excel_ano.seek(0)
 
         st.markdown("---")
-        col_down_ano, col_up_ano = st.columns([15, 25])
+        col_down_ano, col_up_ano = st.columns([1.5, 2.5])
 
         with col_down_ano:
             st.markdown("#### 📥 Descarregar Livro")
@@ -1324,7 +1345,7 @@ elif tela == "Banco de Dados":
 
     with tab_correias_db:
         st.markdown("### 🔄 Troca de Dados de Correias")
-        col_d_cor, col_u_cor = st.columns([15, 25])
+        col_d_cor, col_u_cor = st.columns([1.5, 2.5])
         with col_d_cor:
             st.markdown("#### 📥 Descarregar Planilha")
             filtro_export_setor = st.selectbox("Exportar Setor:", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), key="sel_export_setor_cor")
@@ -1375,7 +1396,7 @@ elif tela == "Banco de Dados":
 
     with tab_paradas_db:
         st.markdown("### 🛠️ Gestão de Manutenções Corretivas")
-        col_d_par, col_u_par = st.columns([15, 25])
+        col_d_par, col_u_par = st.columns([1.5, 2.5])
         with col_d_par:
             st.markdown("#### 📥 Descarregar Registos")
             filtro_setor_par = st.selectbox("Filtrar Setor:", ["Todos os Setores"] + list(DICIONARIO_SETORES.keys()), key="sel_export_setor_parada")
@@ -1411,7 +1432,7 @@ elif tela == "Banco de Dados":
 
     with tab_pendencias_db:
         st.markdown("### 📋 Gestão de Pendências")
-        col_d_pend, col_u_pend = st.columns([15, 25])
+        col_d_pend, col_u_pend = st.columns([1.5, 2.5])
         with col_d_pend:
             st.markdown("#### 📥 Descarregar Pendências")
             buf_down_pend = io.BytesIO()
@@ -1502,7 +1523,7 @@ elif tela == "Banco de Dados":
 
         st.markdown("---")
         
-        c_f_set, c_f_maq = st.columns([15, 20])
+        c_f_set, c_f_maq = st.columns([1.5, 2.0])
         with c_f_set:
             setores_disponiveis = list(DICIONARIO_SETORES.keys())
             setor_selecionado = st.selectbox("Configurar Setor Operacional:", setores_disponiveis, key="sel_setor_gestao_maq")
@@ -1539,7 +1560,7 @@ elif tela == "Banco de Dados":
             st.markdown(f"#### ⚙️ Parâmetros do Ativo: **{maq_selecionada if maq_selecionada else 'Nenhuma máquina selecionada'}**")
             
             if maq_selecionada:
-                c_fuso, c_qtd_cor = st.columns([15, 20])
+                c_fuso, c_qtd_cor = st.columns([1.5, 2.0])
                 
                 with c_fuso:
                     idx_fuso = OPCOES_TIPO_FUSO.index(fuso_atual) if fuso_atual in OPCOES_TIPO_FUSO else 0
