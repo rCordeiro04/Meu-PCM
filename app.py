@@ -710,13 +710,12 @@ elif tela == "Painel Setores":
                 st.altair_chart((chart_s_cor + txt_s_cor).properties(height=260), use_container_width=True)
 
     # ---------------------------------------------------------
-    # NOVOS GRÁFICOS: EFICIÊNCIA MECÂNICA E COBERTURA PREVENTIVA
+    # Gráficos: Eficiência Mecânica e Cobertura Preventiva
     # ---------------------------------------------------------
     df_paradas_chart = df_paradas.copy()
     df_paradas_chart['Data'] = pd.to_datetime(df_paradas_chart['Data'], errors='coerce')
     df_paradas_alvo = df_paradas_chart[df_paradas_chart['Maquina_TAG'].isin(maquinas_alvo_totais)]
 
-    # 1. Eficiência Mecânica (Ano Atual - YTD)
     dias_ano_atual = (date.today() - date(date.today().year, 1, 1)).days + 1
     if dias_ano_atual < 1: dias_ano_atual = 1
     horas_totais_disponiveis = tot_maqs_sel * 24 * dias_ano_atual
@@ -733,7 +732,6 @@ elif tela == "Painel Setores":
     df_efi["Perc"] = (df_efi["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
     df_efi["Label"] = df_efi["Perc"].astype(str) + "%"
 
-    # 2. Preventivas (Últimos 365 Dias)
     data_limite_prev = pd.Timestamp(date.today() - timedelta(days=365))
     df_prev_1ano = df_paradas_alvo[
         (df_paradas_alvo['Data'] >= data_limite_prev) &
@@ -786,6 +784,56 @@ elif tela == "Painel Setores":
                 st.altair_chart((arc_prev + text_prev).properties(height=300), use_container_width=True)
             else:
                 st.info("Nenhuma máquina cadastrada no contexto atual.")
+
+    # ---------------------------------------------------------
+    # NOVOS GRÁFICOS: EVOLUÇÃO DE FUSOS E CORREIAS NO VERMELHO
+    # ---------------------------------------------------------
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    c_fuso_evol, c_cor_vermelho = st.columns([2.0, 1.5])
+    
+    with c_fuso_evol:
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+            df_fusos_setor = df_fusos[df_fusos["Setor"].isin(setores_alvo_exec)].copy()
+            df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
+            df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
+            
+            barras_setor = alt.Chart(df_f_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
+                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                tooltip=["Mes", "Quantidade_Quebras"]
+            )
+            rotulos_setor = alt.Chart(df_f_evol).mark_text(dy=-8, fontSize=12, fontWeight=800).encode(
+                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV), 
+                y=alt.Y("Quantidade_Quebras:Q"), 
+                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+            )
+            st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
+
+    with c_cor_vermelho:
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🚨 Máquinas com Correias no Vermelho</div>", unsafe_allow_html=True)
+            criticas_setor = [r for r in lista_correias_criticas if r["setor"] in setores_alvo_exec]
+            
+            if criticas_setor:
+                maqs_crit = {}
+                for r in criticas_setor:
+                    if r["tag"] not in maqs_crit: 
+                        maqs_crit[r["tag"]] = []
+                    maqs_crit[r["tag"]].append(r['pos'])
+                
+                st.markdown("<div style='max-height: 280px; overflow-y: auto; padding-right: 4px;'>", unsafe_allow_html=True)
+                for t, pos_list in sorted(maqs_crit.items()):
+                    pos_str = " e ".join(pos_list)
+                    st.markdown(f"""
+                        <div class='alerta-manutencao' style='margin-bottom:8px; padding:8px 12px;'>
+                            ⚙️ <b>{t}</b> <br> 
+                            <span style='font-size:0.75rem; color:#991b1b;'>Trocar: {pos_str}</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.info("✅ Nenhuma máquina com correia crítica neste setor.")
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
