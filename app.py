@@ -341,7 +341,7 @@ with st.sidebar:
     st.markdown("<p style='font-size:0.75rem; font-weight:800; color:#64748b; margin:8px 0 4px 0; letter-spacing:1px;'>PAINÉIS GERENCIAIS</p>", unsafe_allow_html=True)
     st.button("🔩 Painel de Fusos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Fusos" else "secondary", on_click=navegar, args=("Painel Fusos",))
     st.button("🔄 Painel de Correias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Correias" else "secondary", on_click=navegar, args=("Painel Correias",))
-    st.button("🏭 Setores Executivos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Setores" else "secondary", on_click=navegar, args=("Painel Setores",))
+    st.button("🏭 Painel dos Setores", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Setores" else "secondary", on_click=navegar, args=("Painel Setores",))
     st.button("⚙️ Visão por Máquina", use_container_width=True, type="primary" if st.session_state.pagina_atual == "Painel Maquinas" else "secondary", on_click=navegar, args=("Painel Maquinas",))
 
     st.markdown("<hr style='border-color:#1e293b; margin:15px 0;'>", unsafe_allow_html=True)
@@ -442,9 +442,15 @@ elif tela == "Painel Fusos":
     ano_atual_ref = data_hoje_ref.year
     mes_atual_num_ref = data_hoje_ref.month
 
-    if int(ano_f) < ano_atual_ref: div_meses, desc_divisor = 12, "12 meses"
-    elif int(ano_f) == ano_atual_ref: div_meses, desc_divisor = max(1, mes_atual_num_ref), f"Jan a {ORDEM_MESES_ABREV[max(1, mes_atual_num_ref) - 1]}"
-    else: div_meses, desc_divisor = 1, "Previsto"
+    if int(ano_f) < ano_atual_ref: 
+        div_meses = 12 
+        desc_divisor = "12 meses"
+    elif int(ano_f) == ano_atual_ref: 
+        div_meses = max(1, mes_atual_num_ref)
+        desc_divisor = f"Jan a {ORDEM_MESES_ABREV[div_meses - 1]}"
+    else: 
+        div_meses = 1 
+        desc_divisor = "Previsto"
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     b_geral, b_sa, b_sb, b_lat, b_men = st.columns(5)
@@ -459,7 +465,11 @@ elif tela == "Painel Fusos":
     if st.session_state.aba_setor_fuso == "Geral":
         tot_fabrica = int(df_ano_f["Quantidade_Quebras"].sum()) if not df_ano_f.empty else 0
         med_fabrica = round(tot_fabrica / div_meses, 1)
-        ult_mes_fab, tot_ult_mes, setor_ofensor, qtd_setor_ofensor = "Nenhum", 0, "Nenhum", 0
+
+        ult_mes_fab = "Nenhum"
+        tot_ult_mes = 0
+        setor_ofensor = "Nenhum"
+        qtd_setor_ofensor = 0
 
         if not df_ano_f.empty and tot_fabrica > 0:
             df_reais = df_ano_f[df_ano_f["Quantidade_Quebras"] > 0]
@@ -469,14 +479,30 @@ elif tela == "Painel Fusos":
                     ult_mes_fab = m_teste
                     tot_ult_mes = int(sub_m["Quantidade_Quebras"].sum())
                     agrup_s = sub_m.groupby("Setor")["Quantidade_Quebras"].sum().sort_values(ascending=False)
-                    setor_ofensor, qtd_setor_ofensor = agrup_s.index[0], int(agrup_s.iloc[0])
+                    setor_ofensor = agrup_s.index[0]
+                    qtd_setor_ofensor = int(agrup_s.iloc[0])
                     break
 
-        kf1, kf2, kf3, kf4 = st.columns(4)
-        kf1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Fábrica</div><div class='kpi-val'>{tot_fabrica}</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
+        # Nova Lógica de Projeção Mensal para a aba Geral
+        projecao_mes = "-"
+        lbl_projecao = "Projeção Mês"
+        if int(ano_f) == ano_atual_ref:
+            nome_mes_atual = LISTA_MESES_PUROS[mes_atual_num_ref - 1]
+            df_mes_atual = df_ano_f[df_ano_f["Mes"] == nome_mes_atual]
+            quebras_mes_ate_hoje = int(df_mes_atual["Quantidade_Quebras"].sum()) if not df_mes_atual.empty else 0
+            dias_passados = data_hoje_ref.day
+            dias_totais_mes = calendar.monthrange(ano_atual_ref, mes_atual_num_ref)[1]
+
+            if dias_passados > 0:
+                projecao_mes = int(round((quebras_mes_ate_hoje / dias_passados) * dias_totais_mes, 0))
+            lbl_projecao = f"Projeção ({MAPA_MES_ABREV[nome_mes_atual]})"
+
+        kf1, kf2, kf3, kf4, kf5 = st.columns(5)
+        kf1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Total Fábrica</div><div class='kpi-val'>{tot_fabrica}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
         kf2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_fabrica}</div></div><div style='font-size:1.8rem;'>📈</div></div>", unsafe_allow_html=True)
-        kf3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Setor Crítico ({ult_mes_fab})</div><div class='kpi-val' style='color:#d97706; font-size:1.2rem;'>{setor_ofensor} ({qtd_setor_ofensor})</div></div><div style='font-size:1.8rem;'>⚠️</div></div>", unsafe_allow_html=True)
+        kf3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Setor Crítico ({ult_mes_fab})</div><div class='kpi-val' style='color:#d97706; font-size:1.2rem;'>{setor_ofensor} ({qtd_setor_ofensor})</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
         kf4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Quebras no Mês ({ult_mes_fab})</div><div class='kpi-val' style='color:#dc2626;'>{tot_ult_mes}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
+        kf5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes}</div></div><div style='font-size:1.8rem;'>🔮</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -519,7 +545,11 @@ elif tela == "Painel Fusos":
         qtd_maqs_s = len(maqs_setor)
         med_s = round(tot_s / div_meses, 1)
 
-        ult_mes_s, top_maq_s, qtd_top_s, quebras_ult_mes = "Nenhum", "Nenhuma", 0, 0
+        ult_mes_s = "Nenhum"
+        top_maq_s = "Nenhuma"
+        qtd_top_s = 0
+        quebras_ult_mes = 0
+
         if not df_sa.empty and tot_s > 0:
             df_reais_s = df_sa[df_sa["Quantidade_Quebras"] > 0]
             for m_teste in reversed(LISTA_MESES_PUROS):
@@ -528,16 +558,32 @@ elif tela == "Painel Fusos":
                     ult_mes_s = m_teste
                     quebras_ult_mes = int(sub_m["Quantidade_Quebras"].sum())
                     agrup_m = sub_m.groupby("Maquina_TAG")["Quantidade_Quebras"].sum().sort_values(ascending=False)
-                    top_maq_s, qtd_top_s = agrup_m.index[0], int(agrup_m.iloc[0])
+                    top_maq_s = agrup_m.index[0]
+                    qtd_top_s = int(agrup_m.iloc[0])
                     break
 
         quebras_por_maq = round(quebras_ult_mes / qtd_maqs_s, 1) if (qtd_maqs_s > 0 and quebras_ult_mes > 0) else 0.0
 
-        ks1, ks2, ks3, ks4 = st.columns(4)
+        # Nova Lógica de Projeção Mensal Setorial
+        projecao_mes_s = "-"
+        lbl_projecao_s = "Projeção Mês"
+        if int(ano_f) == ano_atual_ref:
+            nome_mes_atual = LISTA_MESES_PUROS[mes_atual_num_ref - 1]
+            df_mes_atual_s = df_sa[df_sa["Mes"] == nome_mes_atual]
+            quebras_mes_ate_hoje_s = int(df_mes_atual_s["Quantidade_Quebras"].sum()) if not df_mes_atual_s.empty else 0
+            dias_passados = data_hoje_ref.day
+            dias_totais_mes = calendar.monthrange(ano_atual_ref, mes_atual_num_ref)[1]
+
+            if dias_passados > 0:
+                projecao_mes_s = int(round((quebras_mes_ate_hoje_s / dias_passados) * dias_totais_mes, 0))
+            lbl_projecao_s = f"Projeção ({MAPA_MES_ABREV[nome_mes_atual]})"
+
+        ks1, ks2, ks3, ks4, ks5 = st.columns(5)
         ks1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Quebras ({s_ativo})</div><div class='kpi-val'>{tot_s}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
         ks2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Média Mensal ({desc_divisor})</div><div class='kpi-val' style='color:#059669;'>{med_s}</div></div><div style='font-size:1.8rem;'>📅</div></div>", unsafe_allow_html=True)
         ks3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Tx Falha/Máq ({ult_mes_s})</div><div class='kpi-val' style='color:#d97706;'>{quebras_por_maq}</div></div><div style='font-size:1.8rem;'>⚙️</div></div>", unsafe_allow_html=True)
         ks4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Maior Ofensor ({ult_mes_s})</div><div class='kpi-val' style='color:#dc2626; font-size:1.2rem;'>{top_maq_s} ({qtd_top_s})</div></div><div style='font-size:1.8rem;'>⚠️</div></div>", unsafe_allow_html=True)
+        ks5.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>{lbl_projecao_s}</div><div class='kpi-val' style='color:#6366f1;'>{projecao_mes_s}</div></div><div style='font-size:1.8rem;'>🔮</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
@@ -587,7 +633,6 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
-            # CORREÇÃO DEFINITIVA: Remoção de rx=3, ry=3 para evitar o SchemaValidationError no Streamlit Cloud
             rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
@@ -1015,7 +1060,7 @@ elif tela == "Banco de Dados":
         st.markdown("---")
         
         # -------------------------------------------------------------
-        # Parâmetros da Máquina (Antiga Gestão Cadastral de Máquinas)
+        # Parâmetros da Máquina
         # -------------------------------------------------------------
         c_f_set, c_f_maq = st.columns([1.5, 2.0])
         with c_f_set:
