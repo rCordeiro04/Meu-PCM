@@ -168,6 +168,10 @@ def carregar_dados():
 
 df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 
+# SAFEGUARD: Força a criação da coluna se ela foi perdida pelo cache do Streamlit
+if "Nome_Servico" not in df_pendencias.columns:
+    df_pendencias["Nome_Servico"] = ""
+
 # ------------------------------------------
 # INJEÇÃO DO TESTE DE SERVIÇOS (AMORTECEDORES FUSOS)
 # ------------------------------------------
@@ -185,6 +189,7 @@ if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
         })
     df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
     df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
+    st.cache_data.clear()
 
 def invalidar_cache():
     st.cache_data.clear()
