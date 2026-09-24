@@ -171,6 +171,9 @@ df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
+# ------------------------------------------
+# INJEÇÃO DO TESTE DE SERVIÇOS (AMORTECEDORES FUSOS)
+# ------------------------------------------
 if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
     test_pend = []
     for m in DICIONARIO_SETORES["Setor A"]:
@@ -338,10 +341,6 @@ st.markdown(
         .badge-cinza { background: #e2e8f0; color: #475569; }
         .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
         .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-        .header-setor-dash {
-            font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
-            padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
-        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -434,7 +433,7 @@ if tela == "Painel Correias":
             maquinas_do_setor = filtradas
         if not maquinas_do_setor: continue
 
-        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:0.9rem; font-weight:800; color:#0f172a; border-left:4px solid #2563eb; padding-left:10px; margin:12px 0 6px 0; display:flex; align-items:center; justify-content:space-between;'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
         cols_g = 14
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
@@ -685,7 +684,6 @@ elif tela == "Painel Setores":
 
     tot_maqs_sel = len(maquinas_alvo_totais)
 
-    # Lógica de Filtro de Tempo Dinâmico
     ano_ref = date.today().year
     mes_ref_num = date.today().month
     dia_ref = date.today().day
@@ -728,7 +726,6 @@ elif tela == "Painel Setores":
     criticas_setor = [r for r in lista_correias_criticas if r["setor"] in setores_alvo_exec]
     tot_crit_sel = len(criticas_setor)
     
-    # Tooltip Avançado com HTML Title
     tooltip_correias = "Máquinas Críticas:&#10;"
     if tot_crit_sel > 0:
         maqs_crit = {}
@@ -748,71 +745,10 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-    df_efi_chart = pd.DataFrame({
-        "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
-        "Horas": [horas_operando_total, horas_paradas_total]
-    })
-    df_efi_chart["Perc"] = (df_efi_chart["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
-    df_efi_chart["Label"] = df_efi_chart["Perc"].astype(str) + "%"
-
-    maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
-    df_prev_chart = pd.DataFrame({
-        "Condição": ["Com Preventiva", "Sem Preventiva"],
-        "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
-    })
-    total_m_prev = maquinas_com_prev + maquinas_sem_prev
-    df_prev_chart["Perc"] = (df_prev_chart["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
-    df_prev_chart["Label"] = df_prev_chart["Perc"].astype(str) + "%"
-
-    c_efi, c_prev = st.columns(2)
-
-    with c_efi:
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>⏱️ Eficiência Mecânica ({mes_filtro_painel})</div>", unsafe_allow_html=True)
-            if total_h > 0:
-                base_efi = alt.Chart(df_efi_chart).encode(
-                    theta=alt.Theta("Horas:Q", stack=True),
-                    color=alt.Color("Status:N", scale=alt.Scale(domain=["Horas Operando", "Horas Paradas (Corretivas)"], range=["#10b981", "#ef4444"]), legend=alt.Legend(title="Status Operacional", orient="bottom")),
-                    tooltip=["Status", "Horas", "Perc"]
-                )
-                arc_efi = base_efi.mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
-                text_efi = base_efi.mark_text(radius=80, fontSize=12, fontWeight=800, fill="#ffffff").encode(
-                    text=alt.condition(alt.datum.Horas > 0, 'Label:N', alt.value(''))
-                )
-                st.altair_chart((arc_efi + text_efi).properties(height=280), use_container_width=True)
-            else:
-                if dias_calculo == 0:
-                    st.info(f"O mês de {mes_filtro_painel} ainda não tem dados operacionais registrados.")
-                else:
-                    st.info("Sem dados de capacidade para o período selecionado.")
-
-    with c_prev:
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>🛠️ Cobertura de Preventivas ({mes_filtro_painel})</div>", unsafe_allow_html=True)
-            if total_m_prev > 0:
-                base_prev = alt.Chart(df_prev_chart).encode(
-                    theta=alt.Theta("Quantidade:Q", stack=True),
-                    color=alt.Color("Condição:N", scale=alt.Scale(domain=["Com Preventiva", "Sem Preventiva"], range=["#3b82f6", "#cbd5e1"]), legend=alt.Legend(title="Cobertura Anual", orient="bottom")),
-                    tooltip=["Condição", "Quantidade", "Perc"]
-                )
-                arc_prev = base_prev.mark_arc(innerRadius=60, outerRadius=110, stroke="#ffffff", strokeWidth=2)
-                text_prev = base_prev.mark_text(radius=85, fontSize=12, fontWeight=800, fill="#ffffff").encode(
-                    text=alt.condition(alt.datum.Quantidade > 0, 'Label:N', alt.value(''))
-                )
-                st.altair_chart((arc_prev + text_prev).properties(height=280), use_container_width=True)
-            else:
-                st.info("Nenhuma máquina cadastrada no contexto atual.")
-
-    # ---------------------------------------------------------
-    # NOVOS GRÁFICOS: EVOLUÇÃO DE FUSOS E CORREIAS NO VERMELHO
-    # ---------------------------------------------------------
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    c_fuso_evol, c_cor_vermelho = st.columns([2.0, 1.5])
-    
-    with c_fuso_evol:
-        with st.container(border=True):
+    with st.container(border=True):
+        if mes_filtro_painel == "Acumulado do Ano":
             st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
-            df_fusos_setor = df_fusos[df_fusos["Setor"].isin(setores_alvo_exec)].copy()
+            df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
             df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
             df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
             
@@ -827,71 +763,76 @@ elif tela == "Painel Setores":
                 text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
             )
             st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
-
-    with c_cor_vermelho:
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🚨 Máquinas com Correias no Vermelho</div>", unsafe_allow_html=True)
-            if criticas_setor:
-                with st.container(height=260, border=False):
-                    for t, pos_list in sorted(maqs_crit.items()):
-                        pos_str = " e ".join(pos_list)
-                        st.markdown(f"""
-                            <div class='alerta-manutencao' style='margin-bottom:8px; padding:8px 12px;'>
-                                ⚙️ <b>{t}</b> <br> 
-                                <span style='font-size:0.75rem; color:#991b1b;'>Trocar: {pos_str}</span>
-                            </div>
-                        """, unsafe_allow_html=True)
-            else:
-                st.info("✅ Nenhuma máquina com correia crítica neste setor.")
-
-    if setor_selecionado_exec != "Todos os Setores":
-        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
-
-            df_pend_setor = df_pendencias[df_pendencias["Setor"] == setor_selecionado_exec].copy()
+        else:
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+            df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
             
-            servicos_ativos = []
-            if not df_pend_setor.empty:
-                df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
-                df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
-                for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
-                    pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                    concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                    if pendentes or concluidas:
-                        servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+            num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+            _, dias_no_mes = calendar.monthrange(ano_ref, num_mes_selecionado)
+            lista_dias = list(range(1, dias_no_mes + 1))
+            
+            df_f_evol_dia = df_fusos_setor_mes.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
+            df_f_evol_dia["Dia_Str"] = df_f_evol_dia["Dia"].astype(str)
+            
+            barras_dia = alt.Chart(df_f_evol_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                tooltip=["Dia", "Quantidade_Quebras"]
+            )
+            rotulos_dia = alt.Chart(df_f_evol_dia).mark_text(dy=-8, fontSize=11, fontWeight=800).encode(
+                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias]), 
+                y=alt.Y("Quantidade_Quebras:Q"), 
+                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+            )
+            st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
 
-            if servicos_ativos:
-                for item in servicos_ativos:
-                    p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
-                    c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
 
-                    st.markdown(f"""
-                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                                🛠️ {item['nome']}
+        df_pend_setor = df_pendencias[df_pendencias["Setor"].isin(setores_alvo_exec)].copy()
+        
+        servicos_ativos = []
+        if not df_pend_setor.empty:
+            df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
+            df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
+            for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
+                pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                if pendentes or concluidas:
+                    servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+
+        if servicos_ativos:
+            for item in servicos_ativos:
+                p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
+                c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+
+                st.markdown(f"""
+                    <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                        <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            🛠️ {item['nome']}
+                        </div>
+                        <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                            {item['desc']}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                    ⏳ Pendentes ({len(item['pendentes'])})
+                                </span> 
+                                <span style="font-weight: 600;">{p_str}</span>
                             </div>
-                            <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
-                                {item['desc']}
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
-                                        ⏳ Pendentes ({len(item['pendentes'])})
-                                    </span> 
-                                    <span style="font-weight: 600;">{p_str}</span>
-                                </div>
-                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                    <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
-                                        ✅ Prontas ({len(item['concluidas'])})
-                                    </span> 
-                                    <span style="font-weight: 600;">{c_str}</span>
-                                </div>
+                            <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                    ✅ Prontas ({len(item['concluidas'])})
+                                </span> 
+                                <span style="font-weight: 600;">{c_str}</span>
                             </div>
                         </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
 
 # ------------------------------------------
 # 4. PAINEL DE MÁQUINAS
