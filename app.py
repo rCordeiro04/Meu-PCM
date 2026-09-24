@@ -587,7 +587,8 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
-            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5, rx=3, ry=3).encode(
+            # CORREÇÃO DEFINITIVA: Remoção de rx=3, ry=3 para evitar o SchemaValidationError no Streamlit Cloud
+            rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
                 color=alt.Color("Quantidade_Quebras:Q", scale=alt.Scale(domain=[0, 3, 8, 15], range=["#dcfce7", "#fef08a", "#f97316", "#ef4444"]), legend=alt.Legend(title="Quebras", orient="right")),
