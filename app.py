@@ -822,7 +822,6 @@ elif tela == "Painel Setores":
                         maqs_crit[r["tag"]] = []
                     maqs_crit[r["tag"]].append(r['pos'])
                 
-                # AQUI APLICAMOS O SCROLL NATIVO EXCLUSIVO DO STREAMLIT NA LISTA DE ALERTAS
                 with st.container(height=260, border=False):
                     for t, pos_list in sorted(maqs_crit.items()):
                         pos_str = " e ".join(pos_list)
@@ -837,8 +836,36 @@ elif tela == "Painel Setores":
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Matriz de Desempenho Operacional — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
-        st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
+        st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+
+        df_pend_setor = df_pendencias[df_pendencias["Setor"].isin(setores_alvo_exec)].copy()
+        
+        servicos_ativos = []
+        if not df_pend_setor.empty:
+            for serv, group in df_pend_setor.groupby('Descricao_Pendencia'):
+                pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                if pendentes:
+                    servicos_ativos.append({"serv": serv, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+
+        if servicos_ativos:
+            for item in servicos_ativos:
+                p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
+                c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+
+                st.markdown(f"""
+                    <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:5px solid #f59e0b; border-radius:8px; padding:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-weight:800; color:#0f172a; font-size:0.95rem; margin-bottom:6px;">🛠️ {item['serv']}</div>
+                        <div style="font-size:0.85rem; color:#475569; margin-bottom:4px;">
+                            <span style="color:#ef4444; font-weight:700;">⏳ Pendentes ({len(item['pendentes'])}):</span> {p_str}
+                        </div>
+                        <div style="font-size:0.85rem; color:#475569;">
+                            <span style="color:#10b981; font-weight:700;">✅ Prontas ({len(item['concluidas'])}):</span> {c_str}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
 
 # ------------------------------------------
 # 4. PAINEL DE MÁQUINAS
