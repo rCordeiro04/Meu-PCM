@@ -171,9 +171,6 @@ df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
-# ------------------------------------------
-# INJEÇÃO DO TESTE DE SERVIÇOS (AMORTECEDORES FUSOS)
-# ------------------------------------------
 if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
     test_pend = []
     for m in DICIONARIO_SETORES["Setor A"]:
@@ -666,124 +663,114 @@ elif tela == "Painel Fusos":
 # 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2 = st.columns([3.5, 2.5])
-    with c_ts1: st.markdown("<h2 style='margin:0; font-weight:900;'>🏭 Painel Executivo de Setores</h2>", unsafe_allow_html=True)
+    c_ts1, c_ts2, c_ts3 = st.columns([3.0, 1.5, 1.5])
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
+    with c_ts3:
+        mes_filtro_painel = st.selectbox("Mês:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, label_visibility="collapsed")
+
+    with c_ts1: 
+        titulo_setor = f"Painel {setor_selecionado_exec}" if setor_selecionado_exec != "Todos os Setores" else "Painel Todos os Setores"
+        st.markdown(f"<h2 style='margin:0; font-weight:900;'>🏭 {titulo_setor}</h2>", unsafe_allow_html=True)
 
     st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
 
     setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
     
-    dados_resumo_setores = []
     maquinas_alvo_totais = []
-    
     for s_nome in setores_alvo_exec:
         maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
         maquinas_alvo_totais.extend(maqs_s)
-        
-        tot_q_fusos = int(df_fusos[df_fusos["Setor"] == s_nome]["Quantidade_Quebras"].sum()) if not df_fusos.empty else 0
-        crit_cor = len([r for r in lista_correias_criticas if r["setor"] == s_nome])
-        meia_cor = len([r for r in lista_correias_meia if r["setor"] == s_nome])
-        novas_cor = len([r for r in lista_correias_novas if r["setor"] == s_nome])
-        tot_horas_s = float(df_paradas[df_paradas["Setor"] == s_nome]["Tempo_Parado_Horas"].sum()) if not df_paradas.empty else 0.0
-        tot_pend_s = len(df_pendencias[(df_pendencias["Setor"] == s_nome) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")])
 
-        dados_resumo_setores.append({
-            "Setor": s_nome, "Total Máquinas": len(maqs_s), "Quebras Fusos": tot_q_fusos,
-            "Horas Paradas (Corretivas)": round(tot_horas_s, 1), "Pendências Abertas": tot_pend_s,
-            "Correias Críticas": crit_cor, "Correias Meia-Vida": meia_cor, "Correias Novas": novas_cor,
-        })
+    tot_maqs_sel = len(maquinas_alvo_totais)
 
-    df_res_setores = pd.DataFrame(dados_resumo_setores)
+    # Lógica de Filtro de Tempo Dinâmico
+    ano_ref = date.today().year
+    mes_ref_num = date.today().month
+    dia_ref = date.today().day
 
-    tot_maqs_sel = df_res_setores["Total Máquinas"].sum()
-    tot_fusos_sel = df_res_setores["Quebras Fusos"].sum()
-    tot_horas_sel = df_res_setores["Horas Paradas (Corretivas)"].sum()
-    tot_crit_sel = df_res_setores["Correias Críticas"].sum()
-
-    cs1, cs2, cs3, cs4 = st.columns(4)
-    cs1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_exec}</div></div><div style='font-size:1.8rem;'>🏢</div></div>", unsafe_allow_html=True)
-    cs2.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Parque de Máquinas</div><div class='kpi-val' style='color:#059669;'>{tot_maqs_sel}</div></div><div style='font-size:1.8rem;'>⚙️</div></div>", unsafe_allow_html=True)
-    cs3.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
-    cs4.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
-
-    if setor_selecionado_exec == "Todos os Setores":
-        c_gset1, c_gset2 = st.columns(2)
-        with c_gset1:
-            with st.container(border=True):
-                st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Total de Quebras de Fusos por Setor</div>", unsafe_allow_html=True)
-                chart_s_fuso = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#3b82f6").encode(
-                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0)), y=alt.Y("Quebras Fusos:Q", title="Quebras")
-                )
-                txt_s_fuso = chart_s_fuso.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Quebras Fusos:Q")
-                st.altair_chart((chart_s_fuso + txt_s_fuso).properties(height=260), use_container_width=True)
-
-        with c_gset2:
-            with st.container(border=True):
-                st.markdown("<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🚨 Correias com Troca Necessária por Setor</div>", unsafe_allow_html=True)
-                chart_s_cor = alt.Chart(df_res_setores).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#ef4444").encode(
-                    x=alt.X("Setor:N", title=None, axis=alt.Axis(labelAngle=0)), y=alt.Y("Correias Críticas:Q", title="Críticas")
-                )
-                txt_s_cor = chart_s_cor.mark_text(dy=-8, fontSize=12, fontWeight=800).encode(text="Correias Críticas:Q")
-                st.altair_chart((chart_s_cor + txt_s_cor).properties(height=260), use_container_width=True)
-
-    # ---------------------------------------------------------
-    # Gráficos: Eficiência Mecânica e Cobertura Preventiva
-    # ---------------------------------------------------------
     df_paradas_chart = df_paradas.copy()
     df_paradas_chart['Data'] = pd.to_datetime(df_paradas_chart['Data'], errors='coerce')
     df_paradas_alvo = df_paradas_chart[df_paradas_chart['Maquina_TAG'].isin(maquinas_alvo_totais)]
+    df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == ano_ref]
 
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+    df_fusos_alvo = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)]
+
+    if mes_filtro_painel == "Acumulado do Ano":
+        dias_calculo = (date.today() - date(ano_ref, 1, 1)).days + 1
+        if dias_calculo < 1: dias_calculo = 1
+        horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
+        df_prev_filtro = df_paradas_ano[df_paradas_ano['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
+        tot_fusos_sel = int(df_fusos_alvo["Quantidade_Quebras"].sum())
+    else:
+        num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+        if num_mes_selecionado == mes_ref_num:
+            dias_calculo = dia_ref
+        elif num_mes_selecionado > mes_ref_num:
+            dias_calculo = 0
+        else:
+            dias_calculo = calendar.monthrange(ano_ref, num_mes_selecionado)[1]
+        
+        df_paradas_mes = df_paradas_ano[df_paradas_ano['Data'].dt.month == num_mes_selecionado]
+        horas_paradas_total = df_paradas_mes['Tempo_Parado_Horas'].sum()
+        df_prev_filtro = df_paradas_mes[df_paradas_mes['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
+        tot_fusos_sel = int(df_fusos_alvo[df_fusos_alvo["Mes"] == mes_filtro_painel]["Quantidade_Quebras"].sum())
+
+    horas_totais_disponiveis = tot_maqs_sel * 24 * dias_calculo
+    horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
+    total_h = horas_operando_total + horas_paradas_total
+    perc_efi = (horas_operando_total / total_h * 100) if total_h > 0 else 0.0
+
+    maquinas_com_prev = df_prev_filtro['Maquina_TAG'].nunique()
+    perc_prev = (maquinas_com_prev / tot_maqs_sel * 100) if tot_maqs_sel > 0 else 0.0
+
+    criticas_setor = [r for r in lista_correias_criticas if r["setor"] in setores_alvo_exec]
+    tot_crit_sel = len(criticas_setor)
+    
+    # Tooltip Avançado com HTML Title
+    tooltip_correias = "Máquinas Críticas:&#10;"
+    if tot_crit_sel > 0:
+        maqs_crit = {}
+        for r in criticas_setor:
+            if r["tag"] not in maqs_crit: maqs_crit[r["tag"]] = []
+            maqs_crit[r["tag"]].append(r['pos'])
+        for t, p_list in sorted(maqs_crit.items()):
+            tooltip_correias += f"• {t} ({', '.join(p_list)})&#10;"
+    else:
+        tooltip_correias = "Nenhuma correia crítica neste setor."
+
+    cs1, cs2, cs3, cs4 = st.columns(4)
+    cs1.markdown(f"<div class='card-kpi-bonito c-ok' title='Eficiência calculada com base no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Eficiência Mecânica</div><div class='kpi-val' style='color:#059669;'>{perc_efi:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-total' title='Cobertura preventiva no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Cobertura Preventiva</div><div class='kpi-val' style='color:#3b82f6;'>{perc_prev:.1f}%</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn' title='Total registrado em: {mes_filtro_painel}'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit' title='{tooltip_correias}'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+    df_efi_chart = pd.DataFrame({
+        "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
+        "Horas": [horas_operando_total, horas_paradas_total]
+    })
+    df_efi_chart["Perc"] = (df_efi_chart["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
+    df_efi_chart["Label"] = df_efi_chart["Perc"].astype(str) + "%"
+
+    maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
+    df_prev_chart = pd.DataFrame({
+        "Condição": ["Com Preventiva", "Sem Preventiva"],
+        "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
+    })
+    total_m_prev = maquinas_com_prev + maquinas_sem_prev
+    df_prev_chart["Perc"] = (df_prev_chart["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
+    df_prev_chart["Label"] = df_prev_chart["Perc"].astype(str) + "%"
+
     c_efi, c_prev = st.columns(2)
 
     with c_efi:
         with st.container(border=True):
-            cef1, cef2 = st.columns([1.8, 1.2])
-            with cef1: 
-                st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>⏱️ Eficiência Mecânica</div>", unsafe_allow_html=True)
-            with cef2: 
-                mes_filtro_efi = st.selectbox("Mês Eficiência:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, key="sel_mes_efi", label_visibility="collapsed")
-
-            ano_ref = date.today().year
-            mes_ref_num = date.today().month
-            dia_ref = date.today().day
-
-            df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == ano_ref]
-
-            if mes_filtro_efi == "Acumulado do Ano":
-                dias_calculo = (date.today() - date(ano_ref, 1, 1)).days + 1
-                if dias_calculo < 1: dias_calculo = 1
-                horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
-            else:
-                num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_efi) + 1
-                if num_mes_selecionado == mes_ref_num:
-                    dias_calculo = dia_ref
-                elif num_mes_selecionado > mes_ref_num:
-                    dias_calculo = 0
-                else:
-                    dias_calculo = calendar.monthrange(ano_ref, num_mes_selecionado)[1]
-                
-                df_paradas_mes = df_paradas_ano[df_paradas_ano['Data'].dt.month == num_mes_selecionado]
-                horas_paradas_total = df_paradas_mes['Tempo_Parado_Horas'].sum()
-
-            horas_totais_disponiveis = tot_maqs_sel * 24 * dias_calculo
-            horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
-
-            df_efi = pd.DataFrame({
-                "Status": ["Horas Operando", "Horas Paradas (Corretivas)"],
-                "Horas": [horas_operando_total, horas_paradas_total]
-            })
-            total_h = horas_operando_total + horas_paradas_total
-            df_efi["Perc"] = (df_efi["Horas"] / total_h * 100).round(1) if total_h > 0 else 0
-            df_efi["Label"] = df_efi["Perc"].astype(str) + "%"
-
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>⏱️ Eficiência Mecânica ({mes_filtro_painel})</div>", unsafe_allow_html=True)
             if total_h > 0:
-                base_efi = alt.Chart(df_efi).encode(
+                base_efi = alt.Chart(df_efi_chart).encode(
                     theta=alt.Theta("Horas:Q", stack=True),
                     color=alt.Color("Status:N", scale=alt.Scale(domain=["Horas Operando", "Horas Paradas (Corretivas)"], range=["#10b981", "#ef4444"]), legend=alt.Legend(title="Status Operacional", orient="bottom")),
                     tooltip=["Status", "Horas", "Perc"]
@@ -795,32 +782,15 @@ elif tela == "Painel Setores":
                 st.altair_chart((arc_efi + text_efi).properties(height=280), use_container_width=True)
             else:
                 if dias_calculo == 0:
-                    st.info(f"O mês de {mes_filtro_efi} ainda não tem dados operacionais.")
+                    st.info(f"O mês de {mes_filtro_painel} ainda não tem dados operacionais registrados.")
                 else:
                     st.info("Sem dados de capacidade para o período selecionado.")
 
     with c_prev:
         with st.container(border=True):
-            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🛠️ Cobertura de Preventivas (Últimos 365 dias)</div>", unsafe_allow_html=True)
-            
-            data_limite_prev = pd.Timestamp(date.today() - timedelta(days=365))
-            df_prev_1ano = df_paradas_alvo[
-                (df_paradas_alvo['Data'] >= data_limite_prev) &
-                (df_paradas_alvo['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False))
-            ]
-            maquinas_com_prev = df_prev_1ano['Maquina_TAG'].nunique()
-            maquinas_sem_prev = max(0, tot_maqs_sel - maquinas_com_prev)
-
-            df_prev = pd.DataFrame({
-                "Condição": ["Com Preventiva", "Sem Preventiva"],
-                "Quantidade": [maquinas_com_prev, maquinas_sem_prev]
-            })
-            total_m_prev = maquinas_com_prev + maquinas_sem_prev
-            df_prev["Perc"] = (df_prev["Quantidade"] / total_m_prev * 100).round(1) if total_m_prev > 0 else 0
-            df_prev["Label"] = df_prev["Perc"].astype(str) + "%"
-
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; padding-top:5px;'>🛠️ Cobertura de Preventivas ({mes_filtro_painel})</div>", unsafe_allow_html=True)
             if total_m_prev > 0:
-                base_prev = alt.Chart(df_prev).encode(
+                base_prev = alt.Chart(df_prev_chart).encode(
                     theta=alt.Theta("Quantidade:Q", stack=True),
                     color=alt.Color("Condição:N", scale=alt.Scale(domain=["Com Preventiva", "Sem Preventiva"], range=["#3b82f6", "#cbd5e1"]), legend=alt.Legend(title="Cobertura Anual", orient="bottom")),
                     tooltip=["Condição", "Quantidade", "Perc"]
@@ -861,15 +831,7 @@ elif tela == "Painel Setores":
     with c_cor_vermelho:
         with st.container(border=True):
             st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🚨 Máquinas com Correias no Vermelho</div>", unsafe_allow_html=True)
-            criticas_setor = [r for r in lista_correias_criticas if r["setor"] in setores_alvo_exec]
-            
             if criticas_setor:
-                maqs_crit = {}
-                for r in criticas_setor:
-                    if r["tag"] not in maqs_crit: 
-                        maqs_crit[r["tag"]] = []
-                    maqs_crit[r["tag"]].append(r['pos'])
-                
                 with st.container(height=260, border=False):
                     for t, pos_list in sorted(maqs_crit.items()):
                         pos_str = " e ".join(pos_list)
