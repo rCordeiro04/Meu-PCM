@@ -437,7 +437,7 @@ if tela == "Painel Correias":
             maquinas_do_setor = filtradas
         if not maquinas_do_setor: continue
 
-        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:0.9rem; font-weight:800; color:#0f172a; border-left:4px solid #2563eb; padding-left:10px; margin:12px 0 6px 0; display:flex; align-items:center; justify-content:space-between;'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
         cols_g = 14
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
@@ -666,6 +666,186 @@ elif tela == "Painel Fusos":
 # 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
+    c_ts1, c_ts2, c_ts3 = st.columns([3.0, 1.5, 1.5])
+    with c_ts2:
+        setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
+        setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
+    with c_ts3:
+        mes_filtro_painel = st.selectbox("Mês:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, label_visibility="collapsed")
+
+    with c_ts1: 
+        titulo_setor = f"Painel {setor_selecionado_exec}" if setor_selecionado_exec != "Todos os Setores" else "Painel Todos os Setores"
+        st.markdown(f"<h2 style='margin:0; font-weight:900;'>🏭 {titulo_setor}</h2>", unsafe_allow_html=True)
+
+    st.caption("Visão consolidada e comparativa de desempenho operacional por setor da fábrica.")
+
+    setores_alvo_exec = list(DICIONARIO_SETORES.keys()) if setor_selecionado_exec == "Todos os Setores" else [setor_selecionado_exec]
+    
+    maquinas_alvo_totais = []
+    for s_nome in setores_alvo_exec:
+        maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+        maquinas_alvo_totais.extend(maqs_s)
+
+    tot_maqs_sel = len(maquinas_alvo_totais)
+
+    ano_ref = date.today().year
+    mes_ref_num = date.today().month
+    dia_ref = date.today().day
+
+    df_paradas_chart = df_paradas.copy()
+    df_paradas_chart['Data'] = pd.to_datetime(df_paradas_chart['Data'], errors='coerce')
+    df_paradas_alvo = df_paradas_chart[df_paradas_chart['Maquina_TAG'].isin(maquinas_alvo_totais)]
+    df_paradas_ano = df_paradas_alvo[df_paradas_alvo['Data'].dt.year == ano_ref]
+
+    df_fusos_alvo = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)]
+
+    if mes_filtro_painel == "Acumulado do Ano":
+        dias_calculo = (date.today() - date(ano_ref, 1, 1)).days + 1
+        if dias_calculo < 1: dias_calculo = 1
+        horas_paradas_total = df_paradas_ano['Tempo_Parado_Horas'].sum()
+        df_prev_filtro = df_paradas_ano[df_paradas_ano['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
+        tot_fusos_sel = int(df_fusos_alvo["Quantidade_Quebras"].sum())
+    else:
+        num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+        if num_mes_selecionado == mes_ref_num:
+            dias_calculo = dia_ref
+        elif num_mes_selecionado > mes_ref_num:
+            dias_calculo = 0
+        else:
+            dias_calculo = calendar.monthrange(ano_ref, num_mes_selecionado)[1]
+        
+        df_paradas_mes = df_paradas_ano[df_paradas_ano['Data'].dt.month == num_mes_selecionado]
+        horas_paradas_total = df_paradas_mes['Tempo_Parado_Horas'].sum()
+        df_prev_filtro = df_paradas_mes[df_paradas_mes['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
+        tot_fusos_sel = int(df_fusos_alvo[df_fusos_alvo["Mes"] == mes_filtro_painel]["Quantidade_Quebras"].sum())
+
+    horas_totais_disponiveis = tot_maqs_sel * 24 * dias_calculo
+    horas_operando_total = max(0, horas_totais_disponiveis - horas_paradas_total)
+    total_h = horas_operando_total + horas_paradas_total
+    perc_efi = (horas_operando_total / total_h * 100) if total_h > 0 else 0.0
+
+    maquinas_com_prev = df_prev_filtro['Maquina_TAG'].nunique()
+    perc_prev = (maquinas_com_prev / tot_maqs_sel * 100) if tot_maqs_sel > 0 else 0.0
+
+    criticas_setor = [r for r in lista_correias_criticas if r["setor"] in setores_alvo_exec]
+    tot_crit_sel = len(criticas_setor)
+    
+    tooltip_correias = "Máquinas Críticas:&#10;"
+    if tot_crit_sel > 0:
+        maqs_crit = {}
+        for r in criticas_setor:
+            if r["tag"] not in maqs_crit: maqs_crit[r["tag"]] = []
+            maqs_crit[r["tag"]].append(r['pos'])
+        for t, p_list in sorted(maqs_crit.items()):
+            tooltip_correias += f"• {t} ({', '.join(p_list)})&#10;"
+    else:
+        tooltip_correias = "Nenhuma correia crítica neste setor."
+
+    cs1, cs2, cs3, cs4 = st.columns(4)
+    cs1.markdown(f"<div class='card-kpi-bonito c-ok' title='Eficiência calculada com base no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Eficiência Mecânica</div><div class='kpi-val' style='color:#059669;'>{perc_efi:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+    cs2.markdown(f"<div class='card-kpi-bonito c-total' title='Cobertura preventiva no período: {mes_filtro_painel}'><div><div class='kpi-lbl'>Cobertura Preventiva</div><div class='kpi-val' style='color:#3b82f6;'>{perc_prev:.1f}%</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
+    cs3.markdown(f"<div class='card-kpi-bonito c-warn' title='Total registrado em: {mes_filtro_painel}'><div><div class='kpi-lbl'>Quebras de Fusos</div><div class='kpi-val' style='color:#d97706;'>{tot_fusos_sel}</div></div><div style='font-size:1.8rem;'>🔩</div></div>", unsafe_allow_html=True)
+    cs4.markdown(f"<div class='card-kpi-bonito c-crit' title='{tooltip_correias}'><div><div class='kpi-lbl'>Correias Críticas</div><div class='kpi-val' style='color:#dc2626;'>{tot_crit_sel}</div></div><div style='font-size:1.8rem;'>🚨</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+    with st.container(border=True):
+        if mes_filtro_painel == "Acumulado do Ano":
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Mensal de Fusos — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+            df_fusos_setor = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref)].copy()
+            df_f_evol = df_fusos_setor.groupby("Mes")["Quantidade_Quebras"].sum().reindex(LISTA_MESES_PUROS, fill_value=0).reset_index()
+            df_f_evol["Mes_Abrev"] = df_f_evol["Mes"].map(MAPA_MES_ABREV)
+            
+            barras_setor = alt.Chart(df_f_evol).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
+                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                tooltip=["Mes", "Quantidade_Quebras"]
+            )
+            rotulos_setor = alt.Chart(df_f_evol).mark_text(dy=-8, fontSize=12, fontWeight=800).encode(
+                x=alt.X("Mes_Abrev:N", sort=ORDEM_MESES_ABREV), 
+                y=alt.Y("Quantidade_Quebras:Q"), 
+                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+            )
+            st.altair_chart((barras_setor + rotulos_setor).properties(height=280), use_container_width=True)
+        else:
+            st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔩 Evolução Diária de Fusos ({mes_filtro_painel}) — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+            df_fusos_setor_mes = df_fusos[(df_fusos["Setor"].isin(setores_alvo_exec)) & (df_fusos["Ano"] == ano_ref) & (df_fusos["Mes"] == mes_filtro_painel)].copy()
+            
+            num_mes_selecionado = LISTA_MESES_PUROS.index(mes_filtro_painel) + 1
+            _, dias_no_mes = calendar.monthrange(ano_ref, num_mes_selecionado)
+            lista_dias = list(range(1, dias_no_mes + 1))
+            
+            df_f_evol_dia = df_fusos_setor_mes.groupby("Dia")["Quantidade_Quebras"].sum().reindex(lista_dias, fill_value=0).reset_index()
+            df_f_evol_dia["Dia_Str"] = df_f_evol_dia["Dia"].astype(str)
+            
+            barras_dia = alt.Chart(df_f_evol_dia).mark_bar(color="#3b82f6", cornerRadiusTopLeft=3, cornerRadiusTopRight=3).encode(
+                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias], title="Dia do Mês", axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Quantidade_Quebras:Q", title="Quebras"),
+                tooltip=["Dia", "Quantidade_Quebras"]
+            )
+            rotulos_dia = alt.Chart(df_f_evol_dia).mark_text(dy=-8, fontSize=11, fontWeight=800).encode(
+                x=alt.X("Dia_Str:N", sort=[str(d) for d in lista_dias]), 
+                y=alt.Y("Quantidade_Quebras:Q"), 
+                text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
+            )
+            st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
+
+    if setor_selecionado_exec != "Todos os Setores":
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+
+            df_pend_setor = df_pendencias[df_pendencias["Setor"] == setor_selecionado_exec].copy()
+            
+            servicos_ativos = []
+            if not df_pend_setor.empty:
+                df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
+                df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
+                for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
+                    pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    if pendentes or concluidas:
+                        servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+
+            if servicos_ativos:
+                for item in servicos_ativos:
+                    p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
+                    c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+
+                    st.markdown(f"""
+                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                🛠️ {item['nome']}
+                            </div>
+                            <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                                {item['desc']}
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ⏳ Pendentes ({len(item['pendentes'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{p_str}</span>
+                                </div>
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ✅ Prontas ({len(item['concluidas'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{c_str}</span>
+                                </div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
+
+# ------------------------------------------
+# 4. PAINEL DE MÁQUINAS
+# ------------------------------------------
+elif tela == "Painel Maquinas":
+    st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
+    st.caption("Consulte o histórico detalhado, manutenções, pendências e quebras de fusos por TAG.")
+
     col_sm, col_mq, col_mes = st.columns([1.5, 2.0, 1.5])
     with col_sm: setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
     maqs_disponiveis = obter_maquinas_setor(setor_selecionado_maq, df_correias, df_fusos)
