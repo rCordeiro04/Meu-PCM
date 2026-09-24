@@ -403,30 +403,28 @@ if tela == "Painel Correias":
                 st.session_state.maq_clicada_cor = None
                 st.rerun()
 
-    # Container com barra de rolagem (scroll) para evitar poluição visual na página
-    with st.container(height=500, border=True):
-        for s_nome in DICIONARIO_SETORES.keys():
-            maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
-            if filtro_modelo != "Todos os Tipos":
-                filtradas = []
-                for m in maquinas_do_setor:
-                    r_m = df_correias[(df_correias["Setor"] == s_nome) & (df_correias["Maquina_TAG"] == m)]
-                    if not r_m.empty:
-                        ult_m = r_m.iloc[-1]
-                        if formatar_modelo(ult_m.get("Tipo_Correia_1")) == filtro_modelo or formatar_modelo(ult_m.get("Tipo_Correia_2")) == filtro_modelo: filtradas.append(m)
-                maquinas_do_setor = filtradas
-            if not maquinas_do_setor: continue
+    for s_nome in DICIONARIO_SETORES.keys():
+        maquinas_do_setor = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+        if filtro_modelo != "Todos os Tipos":
+            filtradas = []
+            for m in maquinas_do_setor:
+                r_m = df_correias[(df_correias["Setor"] == s_nome) & (df_correias["Maquina_TAG"] == m)]
+                if not r_m.empty:
+                    ult_m = r_m.iloc[-1]
+                    if formatar_modelo(ult_m.get("Tipo_Correia_1")) == filtro_modelo or formatar_modelo(ult_m.get("Tipo_Correia_2")) == filtro_modelo: filtradas.append(m)
+            maquinas_do_setor = filtradas
+        if not maquinas_do_setor: continue
 
-            st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
-            cols_g = 14
-            for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
-                cols = st.columns(cols_g)
-                for i, m in enumerate(chunk):
-                    info_m = dados_maquinas.get(m, {})
-                    dot_m = info_m.get("dot", "⚪")
-                    if cols[i].button(f"{dot_m} {m}", key=f"btn_c_{m.replace('-', '_')}", use_container_width=True):
-                        st.session_state.maq_clicada_cor = {"tag": m, **info_m}
-                        st.rerun()
+        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
+        cols_g = 14
+        for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
+            cols = st.columns(cols_g)
+            for i, m in enumerate(chunk):
+                info_m = dados_maquinas.get(m, {})
+                dot_m = info_m.get("dot", "⚪")
+                if cols[i].button(f"{dot_m} {m}", key=f"btn_c_{m.replace('-', '_')}", use_container_width=True):
+                    st.session_state.maq_clicada_cor = {"tag": m, **info_m}
+                    st.rerun()
 
 # ------------------------------------------
 # 2. PAINEL DE FUSOS
@@ -824,16 +822,16 @@ elif tela == "Painel Setores":
                         maqs_crit[r["tag"]] = []
                     maqs_crit[r["tag"]].append(r['pos'])
                 
-                st.markdown("<div style='max-height: 280px; overflow-y: auto; padding-right: 4px;'>", unsafe_allow_html=True)
-                for t, pos_list in sorted(maqs_crit.items()):
-                    pos_str = " e ".join(pos_list)
-                    st.markdown(f"""
-                        <div class='alerta-manutencao' style='margin-bottom:8px; padding:8px 12px;'>
-                            ⚙️ <b>{t}</b> <br> 
-                            <span style='font-size:0.75rem; color:#991b1b;'>Trocar: {pos_str}</span>
-                        </div>
-                    """, unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                # AQUI APLICAMOS O SCROLL NATIVO EXCLUSIVO DO STREAMLIT NA LISTA DE ALERTAS
+                with st.container(height=260, border=False):
+                    for t, pos_list in sorted(maqs_crit.items()):
+                        pos_str = " e ".join(pos_list)
+                        st.markdown(f"""
+                            <div class='alerta-manutencao' style='margin-bottom:8px; padding:8px 12px;'>
+                                ⚙️ <b>{t}</b> <br> 
+                                <span style='font-size:0.75rem; color:#991b1b;'>Trocar: {pos_str}</span>
+                            </div>
+                        """, unsafe_allow_html=True)
             else:
                 st.info("✅ Nenhuma máquina com correia crítica neste setor.")
 
