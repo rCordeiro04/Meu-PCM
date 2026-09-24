@@ -341,6 +341,10 @@ st.markdown(
         .badge-cinza { background: #e2e8f0; color: #475569; }
         .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
         .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .header-setor-dash {
+            font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
+            padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -433,7 +437,7 @@ if tela == "Painel Correias":
             maquinas_do_setor = filtradas
         if not maquinas_do_setor: continue
 
-        st.markdown(f"<div style='font-size:0.9rem; font-weight:800; color:#0f172a; border-left:4px solid #2563eb; padding-left:10px; margin:12px 0 6px 0; display:flex; align-items:center; justify-content:space-between;'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='header-setor-dash'><span>🏭 {s_nome}</span> <span style='font-size:0.75rem; color:#64748b; font-weight:700;'>{len(maquinas_do_setor)} ativos vinculados</span></div>", unsafe_allow_html=True)
         cols_g = 14
         for chunk in [maquinas_do_setor[i:i + cols_g] for i in range(0, len(maquinas_do_setor), cols_g)]:
             cols = st.columns(cols_g)
@@ -786,53 +790,54 @@ elif tela == "Painel Setores":
             )
             st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
 
-    st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
+    if setor_selecionado_exec != "Todos os Setores":
+        st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(f"<div style='font-size:1.2rem; font-weight:900; margin-bottom:15px; color:#0f172a;'>📋 Serviços em Andamento — {setor_selecionado_exec}</div>", unsafe_allow_html=True)
 
-        df_pend_setor = df_pendencias[df_pendencias["Setor"].isin(setores_alvo_exec)].copy()
-        
-        servicos_ativos = []
-        if not df_pend_setor.empty:
-            df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
-            df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
-            for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
-                pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
-                if pendentes or concluidas:
-                    servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
+            df_pend_setor = df_pendencias[df_pendencias["Setor"] == setor_selecionado_exec].copy()
+            
+            servicos_ativos = []
+            if not df_pend_setor.empty:
+                df_pend_setor["Nome_Servico"] = df_pend_setor["Nome_Servico"].fillna("Serviço sem título")
+                df_pend_setor["Descricao_Pendencia"] = df_pend_setor["Descricao_Pendencia"].fillna("")
+                for (nome_serv, desc), group in df_pend_setor.groupby(['Nome_Servico', 'Descricao_Pendencia']):
+                    pendentes = group[~group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    concluidas = group[group['Status'].astype(str).str.lower().str.contains('conclu')]['Maquina_TAG'].tolist()
+                    if pendentes or concluidas:
+                        servicos_ativos.append({"nome": nome_serv, "desc": desc, "pendentes": sorted(pendentes), "concluidas": sorted(concluidas)})
 
-        if servicos_ativos:
-            for item in servicos_ativos:
-                p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
-                c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
+            if servicos_ativos:
+                for item in servicos_ativos:
+                    p_str = ", ".join(item["pendentes"]) if item["pendentes"] else "Nenhuma"
+                    c_str = ", ".join(item["concluidas"]) if item["concluidas"] else "Nenhuma"
 
-                st.markdown(f"""
-                    <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-                        <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                            🛠️ {item['nome']}
-                        </div>
-                        <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
-                            {item['desc']}
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
-                                    ⏳ Pendentes ({len(item['pendentes'])})
-                                </span> 
-                                <span style="font-weight: 600;">{p_str}</span>
+                    st.markdown(f"""
+                        <div style="background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid #cbd5e1; border-left: 8px solid #f59e0b; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                            <div style="font-weight: 900; color: #0f172a; font-size: 1.3rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                🛠️ {item['nome']}
                             </div>
-                            <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
-                                    ✅ Prontas ({len(item['concluidas'])})
-                                </span> 
-                                <span style="font-weight: 600;">{c_str}</span>
+                            <div style="font-size: 1rem; color: #475569; font-style: italic; margin-bottom: 16px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                                {item['desc']}
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ⏳ Pendentes ({len(item['pendentes'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{p_str}</span>
+                                </div>
+                                <div style="font-size: 1rem; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <span style="background: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 8px; font-weight: 800; font-size: 0.95rem;">
+                                        ✅ Prontas ({len(item['concluidas'])})
+                                    </span> 
+                                    <span style="font-weight: 600;">{c_str}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("✅ Nenhum serviço pendente ou em andamento neste setor.")
 
 # ------------------------------------------
 # 4. PAINEL DE MÁQUINAS
@@ -849,19 +854,42 @@ elif tela == "Painel Maquinas":
     if tag_selecionada:
         info_cor_maq = dados_maquinas.get(tag_selecionada, {})
         sub_fusos_maq = df_fusos[df_fusos["Maquina_TAG"] == tag_selecionada]
-        tot_falhas_maq = int(sub_fusos_maq["Quantidade_Quebras"].sum()) if not sub_fusos_maq.empty else 0
-
-        sub_paradas_maq = df_paradas[df_paradas["Maquina_TAG"] == tag_selecionada]
+        
+        sub_paradas_maq = df_paradas[df_paradas["Maquina_TAG"] == tag_selecionada].copy()
+        sub_paradas_maq['Data_Parsed'] = pd.to_datetime(sub_paradas_maq['Data'], errors='coerce')
+        
         tot_horas_paradas = float(sub_paradas_maq["Tempo_Parado_Horas"].sum()) if not sub_paradas_maq.empty else 0.0
 
-        sub_pend_maq = df_pendencias[(df_pendencias["Maquina_TAG"] == tag_selecionada) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")]
-        tot_pendencias_abertas = len(sub_pend_maq)
+        dias_ano_atual = (date.today() - date(date.today().year, 1, 1)).days + 1
+        if dias_ano_atual < 1: dias_ano_atual = 1
+        horas_totais_disp_maq = 24 * dias_ano_atual
+        df_paradas_maq_ano = sub_paradas_maq[sub_paradas_maq['Data_Parsed'].dt.year == date.today().year]
+        horas_paradas_maq_ano = float(df_paradas_maq_ano['Tempo_Parado_Horas'].sum()) if not df_paradas_maq_ano.empty else 0.0
+        efi_maq_perc = max(0.0, ((horas_totais_disp_maq - horas_paradas_maq_ano) / horas_totais_disp_maq) * 100)
+
+        mod_sup = info_cor_maq.get('t1', '')
+        mod_inf = info_cor_maq.get('t2', '')
+        if mod_sup and mod_inf and mod_sup != "Não informada" and mod_inf != "Não informada":
+            modelos_str = mod_sup if mod_sup == mod_inf else f"{mod_sup} | {mod_inf}"
+        elif mod_sup and mod_sup != "Não informada": modelos_str = mod_sup
+        elif mod_inf and mod_inf != "Não informada": modelos_str = mod_inf
+        else: modelos_str = "S/ Modelo"
+        
+        condicao_cor = info_cor_maq.get('status_label', 'S/ Dados')
+        dot_cor = info_cor_maq.get('dot', '⚪')
+
+        df_prev_maq = sub_paradas_maq[sub_paradas_maq['Tipo_Manutencao'].astype(str).str.contains('Preventiva|Preventivo|Prev', case=False, na=False)]
+        if not df_prev_maq.empty:
+            ultima_prev_date = df_prev_maq['Data_Parsed'].max()
+            str_ultima_prev = ultima_prev_date.strftime("%d/%m/%Y") if pd.notnull(ultima_prev_date) else "Sem registro"
+        else:
+            str_ultima_prev = "Sem registro"
 
         cm1, cm2, cm3, cm4 = st.columns(4)
-        cm1.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Setor Ativo</div><div class='kpi-val' style='font-size:1.1rem;'>{setor_selecionado_maq}</div></div><div style='font-size:1.8rem;'>🏭</div></div>", unsafe_allow_html=True)
-        cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Status Correia</div><div class='kpi-val' style='font-size:1.1rem;'>{info_cor_maq.get('dot', '⚪')} {info_cor_maq.get('status_label', 'S/ Dados')}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
-        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Corretivas)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
-        cm4.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Pendências Abertas</div><div class='kpi-val' style='color:#059669;'>{tot_pendencias_abertas}</div></div><div style='font-size:1.8rem;'>📋</div></div>", unsafe_allow_html=True)
+        cm1.markdown(f"<div class='card-kpi-bonito c-ok'><div><div class='kpi-lbl'>Eficiência Mecânica (Ano)</div><div class='kpi-val' style='color:#059669;'>{efi_maq_perc:.1f}%</div></div><div style='font-size:1.8rem;'>⏱️</div></div>", unsafe_allow_html=True)
+        cm2.markdown(f"<div class='card-kpi-bonito c-warn'><div><div class='kpi-lbl'>Correia: {modelos_str}</div><div class='kpi-val' style='font-size:1.1rem;'>{dot_cor} {condicao_cor}</div></div><div style='font-size:1.8rem;'>🔄</div></div>", unsafe_allow_html=True)
+        cm3.markdown(f"<div class='card-kpi-bonito c-crit'><div><div class='kpi-lbl'>Horas Paradas (Total)</div><div class='kpi-val' style='color:#dc2626;'>{round(tot_horas_paradas, 1)}h</div></div><div style='font-size:1.8rem;'>🛑</div></div>", unsafe_allow_html=True)
+        cm4.markdown(f"<div class='card-kpi-bonito c-total'><div><div class='kpi-lbl'>Última Preventiva</div><div class='kpi-val' style='font-size:1.1rem; color:#3b82f6;'>{str_ultima_prev}</div></div><div style='font-size:1.8rem;'>🛠️</div></div>", unsafe_allow_html=True)
 
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
@@ -891,6 +919,7 @@ elif tela == "Painel Maquinas":
 
         with st.container(border=True):
             st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📋 Manutenções Pendentes — {tag_selecionada}</div>", unsafe_allow_html=True)
+            sub_pend_maq = df_pendencias[(df_pendencias["Maquina_TAG"] == tag_selecionada) & (df_pendencias["Status"].astype(str).str.lower() != "concluído")]
             if not sub_pend_maq.empty: st.dataframe(sub_pend_maq[["Nome_Servico", "Descricao_Pendencia", "Prioridade", "Status"]], use_container_width=True, hide_index=True)
             else: st.info("Nenhuma manutenção pendente cadastrada.")
 
