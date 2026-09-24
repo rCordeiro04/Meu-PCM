@@ -171,9 +171,6 @@ df_fusos, df_correias, df_paradas, df_pendencias = carregar_dados()
 if "Nome_Servico" not in df_pendencias.columns:
     df_pendencias["Nome_Servico"] = ""
 
-# ------------------------------------------
-# INJEÇÃO AUTOMÁTICA DE DADOS TESTE
-# ------------------------------------------
 if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
     test_pend = []
     for m in DICIONARIO_SETORES["Setor A"]:
@@ -188,24 +185,6 @@ if "Amortecedores fusos" not in df_pendencias["Nome_Servico"].values:
         })
     df_pendencias = pd.concat([df_pendencias, pd.DataFrame(test_pend)], ignore_index=True)
     df_pendencias.to_excel(ARQUIVO_PENDENCIAS, index=False)
-    st.cache_data.clear()
-
-registros_prev = [
-    {"Data": "2026-06-03", "Setor": "Setor B", "Maquina_TAG": "L-52", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-10", "Setor": "Setor B", "Maquina_TAG": "L-53", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-17", "Setor": "Setor Látex", "Maquina_TAG": "B-87", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-06-24", "Setor": "Setor Látex", "Maquina_TAG": "B-84", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-05", "Setor": "Setor B", "Maquina_TAG": "L-41", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-12", "Setor": "Setor B", "Maquina_TAG": "L-44", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-    {"Data": "2026-08-19", "Setor": "Setor B", "Maquina_TAG": "L-45", "Tipo_Manutencao": "Preventiva", "Descricao_Servico": "Revisão e Lubrificação Geral", "Tempo_Parado_Horas": 4.0},
-]
-novas_paradas = []
-for reg in registros_prev:
-    mask = (df_paradas["Data"] == reg["Data"]) & (df_paradas["Maquina_TAG"] == reg["Maquina_TAG"]) & (df_paradas["Tipo_Manutencao"] == "Preventiva")
-    if not mask.any(): novas_paradas.append(reg)
-if novas_paradas:
-    df_paradas = pd.concat([df_paradas, pd.DataFrame(novas_paradas)], ignore_index=True)
-    df_paradas.to_excel(ARQUIVO_PARADAS, index=False)
     st.cache_data.clear()
 
 def invalidar_cache():
@@ -325,7 +304,6 @@ st.markdown(
         div[data-testid="column"] { padding: 0 6px !important; margin: 0px !important; }
         div[data-testid="stHorizontalBlock"] { gap: 0px !important; margin-bottom: 4px !important; }
         div[data-testid="stVegaLiteChart"] summary, div[data-testid="stVegaLiteChart"] .vega-actions { display: none !important; }
-        
         .card-kpi-bonito {
             background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 16px;
             display: flex; align-items: center; justify-content: space-between; height: 72px; box-sizing: border-box;
@@ -339,7 +317,6 @@ st.markdown(
         .card-kpi-bonito.c-crit::after { background: #ef4444; }
         .kpi-val { font-size: 1.45rem; font-weight: 900; line-height: 1; font-family: 'Inter', sans-serif; color: #0f172a;}
         .kpi-lbl { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-        
         .alerta-manutencao {
             background: #fef2f2; border: 1px solid #fecaca; border-left: 6px solid #ef4444; border-radius: 8px;
             padding: 8px 14px; margin: 6px 0 12px 0; font-size: 0.85rem; font-weight: 600; color: #991b1b; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.05);
@@ -364,16 +341,6 @@ st.markdown(
         .header-setor-dash {
             font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
             padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
-        }
-        
-        /* CSS OCULTO PARA IMPRESSÃO (CTRL+P) DE TELA LIMPA */
-        @media print {
-            [data-testid="stSidebar"] { display: none !important; }
-            header[data-testid="stHeader"] { display: none !important; }
-            .block-container { padding: 1rem !important; max-width: 100% !important; width: 100% !important; }
-            .stButton { display: none !important; }
-            .stToggle { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
     """,
@@ -407,7 +374,7 @@ tela = st.session_state.pagina_atual
 # 1. PAINEL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_t, c_f, c_leg, c_prt = st.columns([30, 15, 40, 15])
+    c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
     with c_t: st.markdown("<h2 style='margin:0; font-weight:900;'>🔄 Dashboard de Correias</h2>", unsafe_allow_html=True)
     with c_f:
         mods_un = sorted(list({r["modelo"] for r in lista_correias_todas if r["modelo"] and r["modelo"] != "Não informada"}))
@@ -421,9 +388,6 @@ if tela == "Painel Correias":
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#94a3b8;'></span> S/ Dados</span>
             </div>
         """, unsafe_allow_html=True)
-    with c_prt:
-        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_cor")
-        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4)
@@ -439,7 +403,7 @@ if tela == "Painel Correias":
     if st.session_state.maq_clicada_cor:
         sel = st.session_state.maq_clicada_cor
         b_cor = "badge-verde" if sel["status_label"] == "Nova" else "badge-amarelo" if sel["status_label"] == "Meia-Vida" else "badge-vermelho" if sel["status_label"] == "Troca Necessária" else "badge-cinza"
-        c_hud, c_cls = st.columns([80, 20])
+        c_hud, c_cls = st.columns([6.2, 0.8])
         with c_hud:
             st.markdown(f"""
                 <div class="hud-detalhe {sel['classe_card']}">
@@ -485,12 +449,9 @@ if tela == "Painel Correias":
 # 2. PAINEL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
-    cf_t, cf_a, cf_prt = st.columns([35, 10, 10])
+    cf_t, cf_a = st.columns([3.8, 1.4])
     cf_t.markdown("<h2 style='margin:0; font-weight:900;'>🔩 Dashboard de Fusos</h2>", unsafe_allow_html=True)
     ano_f = cf_a.selectbox("Ano", [2024, 2025, 2026, 2027], index=2, label_visibility="collapsed")
-    with cf_prt:
-        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_fus")
-        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
@@ -639,7 +600,7 @@ elif tela == "Painel Fusos":
 
         st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
-        c_evol, c_rosca = st.columns([15, 15])
+        c_evol, c_rosca = st.columns([1.5, 1.5])
         with c_evol:
             with st.container(border=True):
                 st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>📊 Evolução de Quebras ({ano_f})</div>", unsafe_allow_html=True)
@@ -651,7 +612,7 @@ elif tela == "Painel Fusos":
 
         with c_rosca:
             with st.container(border=True):
-                cr_col1, cr_col2 = st.columns([20, 15])
+                cr_col1, cr_col2 = st.columns([2.0, 1.5])
                 with cr_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800;'>🍩 Distribuição por Tipo de Fuso</div>", unsafe_allow_html=True)
                 with cr_col2: mes_filtro_rosca_fuso = st.selectbox("Mês:", ["Todos os Meses"] + LISTA_MESES_PUROS, key=f"sel_mes_rosca_fuso_{s_ativo}", label_visibility="collapsed")
 
@@ -673,7 +634,7 @@ elif tela == "Painel Fusos":
         st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
         with st.container(border=True):
-            ch_col1, ch_col2 = st.columns([25, 15])
+            ch_col1, ch_col2 = st.columns([2.5, 1.5])
             with ch_col1: st.markdown(f"<div style='font-size:1rem; font-weight:800; margin-bottom:10px;'>🔥 Mapa de Calor Operacional ({s_ativo})</div>", unsafe_allow_html=True)
             with ch_col2:
                 tipos_disp = sorted(df_sa["Tipo_Fuso"].dropna().unique().tolist()) if not df_sa.empty else OPCOES_TIPO_FUSO
@@ -702,15 +663,12 @@ elif tela == "Painel Fusos":
 # 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2, c_ts3, c_prt = st.columns([30, 15, 15, 12])
+    c_ts1, c_ts2, c_ts3 = st.columns([3.0, 1.5, 1.5])
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
     with c_ts3:
         mes_filtro_painel = st.selectbox("Mês:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, label_visibility="collapsed")
-    with c_prt:
-        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_set")
-        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
 
     with c_ts1: 
         titulo_setor = f"Painel {setor_selecionado_exec}" if setor_selecionado_exec != "Todos os Setores" else "Painel Todos os Setores"
@@ -727,6 +685,7 @@ elif tela == "Painel Setores":
 
     tot_maqs_sel = len(maquinas_alvo_totais)
 
+    # Lógica de Filtro de Tempo Dinâmico
     ano_ref = date.today().year
     mes_ref_num = date.today().month
     dia_ref = date.today().day
@@ -835,6 +794,64 @@ elif tela == "Painel Setores":
                     text=alt.condition("datum.Quantidade_Quebras > 0", alt.Text("Quantidade_Quebras:Q"), alt.value(""))
                 )
                 st.altair_chart((barras_dia + rotulos_dia).properties(height=280), use_container_width=True)
+
+            # =========================================================================
+            # NOVA SESSÃO: PORCENTAGEM DE EFICIÊNCIA DE CADA SETOR SEPARADO (BEM BONITO)
+            # =========================================================================
+            st.markdown("""
+                <style>
+                .card-efi-setor {
+                    background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease-in-out;
+                }
+                .card-efi-setor:hover {
+                    transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); border-color: #cbd5e1;
+                }
+                </style>
+                <div style='height:8px;'></div>
+                <hr style='border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;'>
+                <div style='font-size:1.15rem; font-weight:900; margin-bottom:16px; color:#0f172a; display:flex; align-items:center; gap:8px;'>
+                    ⚡ Eficiência Mecânica Detalhada por Setor
+                </div>
+            """, unsafe_allow_html=True)
+
+            cols_efi = st.columns(len(DICIONARIO_SETORES))
+            
+            for idx, s_nome in enumerate(DICIONARIO_SETORES.keys()):
+                maqs_s = obter_maquinas_setor(s_nome, df_correias, df_fusos)
+                tot_maqs_s = len(maqs_s)
+                
+                df_paradas_s = df_paradas_filtro[df_paradas_filtro['Maquina_TAG'].isin(maqs_s)]
+                hp_s = df_paradas_s['Tempo_Parado_Horas'].sum() if not df_paradas_s.empty else 0.0
+                
+                hd_s = tot_maqs_s * 24 * dias_calculo
+                ho_s = max(0, hd_s - hp_s)
+                th_s = ho_s + hp_s
+                efi_s = (ho_s / th_s * 100) if th_s > 0 else 0.0
+                
+                cor_borda = "#10b981" if efi_s >= 95 else "#f59e0b" if efi_s >= 90 else "#ef4444"
+                icone_status = "🟢" if efi_s >= 95 else "🟡" if efi_s >= 90 else "🔴"
+                
+                with cols_efi[idx]:
+                    st.markdown(f"""
+                        <div class="card-efi-setor" style="border-bottom: 4px solid {cor_borda};">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span style="font-size:0.85rem; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">{s_nome}</span>
+                                <span>{icone_status}</span>
+                            </div>
+                            <div style="font-size:2rem; font-weight:900; color:#0f172a; margin-bottom:12px; line-height:1;">
+                                {efi_s:.1f}<span style="font-size:1.2rem; color:#64748b;">%</span>
+                            </div>
+                            <div style="width:100%; background-color:#e2e8f0; border-radius:8px; height:8px; overflow:hidden; margin-bottom:8px;">
+                                <div style="width:{efi_s}%; background-color:{cor_borda}; height:100%; border-radius:8px; transition: width 1s ease-in-out;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700; color:#64748b;">
+                                <span>{tot_maqs_s} máqs</span>
+                                <span>{hp_s:.1f}h paradas</span>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+            # =========================================================================
+
     else:
         c_fuso_evol, c_top_efi = st.columns([20, 15])
         with c_fuso_evol:
