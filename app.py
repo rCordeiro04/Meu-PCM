@@ -341,10 +341,6 @@ st.markdown(
         .badge-cinza { background: #e2e8f0; color: #475569; }
         .pill-legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; background: #ffffff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);}
         .dot-legenda { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-        .header-setor-dash {
-            font-size: 0.9rem; font-weight: 800; color: #0f172a; border-left: 4px solid #2563eb;
-            padding-left: 10px; margin: 12px 0 6px 0; display: flex; align-items: center; justify-content: space-between;
-        }
     </style>
     """,
     unsafe_allow_html=True,
