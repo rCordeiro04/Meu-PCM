@@ -601,7 +601,7 @@ elif tela == "Painel Fusos":
             st.altair_chart((rect + txt).properties(height=max(250, len(maqs_setor) * 26)), use_container_width=True)
 
 # ------------------------------------------
-# 3. PAINEL DE SETORES (1.0 ESTÁVEL)
+# 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
     c_ts1, c_ts2 = st.columns([3.5, 2.5])
@@ -671,7 +671,7 @@ elif tela == "Painel Setores":
         st.dataframe(df_res_setores, use_container_width=True, hide_index=True)
 
 # ------------------------------------------
-# 4. PAINEL DE MÁQUINAS (EXATAMENTE COMO 1.0)
+# 4. PAINEL DE MÁQUINAS
 # ------------------------------------------
 elif tela == "Painel Maquinas":
     st.markdown("<h2 style='margin:0; font-weight:900;'>⚙️ Prontuário Individual da Máquina</h2>", unsafe_allow_html=True)
@@ -751,7 +751,7 @@ elif tela == "Painel Maquinas":
                 st.info("Sem registros de quebras de fusos para esta máquina.")
 
 # ------------------------------------------
-# 5. BANCO DE DADOS & GESTÃO (COM ABA DE MÁQUINAS INTEGRADA)
+# 5. BANCO DE DADOS & GESTÃO
 # ------------------------------------------
 elif tela == "Banco de Dados":
     st.title("🗄️ Banco de Dados & Sistema")
@@ -960,7 +960,6 @@ elif tela == "Banco de Dados":
                         else:
                             # 1. Injetar na base de correias
                             novo_registro_cor = {"Setor": setor_add, "Maquina_TAG": tag_add, "Tipo_Correia_1": "", "Data_Instalacao_1": "", "Tipo_Correia_2": "", "Data_Instalacao_2": ""}
-                            global df_correias, df_fusos
                             df_correias = pd.concat([df_correias, pd.DataFrame([novo_registro_cor])], ignore_index=True)
                             gerar_backup_seguro(ARQUIVO_CORREIAS)
                             df_correias.to_excel(ARQUIVO_CORREIAS, index=False)
@@ -987,7 +986,6 @@ elif tela == "Banco de Dados":
                 
                 if st.button("Excluir Máquina e Dados", type="primary", use_container_width=True):
                     if tag_del != "-- Selecione --" and confirm_del:
-                        global df_paradas, df_pendencias
                         
                         # 1. Limpar de todos os DataFrames
                         df_fusos = df_fusos[~((df_fusos["Setor"] == setor_del) & (df_fusos["Maquina_TAG"] == tag_del))]
