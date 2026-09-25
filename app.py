@@ -209,6 +209,27 @@ if "maq_clicada_painel" not in st.session_state: st.session_state.maq_clicada_pa
 def navegar(p): st.session_state.pagina_atual = p
 
 # ==========================================
+# CSS GLOBAL DA TELA LIMPA COMPRIMIDA
+# ==========================================
+CSS_TELA_LIMPA = """
+<style>
+    [data-testid='stSidebar'] {display: none !important;} 
+    header[data-testid='stHeader'] {display: none !important;} 
+    .block-container {padding: 0.5rem 1rem !important; max-width: 100% !important;}
+    div[data-testid="stVerticalBlock"] {gap: 0.2rem !important;}
+    div[data-testid="stHorizontalBlock"] {margin-bottom: 2px !important;}
+    .card-kpi-bonito {padding: 10px 15px !important; height: 70px !important;}
+    .kpi-val {font-size: 1.3rem !important;}
+    .kpi-icon {font-size: 1.5rem !important;}
+    .header-setor-dash {margin: 10px 0 5px 0 !important; padding-top: 0 !important;}
+    h2 {font-size: 1.3rem !important; margin-bottom: 0 !important;}
+    .hud-detalhe {padding: 10px 15px !important; margin: 0 0 10px 0 !important;}
+    hr {margin: 10px 0 !important;}
+    .stTabs [data-baseweb="tab-list"] {margin-bottom: 0 !important;}
+</style>
+"""
+
+# ==========================================
 # MOTOR DE REGRAS - CORREIAS
 # ==========================================
 data_hoje = date.today()
@@ -452,7 +473,7 @@ tela = st.session_state.pagina_atual
 # 1. PAINEL DE CORREIAS
 # ------------------------------------------
 if tela == "Painel Correias":
-    c_t, c_f, c_leg = st.columns([3.5, 2.0, 5.5])
+    c_t, c_f, c_leg, c_prt = st.columns([3.0, 1.5, 5.0, 1.5])
     with c_t: st.markdown("<h2 style='margin:0; font-weight:900;'>🔄 Dashboard de Correias</h2>", unsafe_allow_html=True)
     with c_f:
         mods_un = sorted(list({r["modelo"] for r in lista_correias_todas if r["modelo"] and r["modelo"] != "Não informada"}))
@@ -466,6 +487,9 @@ if tela == "Painel Correias":
                 <span class='pill-legenda'><span class='dot-legenda' style='background:#cbd5e1;'></span> S/ Dados</span>
             </div>
         """, unsafe_allow_html=True)
+    with c_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_cor")
+        if modo_limpo: st.markdown(CSS_TELA_LIMPA, unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     k1, k2, k3, k4 = st.columns(4)
@@ -527,9 +551,12 @@ if tela == "Painel Correias":
 # 2. PAINEL DE FUSOS
 # ------------------------------------------
 elif tela == "Painel Fusos":
-    cf_t, cf_a = st.columns([3.8, 1.4])
-    cf_t.markdown("<h2 style='margin:0; font-weight:900;'>🔩 Dashboard de Fusos</h2>", unsafe_allow_html=True)
-    ano_f = cf_a.selectbox("Ano", [2024, 2025, 2026, 2027], index=2, label_visibility="collapsed")
+    cf_t, cf_a, cf_prt = st.columns([3.2, 1.0, 1.0])
+    with cf_t: st.markdown("<h2 style='margin:0; font-weight:900;'>🔩 Dashboard de Fusos</h2>", unsafe_allow_html=True)
+    with cf_a: ano_f = st.selectbox("Ano", [2024, 2025, 2026, 2027], index=2, label_visibility="collapsed")
+    with cf_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_fus")
+        if modo_limpo: st.markdown(CSS_TELA_LIMPA, unsafe_allow_html=True)
 
     data_hoje_ref = date.today()
     ano_atual_ref = data_hoje_ref.year
@@ -741,12 +768,15 @@ elif tela == "Painel Fusos":
 # 3. PAINEL DE SETORES
 # ------------------------------------------
 elif tela == "Painel Setores":
-    c_ts1, c_ts2, c_ts3 = st.columns([3.0, 1.5, 1.5])
+    c_ts1, c_ts2, c_ts3, c_prt = st.columns([2.5, 1.2, 1.3, 1.0])
     with c_ts2:
         setores_filtro_painel = ["Todos os Setores"] + list(DICIONARIO_SETORES.keys())
         setor_selecionado_exec = st.selectbox("Filtrar Setor:", setores_filtro_painel, label_visibility="collapsed")
     with c_ts3:
         mes_filtro_painel = st.selectbox("Mês:", ["Acumulado do Ano"] + LISTA_MESES_PUROS, label_visibility="collapsed")
+    with c_prt:
+        modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_set")
+        if modo_limpo: st.markdown(CSS_TELA_LIMPA, unsafe_allow_html=True)
 
     with c_ts1: 
         titulo_setor = f"Painel {setor_selecionado_exec}" if setor_selecionado_exec != "Todos os Setores" else "Painel Todos os Setores"
@@ -1066,7 +1096,7 @@ elif tela == "Painel Maquinas":
         st.caption("Consulte o histórico detalhado, dados de correias, manutenções corretivas, pendências e quebras de fusos por TAG.")
     with c_m_prt:
         modo_limpo = st.toggle("🖨️ Tela Limpa", key="tgl_maq")
-        if modo_limpo: st.markdown("<style>[data-testid='stSidebar'] {display: none !important;} header[data-testid='stHeader'] {display: none !important;} .block-container {padding-top: 1rem !important; max-width: 100% !important;}</style>", unsafe_allow_html=True)
+        if modo_limpo: st.markdown(CSS_TELA_LIMPA, unsafe_allow_html=True)
 
     col_sm, col_mes = st.columns([20, 20])
     with col_sm: setor_selecionado_maq = st.selectbox("Filtrar por Setor:", list(DICIONARIO_SETORES.keys()), key="sel_maq_painel_set")
@@ -1421,7 +1451,7 @@ elif tela == "Banco de Dados":
                         df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
                         gerar_backup_seguro(ARQUIVO_PARADAS)
                         
-                        # Substituição Completa da base oficial
+                        # SUBSTITUIÇÃO COMPLETA: Assumimos o arquivo enviado como a base oficial
                         df_novo_p[COLUNAS_PARADAS].to_excel(ARQUIVO_PARADAS, index=False)
                         
                         invalidar_cache()
@@ -1449,12 +1479,8 @@ elif tela == "Banco de Dados":
                     for c in COLUNAS_PENDENCIAS:
                         if c not in df_novo.columns: df_novo[c] = "Pendente" if c == "Status" else "Média" if c == "Prioridade" else ""
                     df_novo = df_novo[df_novo["Descricao_Pendencia"].astype(str).str.strip() != ""]
-                    
                     gerar_backup_seguro(ARQUIVO_PENDENCIAS)
-                    
-                    # Substituição Completa da base oficial
                     df_novo[COLUNAS_PENDENCIAS].to_excel(ARQUIVO_PENDENCIAS, index=False)
-                    
                     invalidar_cache()
                     st.toast("✅ Pendências atualizadas com sucesso (Substituição Completa)!")
                     st.rerun()
