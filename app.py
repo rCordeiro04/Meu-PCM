@@ -724,7 +724,6 @@ elif tela == "Painel Fusos":
             agrup_c = df_mapa_calor.groupby(["Maquina_TAG", "Mes"])["Quantidade_Quebras"].sum().reset_index()
             m_calor = pd.merge(idx_grid, agrup_c, left_on=["MAQ", "Mes"], right_on=["Maquina_TAG", "Mes"], how="left").fillna(0)
 
-            # GRÁFICO DE CALOR MANTIDO RIGOROSAMENTE INTACTO!
             rect = alt.Chart(m_calor).mark_rect(stroke="#fff", strokeWidth=1.5).encode(
                 x=alt.X("MES:N", sort=ORDEM_MESES_ABREV, title=None, axis=alt.Axis(orient="top", labelAngle=0)),
                 y=alt.Y("MAQ:N", sort=maqs_setor, title=None),
@@ -1422,7 +1421,7 @@ elif tela == "Banco de Dados":
                         df_novo_p = df_novo_p[(df_novo_p["Tempo_Parado_Horas"] > 0) | (df_novo_p["Descricao_Servico"].astype(str).str.strip() != "")]
                         gerar_backup_seguro(ARQUIVO_PARADAS)
                         
-                        # SUBSTITUIÇÃO COMPLETA: Assumimos o arquivo enviado como a base oficial
+                        # Substituição Completa da base oficial
                         df_novo_p[COLUNAS_PARADAS].to_excel(ARQUIVO_PARADAS, index=False)
                         
                         invalidar_cache()
@@ -1450,10 +1449,14 @@ elif tela == "Banco de Dados":
                     for c in COLUNAS_PENDENCIAS:
                         if c not in df_novo.columns: df_novo[c] = "Pendente" if c == "Status" else "Média" if c == "Prioridade" else ""
                     df_novo = df_novo[df_novo["Descricao_Pendencia"].astype(str).str.strip() != ""]
+                    
                     gerar_backup_seguro(ARQUIVO_PENDENCIAS)
-                    pd.concat([df_pendencias, df_novo[COLUNAS_PENDENCIAS]], ignore_index=True).to_excel(ARQUIVO_PENDENCIAS, index=False)
+                    
+                    # Substituição Completa da base oficial
+                    df_novo[COLUNAS_PENDENCIAS].to_excel(ARQUIVO_PENDENCIAS, index=False)
+                    
                     invalidar_cache()
-                    st.toast("✅ Pendências atualizadas!")
+                    st.toast("✅ Pendências atualizadas com sucesso (Substituição Completa)!")
                     st.rerun()
                 except Exception as e: st.error(f"Erro: {e}")
 
